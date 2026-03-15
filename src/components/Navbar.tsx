@@ -1,5 +1,11 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/hooks/use-language";
 import type { Language } from "@/lib/i18n";
 
@@ -19,21 +25,24 @@ const Navbar = () => {
         </a>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <label className="flex items-center gap-2 text-xs text-muted-foreground" htmlFor="language-switcher">
-            <span className="hidden md:inline">{t.navbar.languageLabel}</span>
-            <select
-              id="language-switcher"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-              className="h-8 md:h-9 rounded-md border border-border bg-background px-1 md:px-2 text-xs md:text-sm text-foreground outline-none"
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground" aria-label={t.navbar.languageLabel}>
+                <Globe className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[120px]">
               {options.map((option) => (
-                <option key={option.value} value={option.value}>
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => setLanguage(option.value as Language)}
+                  className={`cursor-pointer font-medium ${language === option.value ? "bg-primary/10 text-primary" : ""}`}
+                >
                   {option.label}
-                </option>
+                </DropdownMenuItem>
               ))}
-            </select>
-          </label>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button 
             variant="ghost" 

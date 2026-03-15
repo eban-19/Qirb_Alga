@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSection";
 import RoomList from "@/components/RoomList";
 import HowItWorks from "@/components/HowItWorks";
 import OwnerBanner from "@/components/OwnerBanner";
+import AppDownload from "@/components/AppDownload";
 import Footer from "@/components/Footer";
 
 const Rooms = () => {
@@ -12,6 +13,7 @@ const Rooms = () => {
             <HeroSection />
             <RoomList />
             <HowItWorks />
+            <AppDownload />
             <OwnerBanner />
             <Footer />
         </div>

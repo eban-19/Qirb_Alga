@@ -124,6 +124,16 @@ export interface TranslationSchema {
         benefits: Array<{ title: string; desc: string }>;
         cta: string;
     };
+    appDownload: {
+        badge: string;
+        title: string;
+        subtitle: string;
+        googlePlay: string;
+        appStore: string;
+        feature1: string;
+        feature2: string;
+        feature3: string;
+    };
     footer: {
         tagline: string;
         quickLinks: string;
@@ -295,6 +305,16 @@ export const translations: Record<Language, TranslationSchema> = {
             ],
             cta: "Register Your Property - It's Free",
         },
+        appDownload: {
+            badge: "Get the App",
+            title: "Download Qirb Alga App",
+            subtitle: "Book pensions faster, get exclusive app-only deals, and navigate directly to your room.",
+            googlePlay: "Get it on Google Play",
+            appStore: "Download on the App Store",
+            feature1: "Easy Booking",
+            feature2: "Exclusive Deals",
+            feature3: "Real-time mapping"
+        },
         footer: {
             tagline: "Discover and book the best pensions near you with ease.",
             quickLinks: "Quick Links",
@@ -464,6 +484,16 @@ export const translations: Record<Language, TranslationSchema> = {
             ],
             cta: "Qabeenya Kee Galmeessi - Bilisa",
         },
+        appDownload: {
+            badge: "Appilikeeshinii Buufadhu",
+            title: "Appilikeeshinii Qirb Alga Buufadhu",
+            subtitle: "Pensiinoota saffisaan buuki godhi, gatiiwwan gaarii addaa appilikeeshinii qofaaf ta'an argadhu, akkasumas kallattiin gara kutaa keetiitti qajeeli.",
+            googlePlay: "Google Play irraa argadhu",
+            appStore: "App Store irraa buufadhu",
+            feature1: "Buukingii Salphaa",
+            feature2: "Gatiiwwan Addaa",
+            feature3: "Kaartaa Yeroo Ammaa"
+        },
         footer: {
             tagline: "Pensiinoota filatamoo si dhihoo jiran salphaatti argadhu.",
             quickLinks: "Geessituuwwan",
@@ -632,8 +662,16 @@ export const translations: Record<Language, TranslationSchema> = {
                 },
             ],
             cta: "ንብረትዎን ያስመዝግቡ - ነጻ",
-        },
-        footer: {
+        },        appDownload: {
+            badge: "መተግበሪያውን ያግኙ",
+            title: "የ Qirb Alga መተግበሪያን ያውርዱ",
+            subtitle: "ፔንሽኖችን በፍጥነት ያስይዙ፣ ለመተግበሪያ ብቻ የሆኑ ልዩ ቅናሾችን ያግኙ፣ እና በቀጥታ ወደ ክፍልዎ ይሂዱ።",
+            googlePlay: "ከ Google Play ያግኙ",
+            appStore: "ከ App Store ያውርዱ",
+            feature1: "ቀላል ቡኪንግ",
+            feature2: "ልዩ ቅናሾች",
+            feature3: "የቀጥታ ካርታ"
+        },        footer: {
             tagline: "በአቅራቢያዎ ያሉ ምርጥ ፔንሽኖችን በቀላሉ ያግኙ እና ያስይዙ።",
             quickLinks: "ፈጣን አገናኞች",
             support: "ድጋፍ",
