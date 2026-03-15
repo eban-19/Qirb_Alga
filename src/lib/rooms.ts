@@ -5,7 +5,6 @@ import room3 from "@/assets/room-3.png";
 import room4 from "@/assets/room-4.png";
 import room5 from "@/assets/room-5.png";
 import room6 from "@/assets/room-6.png";
-import roomVideo from "@/assets/room.mp4";
 import package101Standard from "@/assets/package-101-standard.png";
 import package101Premium from "@/assets/package-101-premium.png";
 import package102Standard from "@/assets/package-102-standard.png";
@@ -19,12 +18,16 @@ import package105Premium from "@/assets/package-105-premium.png";
 import package106Standard from "@/assets/package-106-standard.png";
 import package106Premium from "@/assets/package-106-premium.png";
 
+export type PackageTier = "Basic" | "Standard" | "Premium";
+
 export interface RoomPackage {
-  name: string;
+  name: PackageTier;
   price: number;
   description: string;
   image: string;
   videoUrl?: string;
+  services: string[];
+  availableRooms: number;
 }
 
 export interface Room {
@@ -41,7 +44,6 @@ export interface Room {
   availableRooms: number;
   images: string[];
   videoUrl?: string;
-  services: string[];
   packages: RoomPackage[];
   distance?: number;
 }
@@ -60,22 +62,33 @@ const roomSeedData: Room[] = [
     longitude: 38.7578,
     availableRooms: 5,
     images: [room1, heroBg],
-    videoUrl: roomVideo,
-    services: ["WiFi", "Parking", "Laundry", "Security", "Water", "Electricity"],
+    videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
     packages: [
       { 
-        name: "Standard Room", 
-        price: 3000, 
-        description: "Basic room", 
-        image: package101Standard,
-        videoUrl: roomVideo 
+        name: "Basic", 
+        price: 2000, 
+        description: "Room only with shared essentials.", 
+        image: room5,
+        services: ["Standard WiFi", "Shared Bathroom", "Daily Cleaning"],
+        availableRooms: 1
       },
       { 
-        name: "Deluxe Room", 
+        name: "Standard", 
+        price: 3500, 
+        description: "Comfortable stay with private amenities.", 
+        image: package101Standard,
+        videoUrl: "https://player.vimeo.com/external/403666579.sd.mp4?s=12bb9b52a92e1efffc9f4ce10e14bf768b58df8a&profile_id=164&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included", "Free Parking"],
+        availableRooms: 3
+      },
+      { 
+        name: "Premium", 
         price: 5000, 
-        description: "Large room with balcony", 
+        description: "Luxury experience with full board.", 
         image: package101Premium,
-        videoUrl: roomVideo
+        videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "Private Balcony", "3 Meals Included", "Airport Pickup", "Laundry Service"],
+        availableRooms: 1
       },
     ],
   },
@@ -92,11 +105,34 @@ const roomSeedData: Room[] = [
     longitude: 38.7469,
     availableRooms: 2,
     images: [room2, heroBg],
-    videoUrl: roomVideo,
-    services: ["WiFi", "Laundry", "Security", "Water", "Electricity"],
+    videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
     packages: [
-      { name: "Standard Room", price: 2800, description: "Comfort room", image: package102Standard },
-      { name: "Deluxe Room", price: 4600, description: "Spacious room with city view", image: package102Premium },
+      { 
+        name: "Basic", 
+        price: 1800, 
+        description: "Functional and affordable room.", 
+        image: room6,
+        services: ["Standard WiFi", "Shared Bathroom", "Fresh Towels"],
+        availableRooms: 2
+      },
+      { 
+        name: "Standard", 
+        price: 2800, 
+        description: "Comfort room with private bathroom.", 
+        image: package102Standard, 
+        videoUrl: "https://player.vimeo.com/external/403666579.sd.mp4?s=12bb9b52a92e1efffc9f4ce10e14bf768b58df8a&profile_id=164&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"],
+        availableRooms: 0
+      },
+      { 
+        name: "Premium", 
+        price: 4600, 
+        description: "Spacious room with city view.", 
+        image: package102Premium, 
+        videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Laundry Service"],
+        availableRooms: 0
+      },
     ],
   },
   {
@@ -112,10 +148,34 @@ const roomSeedData: Room[] = [
     longitude: 38.7608,
     availableRooms: 1,
     images: [room3, heroBg],
-    services: ["WiFi", "Parking", "Security", "Water", "Electricity"],
+    videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
     packages: [
-      { name: "Standard Room", price: 3400, description: "Basic business room", image: package103Standard },
-      { name: "Deluxe Room", price: 5200, description: "Executive room", image: package103Premium },
+      { 
+        name: "Basic", 
+        price: 2200, 
+        description: "Compact room with essential utilities.", 
+        image: room1, 
+        services: ["Standard WiFi", "Shared Bathroom", "Fresh Linens"],
+        availableRooms: 0
+      },
+      { 
+        name: "Standard", 
+        price: 3400, 
+        description: "Basic business room with workspace.", 
+        image: package103Standard, 
+        videoUrl: "https://player.vimeo.com/external/403666579.sd.mp4?s=12bb9b52a92e1efffc9f4ce10e14bf768b58df8a&profile_id=164&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included", "Dedicated Workspace"],
+        availableRooms: 1
+      },
+      { 
+        name: "Premium", 
+        price: 5200, 
+        description: "Executive room with all-inclusive services.", 
+        image: package103Premium, 
+        videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Laundry Service", "Airport Transfer"],
+        availableRooms: 0
+      },
     ],
   },
   {
@@ -131,10 +191,34 @@ const roomSeedData: Room[] = [
     longitude: 38.7636,
     availableRooms: 8,
     images: [room4, heroBg],
-    services: ["WiFi", "Water", "Electricity", "Security"],
+    videoUrl: "https://player.vimeo.com/external/403666579.sd.mp4?s=12bb9b52a92e1efffc9f4ce10e14bf768b58df8a&profile_id=164&oauth2_token_id=57447761",
     packages: [
-      { name: "Standard Room", price: 2400, description: "Entry-level room", image: package104Standard },
-      { name: "Deluxe Room", price: 3900, description: "Larger room", image: package104Premium },
+      { 
+        name: "Basic", 
+        price: 1500, 
+        description: "Standard room, very budget-friendly.", 
+        image: room2, 
+        services: ["Standard WiFi", "Shared Bathroom", "Weekly Cleaning"],
+        availableRooms: 4
+      },
+      { 
+        name: "Standard", 
+        price: 2400, 
+        description: "Entry-level private room.", 
+        image: package104Standard, 
+        videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"],
+        availableRooms: 3
+      },
+      { 
+        name: "Premium", 
+        price: 3900, 
+        description: "Larger room with better ventilation and services.", 
+        image: package104Premium, 
+        videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Free Parking"],
+        availableRooms: 1
+      },
     ],
   },
   {
@@ -150,10 +234,34 @@ const roomSeedData: Room[] = [
     longitude: 38.7393,
     availableRooms: 3,
     images: [room5, heroBg],
-    services: ["WiFi", "Parking", "Laundry", "Security", "Water", "Electricity"],
+    videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
     packages: [
-      { name: "Standard Room", price: 3600, description: "Comfort room", image: package105Standard },
-      { name: "Deluxe Room", price: 5600, description: "Large room with balcony", image: package105Premium },
+      { 
+        name: "Basic", 
+        price: 2500, 
+        description: "Standard lodge room.", 
+        image: room3, 
+        services: ["Standard WiFi", "Shared Bathroom", "Fresh Towels"],
+        availableRooms: 0
+      },
+      { 
+        name: "Standard", 
+        price: 3600, 
+        description: "Comfort room with private bathroom.", 
+        image: package105Standard, 
+        videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included", "Free Parking"],
+        availableRooms: 2
+      },
+      { 
+        name: "Premium", 
+        price: 5600, 
+        description: "Large room with balcony.", 
+        image: package105Premium, 
+        videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "Private Balcony", "All Meals Included", "Laundry Service", "Airport Transfer"],
+        availableRooms: 1
+      },
     ],
   },
   {
@@ -169,10 +277,34 @@ const roomSeedData: Room[] = [
     longitude: 38.7614,
     availableRooms: 6,
     images: [room6, heroBg],
-    services: ["WiFi", "Laundry", "Security", "Water", "Electricity"],
+    videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
     packages: [
-      { name: "Standard Room", price: 3000, description: "Standard room", image: package106Standard },
-      { name: "Deluxe Room", price: 4700, description: "Large shared-apartment room", image: package106Premium },
+      { 
+        name: "Basic", 
+        price: 1800, 
+        description: "Practical shared-facility room.", 
+        image: room4, 
+        services: ["Standard WiFi", "Shared Bathroom", "Basic Cleaning"],
+        availableRooms: 3
+      },
+      { 
+        name: "Standard", 
+        price: 3000, 
+        description: "Standard private room.", 
+        image: package106Standard, 
+        videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"],
+        availableRooms: 2
+      },
+      { 
+        name: "Premium", 
+        price: 4700, 
+        description: "Large shared-apartment room with all perks.", 
+        image: package106Premium, 
+        videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
+        services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Laundry Service"],
+        availableRooms: 1
+      },
     ],
   },
 ];

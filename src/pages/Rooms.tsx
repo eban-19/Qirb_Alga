@@ -6,16 +6,16 @@ import OwnerBanner from "@/components/OwnerBanner";
 import Footer from "@/components/Footer";
 
 const Rooms = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <HeroSection />
-      <RoomList />
-      <HowItWorks />
-      <OwnerBanner />
-      <Footer />
-    </div>
-  );
+    return (
+        <div className="min-h-screen bg-background">
+            <Navbar />
+            <HeroSection />
+            <RoomList />
+            <HowItWorks />
+            <OwnerBanner />
+            <Footer />
+        </div>
+    );
 };
 
 export default Rooms;

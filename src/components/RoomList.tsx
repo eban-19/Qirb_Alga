@@ -1,32 +1,35 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Search, MapPin, BedDouble, Tags, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import RoomCard from "@/components/RoomCard";
-import RoomProfile from "@/components/RoomProfile";
 import RoomCardSkeleton from "@/components/RoomCardSkeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useRooms } from "@/hooks/use-rooms";
 import { useLanguage } from "@/hooks/use-language";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { Room } from "@/lib/rooms";
+
+export type FilterType = "nearest" | "available" | "deals" | null;
 
 const RoomList = () => {
   const { data: rooms = [], isLoading } = useRooms();
   const { t } = useLanguage();
-  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
-  const selectedRoomId = searchParams.get("pension");
   const urlLat = searchParams.get("lat");
   const urlLng = searchParams.get("lng");
 
-  const selectedRoom = useMemo(
-    () => rooms.find((r) => r.id.toString() === selectedRoomId) || null,
-    [rooms, selectedRoomId]
-  );
+  const [activeFilter, setActiveFilter] = useState<FilterType>(null);
+  const [isLocating, setIsLocating] = useState<FilterType>(null);
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(() => {
+    if (urlLat && urlLng) {
+      return { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
+    }
+    return null;
+  });
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // km
@@ -40,9 +43,51 @@ const RoomList = () => {
     return R * c;
   };
 
+  const handleFilterClick = (filter: Extract<FilterType, string>) => {
+    if (activeFilter === filter) {
+      setActiveFilter(null);
+      return;
+    }
+
+    if (!userLoc) {
+      setIsLocating(filter);
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setUserLoc(loc);
+            setActiveFilter(filter);
+            setIsLocating(null);
+            
+            // Optionally, update URL to keep location sticky
+            const params = new URLSearchParams(searchParams);
+            params.set("lat", loc.lat.toString());
+            params.set("lng", loc.lng.toString());
+            setSearchParams(params, { replace: true });
+          },
+          (error) => {
+            console.error(error);
+            setIsLocating(null);
+            toast.error("Location disabled. Showing general results.");
+            // Still set filter to apply non-location parts like basic sort
+            setActiveFilter(filter);
+          },
+          { timeout: 10000 }
+        );
+      } else {
+        toast.error("Geolocation is not supported by your browser.");
+        setIsLocating(null);
+        setActiveFilter(filter);
+      }
+    } else {
+      setActiveFilter(filter);
+    }
+  };
+
   const filteredRooms = useMemo(() => {
     let result = [...rooms];
 
+    // 1. Text Search Filter
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
       result = result.filter(
@@ -52,29 +97,57 @@ const RoomList = () => {
       );
     }
 
-    if (urlLat && urlLng) {
-      const userLat = parseFloat(urlLat);
-      const userLng = parseFloat(urlLng);
-      // Calculate and attach distance to each room
-      result = result.map(room => ({
+    // 2. Attach Distance if Location Known
+    if (userLoc) {
+      result = result.map((room) => ({
         ...room,
-        distance: calculateDistance(userLat, userLng, room.latitude, room.longitude)
+        distance: calculateDistance(userLoc.lat, userLoc.lng, room.latitude, room.longitude),
       }));
-      // Sort by distance (closest first)
+    }
+
+    // 3. Apply Quick Filters
+    if (activeFilter === "nearest") {
+      // Filter out completely sold out properties
+      result = result.filter((r) => r.availableRooms > 0);
+      // Sort primarily by distance
+      if (userLoc) {
+        result.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+      }
+    } else if (activeFilter === "available") {
+      // Ensure we only show available
+      result = result.filter((r) => r.availableRooms > 0);
+      // Sort heavily by available rooms descending, then distance
       result.sort((a, b) => {
+        const roomDiff = b.availableRooms - a.availableRooms;
+        if (roomDiff !== 0) return roomDiff;
+        return (a.distance || 0) - (b.distance || 0);
+      });
+    } else if (activeFilter === "deals") {
+      // Filter out completely sold out properties
+      result = result.filter((r) => r.availableRooms > 0);
+      
+      // Calculate cheapest available package for each room
+      const getCheapestPrice = (r: Room) => {
+        const availablePkgs = r.packages.filter(p => p.availableRooms > 0);
+        if (availablePkgs.length === 0) return Infinity;
+        return Math.min(...availablePkgs.map(p => p.price));
+      };
+
+      // Ensure we mark them as a deal on the entity if we wanted
+      result.sort((a, b) => {
+        const priceA = getCheapestPrice(a);
+        const priceB = getCheapestPrice(b);
+        const priceDiff = priceA - priceB;
+        if (priceDiff !== 0) return priceDiff;
         return (a.distance || 0) - (b.distance || 0);
       });
     }
 
     return result;
-  }, [rooms, searchQuery, urlLat, urlLng]);
+  }, [rooms, searchQuery, userLoc, activeFilter]);
 
   const handleOpenRoom = (room: Room) => {
-    setSearchParams({ pension: room.id.toString() }, { replace: true });
-  };
-
-  const handleCloseRoom = () => {
-    setSearchParams({}, { replace: true });
+    navigate(`/room/${room.id}`);
   };
 
   return (
@@ -85,16 +158,49 @@ const RoomList = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">{t.rooms.listSubtitle}</p>
         </div>
 
-        <div className="max-w-md mx-auto mb-12 relative">
-          <div className="relative">
+        <div className="max-w-2xl mx-auto mb-10 space-y-4">
+          <div className="relative relative w-full md:w-3/4 mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={t.hero.searchPlaceholder}
-              className="pl-10 h-12 rounded-xl border-border bg-card shadow-sm"
+              placeholder={t.hero.searchPlaceholder || "Search places or locations..."}
+              className="pl-10 h-14 rounded-xl border-border bg-card shadow-sm text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 px-2">
+            <Button 
+              variant={activeFilter === "nearest" ? "default" : "outline"} 
+              size="sm" 
+              className="rounded-full shadow-sm gap-2"
+              onClick={() => handleFilterClick("nearest")}
+              disabled={isLocating === "nearest"}
+            >
+              {isLocating === "nearest" ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+              {t.rooms.nearestProperties}
+            </Button>
+            <Button 
+              variant={activeFilter === "available" ? "default" : "outline"} 
+              size="sm" 
+              className="rounded-full shadow-sm gap-2"
+              onClick={() => handleFilterClick("available")}
+              disabled={isLocating === "available"}
+            >
+              {isLocating === "available" ? <Loader2 className="w-4 h-4 animate-spin" /> : <BedDouble className="w-4 h-4" />}
+              {t.rooms.availableRoomsFilter}
+            </Button>
+            <Button 
+              variant={activeFilter === "deals" ? "default" : "outline"} 
+              size="sm" 
+              className="rounded-full shadow-sm gap-2"
+              onClick={() => handleFilterClick("deals")}
+              disabled={isLocating === "deals"}
+            >
+              {isLocating === "deals" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tags className="w-4 h-4" />}
+              {t.rooms.bestDeals}
+            </Button>
           </div>
         </div>
 
@@ -105,48 +211,26 @@ const RoomList = () => {
             ))}
           </div>
         ) : filteredRooms.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-12 text-center max-w-lg mx-auto">
-            <h3 className="text-xl font-bold mb-2">No Properties Available</h3>
-            <p className="text-muted-foreground">{searchQuery ? "No matches found for your search." : t.rooms.noRooms}</p>
+          <div className="bg-card border border-border rounded-xl p-12 text-center max-w-lg mx-auto shadow-sm">
+            <h3 className="text-xl font-bold mb-2">{t.rooms.noPropertiesFound}</h3>
+            <p className="text-muted-foreground">{searchQuery ? t.rooms.noMatchesQuery : t.rooms.noRooms}</p>
+            {activeFilter && (
+              <Button variant="outline" className="mt-4" onClick={() => setActiveFilter(null)}>
+                {t.rooms.clearFilters}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRooms.map((room) => (
-              <RoomCard key={room.id} room={room} onViewProfile={handleOpenRoom} />
+              <RoomCard 
+                key={room.id} 
+                room={room} 
+                onViewProfile={handleOpenRoom} 
+                isDeal={activeFilter === "deals"}
+              />
             ))}
           </div>
-        )}
-
-        {isMobile ? (
-          <Drawer open={Boolean(selectedRoom)} onOpenChange={(isOpen) => !isOpen && handleCloseRoom()}>
-            <DrawerContent className="max-h-[95vh] p-0">
-              {selectedRoom ? (
-                <>
-                  <DrawerHeader className="sr-only">
-                    <DrawerTitle>{selectedRoom.name}</DrawerTitle>
-                    <DrawerDescription>{selectedRoom.locationName}</DrawerDescription>
-                  </DrawerHeader>
-                  <div className="overflow-y-auto w-full">
-                    <RoomProfile room={selectedRoom} />
-                  </div>
-                </>
-              ) : null}
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <Dialog open={Boolean(selectedRoom)} onOpenChange={(isOpen) => !isOpen && handleCloseRoom()}>
-            <DialogContent className="max-w-4xl p-0 overflow-hidden max-h-[90vh]">
-              {selectedRoom ? (
-                <>
-                  <DialogHeader className="sr-only">
-                    <DialogTitle>{selectedRoom.name}</DialogTitle>
-                    <DialogDescription>{selectedRoom.locationName}</DialogDescription>
-                  </DialogHeader>
-                  <RoomProfile room={selectedRoom} />
-                </>
-              ) : null}
-            </DialogContent>
-          </Dialog>
         )}
       </div>
     </section>

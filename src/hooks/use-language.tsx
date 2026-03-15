@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { languageLabels, translations, type Language, type TranslationSchema } from "@/lib/i18n";
+import { languageLabels, translations, trDict, type Language, type TranslationSchema } from "@/lib/i18n";
 
 interface LanguageContextValue {
   language: Language;
   setLanguage: (language: Language) => void;
   t: TranslationSchema;
+  tr: (text: string) => string;
   options: Array<{ value: Language; label: string }>;
 }
 
@@ -35,6 +36,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       language,
       setLanguage,
       t: translations[language],
+      tr: (text: string) => trDict(text, language),
       options: [
         { value: "en", label: languageLabels.en },
         { value: "om", label: languageLabels.om },

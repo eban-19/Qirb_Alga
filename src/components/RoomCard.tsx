@@ -7,15 +7,22 @@ import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 interface RoomCardProps {
   room: Room;
   onViewProfile: (room: Room) => void;
+  isDeal?: boolean;
 }
 
-const RoomCard = ({ room, onViewProfile }: RoomCardProps) => {
-  const { t } = useLanguage();
-  const startingPrice = Math.min(...room.packages.map((item) => item.price));
+const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
+  const { t, tr } = useLanguage();
+  
+  // Calculate starting price based on available rooms if possible, else default to minimum 
+  const availablePkgs = room.packages.filter(p => p.availableRooms > 0);
+  const startingPrice = availablePkgs.length > 0 
+    ? Math.min(...availablePkgs.map((item) => item.price))
+    : Math.min(...room.packages.map((item) => item.price));
+
   const mapsUrl = getGoogleMapsNavigationUrl(room);
 
   return (
-    <article className="bg-card rounded-xl overflow-hidden border border-border card-hover group flex flex-col cursor-pointer" onClick={() => onViewProfile(room)}>
+    <article className={`bg-card rounded-xl overflow-hidden border card-hover group flex flex-col cursor-pointer transition-all ${isDeal ? 'border-orange-200 dark:border-orange-900/50 shadow-md ring-1 ring-orange-500/20' : 'border-border'}`} onClick={() => onViewProfile(room)}>
       <div className="relative h-56 overflow-hidden shrink-0">
         <img
           src={room.images[0]}
@@ -23,8 +30,13 @@ const RoomCard = ({ room, onViewProfile }: RoomCardProps) => {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
-        <Badge className="absolute top-3 right-3 bg-success text-success-foreground border-0 font-semibold text-xs">
-          {t.rooms.availableRooms}: {room.availableRooms}
+        {isDeal && (
+          <div className="absolute top-3 left-3 bg-orange-500 text-white px-2.5 py-1 rounded-md font-bold text-xs shadow-md flex items-center gap-1.5 z-10">
+            {t.rooms.bestDealBadge}
+          </div>
+        )}
+        <Badge className={`absolute top-3 right-3 border-0 font-semibold text-xs shadow-sm ${room.availableRooms > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
+          {room.availableRooms === 0 ? t.rooms.soldOut : `${t.rooms.availableRooms}: ${room.availableRooms}`}
         </Badge>
       </div>
 
@@ -33,6 +45,9 @@ const RoomCard = ({ room, onViewProfile }: RoomCardProps) => {
           <h3 className="font-heading font-bold text-card-foreground text-xl leading-tight line-clamp-1" title={room.name}>
             {room.name}
           </h3>
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-1 mb-2">
+            {tr(room.description)}
+          </p>
           <a
             href={mapsUrl}
             target="_blank"
@@ -46,7 +61,7 @@ const RoomCard = ({ room, onViewProfile }: RoomCardProps) => {
               {room.locationName}
               {room.distance !== undefined && (
                 <span className="ml-2 font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
-                  {room.distance < 1 ? `${Math.round(room.distance * 1000)} m away` : `${room.distance.toFixed(1)} km away`}
+                  {room.distance < 1 ? `${Math.round(room.distance * 1000)} m ${t.propertyCard.away}` : `${room.distance.toFixed(1)} km ${t.propertyCard.away}`}
                 </span>
               )}
             </span>
@@ -58,7 +73,7 @@ const RoomCard = ({ room, onViewProfile }: RoomCardProps) => {
             <div className="flex flex-col">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.propertyCard.startingPriceLabel}</span>
               <p className="text-xl font-bold text-foreground">
-                ETB {startingPrice.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">/ night</span>
+                ETB {startingPrice.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{t.propertyCard.perNight}</span>
               </p>
             </div>
           </div>

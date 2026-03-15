@@ -1,16 +1,18 @@
 import { useMemo, useState, useEffect } from "react";
-import { MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
+import { useNavigate } from "react-router-dom";
 
 interface RoomProfileProps {
   room: Room;
 }
 
 const RoomProfile = ({ room }: RoomProfileProps) => {
-  const { t } = useLanguage();
+  const { t, tr } = useLanguage();
+  const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | undefined>(room.videoUrl || room.images[0]);
   const [activeMediaType, setActiveMediaType] = useState<'video'|'image'>(room.videoUrl ? 'video' : 'image');
@@ -28,33 +30,35 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
     [room.packages],
   );
 
-  const serviceIconMap: Record<string, JSX.Element> = {
-    WiFi: <Wifi className="w-4 h-4" />,
-    Parking: <Car className="w-4 h-4" />,
-    Laundry: <Shirt className="w-4 h-4" />,
-    Security: <ShieldCheck className="w-4 h-4" />,
-    Water: <Droplets className="w-4 h-4" />,
-    Electricity: <Zap className="w-4 h-4" />,
-  };
-
   return (
-    <div className="bg-background w-full h-full lg:max-h-[90vh] overflow-y-auto pb-4">
-      <div className="p-5 md:p-6 border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
-        <h2 className="font-heading text-2xl font-bold text-foreground">{room.name}</h2>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-sm text-muted-foreground">{t.rooms.profileTitlePrefix} #{room.id}</p>
-          <Button size="sm" variant="outline" className="gap-2">
+    <div className="w-full bg-background pt-24 pb-16 min-h-screen">
+      <div className="container mx-auto px-4 lg:px-8">
+        
+        {/* Header & Back Button */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div>
+            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-4 h-4" /> Back
+            </Button>
+            <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{room.name}</h1>
+            <div className="flex items-center gap-2 mt-3 text-muted-foreground">
+              <MapPin className="w-5 h-5 text-primary" />
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors underline-offset-4 hover:underline text-lg">
+                {room.locationName}
+              </a>
+            </div>
+          </div>
+          <Button size="lg" className="gap-2 shrink-0 shadow-sm">
             <PhoneCall className="w-4 h-4" />
             {t.rooms.contactHost}
           </Button>
         </div>
-      </div>
 
-      <div className="p-4 md:p-6 pt-4">
-        <div className="relative w-full h-48 md:h-64 rounded-xl overflow-hidden border border-border mb-4 bg-muted group">
+        {/* Media Block */}
+        <div className="relative w-full h-[40vh] md:h-[60vh] rounded-3xl overflow-hidden border border-border mb-12 bg-muted shadow-sm group">
           {showVideo && activeMediaType === 'video' && activeMediaUrl ? (
             <video 
-              key={activeMediaUrl} // force re-render on url change
+              key={activeMediaUrl}
               src={activeMediaUrl} 
               poster={room.images[0]}
               controls 
@@ -69,18 +73,18 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                   className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   onClick={() => setShowVideo(true)}
                 >
-                  <PlayCircle className="w-16 h-16 text-white drop-shadow-lg" />
+                  <PlayCircle className="w-20 h-20 text-white drop-shadow-xl" />
                 </div>
               )}
             </>
           )}
 
           {(room.videoUrl || room.packages.some(p => p.videoUrl)) && (
-            <div className="absolute bottom-4 right-4 flex gap-2">
+            <div className="absolute bottom-6 right-6 flex gap-3">
               <Button 
                 size="sm" 
                 variant={!showVideo ? "outline" : "default"} 
-                className="gap-2 bg-background/90 hover:bg-background text-foreground backdrop-blur-sm"
+                className="gap-2 bg-background/95 hover:bg-background text-foreground backdrop-blur-md shadow-lg"
                 onClick={() => {
                   setShowVideo(false);
                   setActiveMediaType('image');
@@ -88,13 +92,13 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                 }}
               >
                 <ImageIcon className="w-4 h-4" />
-                {t.rooms.viewPhotos || "Photos"}
+                Photos
               </Button>
               {room.videoUrl && (
                 <Button 
                   size="sm" 
                   variant={showVideo && activeMediaUrl === room.videoUrl ? "outline" : "default"} 
-                  className="gap-2 bg-background/90 hover:bg-background text-foreground backdrop-blur-sm"
+                  className="gap-2 bg-background/95 hover:bg-background text-foreground backdrop-blur-md shadow-lg"
                   onClick={() => {
                     setShowVideo(true);
                     setActiveMediaType('video');
@@ -102,130 +106,173 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                   }}
                 >
                   <PlayCircle className="w-4 h-4" />
-                  {t.rooms.watchVideo || "Room Demo"}
+                  Room Demo
                 </Button>
               )}
             </div>
           )}
         </div>
 
-        <Tabs defaultValue="about" className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto whitespace-nowrap">
-            <TabsTrigger value="about">{t.rooms.aboutTitle}</TabsTrigger>
-            <TabsTrigger value="services">{t.rooms.servicesTitle}</TabsTrigger>
-            <TabsTrigger value="packages">{t.rooms.packagesTitle}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="about" className="mt-4 space-y-4">
-            <section className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <p className="text-muted-foreground">{room.description}</p>
-              <div>
-                <h3 className="font-semibold text-card-foreground">{t.rooms.ownerInfoTitle}</h3>
-                <p className="text-muted-foreground">{room.ownerInfo}</p>
+        {/* Layout: Content */}
+        <div className="max-w-5xl mx-auto space-y-16">
+          
+          {/* About Section */}
+          <section className="space-y-6">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.aboutTitle || "About the Property"}</h2>
+              <div className="h-1 w-20 bg-primary rounded-full"></div>
+            </div>
+            
+            <div className="bg-card border border-border p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
+              <p className="text-lg leading-relaxed text-muted-foreground">{tr(room.description)}</p>
+              
+              <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-border">
+                <div>
+                  <h3 className="font-semibold text-lg text-foreground mb-2 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                    {t.rooms.ownerInfoTitle}
+                  </h3>
+                  <p className="text-muted-foreground">{tr(room.ownerInfo)}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-foreground mb-2 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    {t.rooms.roomDetailsTitle}
+                  </h3>
+                  <p className="text-muted-foreground">{tr(room.roomDetails)}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-card-foreground">{t.rooms.roomDetailsTitle}</h3>
-                <p className="text-muted-foreground">{room.roomDetails}</p>
-              </div>
-              <div className="pt-1 text-sm text-muted-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-foreground transition-colors underline-offset-2 hover:underline"
-                >
-                  {t.rooms.locationPrefix}: {room.locationName}
-                </a>
-              </div>
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex text-sm font-medium text-primary hover:text-primary/80"
-              >
-                {t.rooms.openInMaps}
-              </a>
-            </section>
-          </TabsContent>
+            </div>
+          </section>
 
-          <TabsContent value="services" className="mt-4">
-            <section className="bg-card border border-border rounded-xl p-4">
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {room.services.map((service) => (
-                  <li key={service} className="rounded-lg bg-secondary px-3 py-2 text-sm text-secondary-foreground flex items-center gap-2">
-                    {serviceIconMap[service] ?? <Sparkles className="w-4 h-4" />}
-                    {service}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </TabsContent>
+          {/* Packages Tabs */}
+          <section className="space-y-8" id="packages">
+            <div className="space-y-4 text-center md:text-left">
+              <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
+              <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
+            </div>
 
-          <TabsContent value="packages" className="mt-4">
-            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {sortedPackages.map((pkg) => (
-                <article key={pkg.name} className="bg-card border border-border rounded-xl overflow-hidden group relative flex flex-col h-full hover:border-primary/50 transition-colors">
-                  <div 
-                    className="relative w-full h-48 cursor-pointer"
-                    onClick={() => {
-                      if (pkg.videoUrl) {
-                        setShowVideo(true);
-                        setActiveMediaType('video');
-                        setActiveMediaUrl(pkg.videoUrl);
-                        // Optional: Scroll back to top to watch
-                        document.querySelector('.bg-background.lg\\:max-h-\\[90vh\\]')?.scrollTo({ top: 0, behavior: 'smooth' });
-                      } else {
-                        setShowVideo(false);
-                        setActiveMediaType('image');
-                        setActiveMediaUrl(pkg.image);
-                        document.querySelector('.bg-background.lg\\:max-h-\\[90vh\\]')?.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
+            <Tabs defaultValue={sortedPackages[1]?.name || sortedPackages[0]?.name} className="w-full">
+              
+              <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-8 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
+                {sortedPackages.map((pkg) => (
+                  <TabsTrigger 
+                    key={pkg.name} 
+                    value={pkg.name} 
+                    className="flex-1 px-8 py-3.5 text-base md:text-lg font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all"
                   >
-                    {pkg.videoUrl ? (
-                      <video 
-                        src={pkg.videoUrl} 
-                        poster={pkg.image}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                      />
-                    ) : (
-                      <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-                    )}
-                    {pkg.videoUrl && (
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1.5 z-10">
-                        <PlayCircle className="w-3 h-3" /> 3D Tour
+                    {tr(pkg.name)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {sortedPackages.map((pkg) => {
+                const isStandard = pkg.name === "Standard";
+                return (
+                  <TabsContent key={pkg.name} value={pkg.name} className="mt-0 focus-visible:outline-none">
+                    <div className={`grid lg:grid-cols-2 gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isStandard ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
+                      
+                      {/* Package Details */}
+                      <div className="flex flex-col justify-center order-2 lg:order-1">
+                        <div className="flex items-start justify-between mb-4 gap-4">
+                          <h3 className="text-3xl font-bold font-heading flex items-center gap-3 text-foreground">
+                            <PackageOpen className={`w-8 h-8 ${isStandard ? 'text-primary' : 'text-muted-foreground'}`} />
+                            {tr(pkg.name)}
+                          </h3>
+                          {isStandard && (
+                            <span className="shrink-0 text-xs font-bold px-4 py-1.5 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
+                              {t.rooms.mostPopular || "Most Popular"}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="mb-6 flex items-baseline gap-2">
+                          <span className="text-4xl md:text-5xl font-black tracking-tight text-foreground">
+                            ETB {pkg.price.toLocaleString()}
+                          </span>
+                          <span className="text-lg text-muted-foreground">{t.propertyCard.perNight || "/ night"}</span>
+                        </div>
+                        
+                        <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+                          {tr(pkg.description)}
+                        </p>
+
+                        {pkg.availableRooms <= 3 && (
+                          <div className={`inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full mb-8 ${pkg.availableRooms === 0 ? 'bg-destructive/10 text-destructive' : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
+                            {pkg.availableRooms === 0 ? "Sold Out" : `Only ${pkg.availableRooms} rooms left!`}
+                          </div>
+                        )}
+                        {pkg.availableRooms > 3 && <div className="mb-8" />}
+
+                        <div className="flex-grow space-y-5">
+                          <h4 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+                            <Sparkles className="w-5 h-5 text-primary" /> 
+                            {t.rooms.includedServices || "Included Services"}
+                          </h4>
+                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {pkg.services?.map((service, idx) => (
+                              <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
+                                <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
+                                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </div>
+                                <span className="font-medium">{tr(service)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="mt-10 pt-8 border-t border-border">
+                          <Button 
+                            size="lg" 
+                            className="w-full md:w-auto md:min-w-[240px] text-lg h-14 gap-3 rounded-xl shadow-md"
+                            variant={isStandard ? "default" : "secondary"}
+                            disabled={pkg.availableRooms === 0}
+                            onClick={() => navigate(`/book/${room.id}?package=${pkg.name}`)}
+                          >
+                            <CalendarCheck className="w-5 h-5" />
+                            {pkg.availableRooms === 0 ? "Unavailable" : (t.rooms.bookNow || "Book Now")}
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <span className="bg-background/90 text-foreground px-3 py-1.5 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm pointer-events-none">
-                        Preview {pkg.videoUrl ? 'Tour' : 'Image'}
-                      </span>
+
+                      {/* Package Media Demo */}
+                      <div className="order-1 lg:order-2">
+                        <div className="relative w-full h-64 md:h-full lg:min-h-[400px] rounded-2xl overflow-hidden shadow-inner group bg-muted border border-border">
+                          {pkg.videoUrl ? (
+                            <>
+                              <video 
+                                src={pkg.videoUrl} 
+                                poster={pkg.image}
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                autoPlay 
+                                loop 
+                                muted 
+                                playsInline
+                              />
+                              <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 z-10 shadow-lg">
+                                <PlayCircle className="w-4 h-4" /> Demo
+                              </div>
+                            </>
+                          ) : (
+                            <img 
+                              src={pkg.image} 
+                              alt={pkg.name} 
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                            />
+                          )}
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                  <div className="p-5 flex flex-col justify-between flex-grow">
-                    <div>
-                      <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                        <PackageOpen className="w-5 h-5 text-primary" />
-                        {pkg.name}
-                      </h3>
-                      <p className="text-sm font-medium text-primary mt-1">{t.rooms.packagePrice}: ETB {pkg.price.toLocaleString()}{t.propertyCard.perNight}</p>
-                      <p className="text-sm text-muted-foreground mt-3">{pkg.description}</p>
-                    </div>
-                    <Button variant="default" className="w-full mt-5 gap-2">
-                      <CalendarCheck className="w-4 h-4" />
-                      {t.rooms.bookNow}
-                    </Button>
-                  </div>
-                </article>
-              ))}
-            </section>
-          </TabsContent>
-        </Tabs>
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          </section>
+
+        </div>
       </div>
     </div>
   );

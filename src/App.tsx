@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/hooks/use-language";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import RoomDetails from "./pages/RoomDetails.tsx";
+import Booking from "./pages/Booking.tsx";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +20,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/room/:id" element={<RoomDetails />} />
+            <Route path="/book/:id" element={<Booking />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

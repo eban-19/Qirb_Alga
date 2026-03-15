@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import RoomProfile from "@/components/RoomProfile";
@@ -9,6 +10,10 @@ const RoomDetails = () => {
   const { id = "" } = useParams();
   const { data: room, isLoading } = useRoomById(id);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   return (
     <div className="min-h-screen bg-background">
