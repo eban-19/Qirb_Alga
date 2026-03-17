@@ -8,9 +8,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/hooks/use-language";
 import type { Language } from "@/lib/i18n";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const { language, setLanguage, options, t } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
@@ -57,7 +59,11 @@ const Navbar = () => {
           >
             {t.navbar.howItWorks}
           </Button>
-          <Button variant="accent" size="sm">
+          <Button 
+            variant="accent" 
+            size="sm"
+            onClick={() => navigate("/register-property")}
+          >
             {t.navbar.listProperty}
           </Button>
         </div>

@@ -145,6 +145,34 @@ export interface TranslationSchema {
         terms: string;
         rights: string;
     };
+    ownerRegistration: {
+        title: string;
+        subtitle: string;
+        step1: string;
+        step2: string;
+        step3: string;
+        step4: string;
+        fullName: string;
+        phone: string;
+        email: string;
+        role: string;
+        roleOwner: string;
+        roleManager: string;
+        propertyName: string;
+        city: string;
+        totalRooms: string;
+        startingPrice: string;
+        licenseNumber: string;
+        uploadLicense: string;
+        uploadHelp: string;
+        back: string;
+        next: string;
+        submit: string;
+        reviewTitle: string;
+        successTitle: string;
+        successMessage: string;
+        backToHome: string;
+    };
     notFound: {
         message: string;
         backHome: string;
@@ -155,7 +183,7 @@ export const translations: Record<Language, TranslationSchema> = {
     en: {
         navbar: {
             howItWorks: "How it works",
-            listProperty: "List Your Property",
+            listProperty: "Get Booked Today",
             languageLabel: "Language",
         },
         hero: {
@@ -326,6 +354,34 @@ export const translations: Record<Language, TranslationSchema> = {
             terms: "Terms of Service",
             rights: "All rights reserved.",
         },
+        ownerRegistration: {
+            title: "Register Your Property",
+            subtitle: "Join Qirb Alga and start receiving bookings today. It takes just a few minutes.",
+            step1: "Owner Profile",
+            step2: "Property Details",
+            step3: "Verification",
+            step4: "Review & Submit",
+            fullName: "Full Name",
+            phone: "Phone Number",
+            email: "Email Address",
+            role: "Your Role",
+            roleOwner: "Property Owner",
+            roleManager: "Manager",
+            propertyName: "Pension / Property Name",
+            city: "City & Sub-city",
+            totalRooms: "Total Number of Rooms",
+            startingPrice: "Starting Price per Night (ETB)",
+            licenseNumber: "Business License Number / TIN",
+            uploadLicense: "Upload License or ID",
+            uploadHelp: "Drag & drop or click to upload photo of Trade License/ID",
+            back: "Back",
+            next: "Next step",
+            submit: "Submit for Verification",
+            reviewTitle: "Review Your Details",
+            successTitle: "Application Received!",
+            successMessage: "Your property is currently in the Pending stage. Our system admins will verify your business details within 24 hours. Once approved, you will receive an SMS with a secure link to access your Owner Dashboard.",
+            backToHome: "Back to Home",
+        },
         notFound: {
             message: "Oops! Page not found",
             backHome: "Return to Home",
@@ -334,7 +390,7 @@ export const translations: Record<Language, TranslationSchema> = {
     om: {
         navbar: {
             howItWorks: "Akka inni hojjetu",
-            listProperty: "Qabeenya Kee Galmeessi",
+            listProperty: "Har'a Maamiltoota Argadhaa",
             languageLabel: "Afaan",
         },
         hero: {
@@ -505,6 +561,34 @@ export const translations: Record<Language, TranslationSchema> = {
             terms: "Waliigaltee",
             rights: "Mirgi hundi eegameera.",
         },
+        ownerRegistration: {
+            title: "Qabeenya Kee Galmeessi",
+            subtitle: "Qirb Alga waliin hirmaadhu, har'uma buukingii fudhadhu.",
+            step1: "Profaayilii Abbaa Qabeenyaa",
+            step2: "Bal'ina Qabeenyaa",
+            step3: "Mirkaneessuu",
+            step4: "Irra-deebii fi Ergi",
+            fullName: "Maqaa Guutuu",
+            phone: "Lakkoofsa Bilbilaa",
+            email: "Iimeelii",
+            role: "Gahee Kee",
+            roleOwner: "Abbaa Qabeenyaa",
+            roleManager: "Hojii Raawwachiisaa",
+            propertyName: "Maqaa Pensiinii",
+            city: "Magaalaa & Kutaa Magaalaa",
+            totalRooms: "Baay'ina Kutaa Waliigalaa",
+            startingPrice: "Gatii Jalqabaa Halkanitti (ETB)",
+            licenseNumber: "Lakkoofsa Eeyyama Daldalaa / TIN",
+            uploadLicense: "Eeyyama ykn waraqaa eenyummaa fe'i",
+            uploadHelp: "Suuraa Eeyyama/ID asitti dhiibi ykn cuqaasuun filadhu",
+            back: "Duuba",
+            next: "Itti Aanu",
+            submit: "Mirkaneessaaf Ergi",
+            reviewTitle: "Odeeffannoo Kee Irra-deebi'i",
+            successTitle: "Iyyanni Kee Fudhaddhameera!",
+            successMessage: "Qabeenyi kee sadarkaa eeguu irra jira. Bulchitootni sirnichaa sa'aatii 24 keessatti sirrummaa mirkaneessu. Yeroo eeyyamamu, linki nageenyummaan eegame karaa SMS ni argatta.",
+            backToHome: "Gara Manaatti Deebi'i",
+        },
         notFound: {
             message: "Baga gaddite! Fuulli kun hin argamne",
             backHome: "Gara Manaatti Deebi'i",
@@ -513,7 +597,7 @@ export const translations: Record<Language, TranslationSchema> = {
     am: {
         navbar: {
             howItWorks: "እንዴት እንደሚሰራ",
-            listProperty: "ንብረትዎን ያስመዝግቡ",
+            listProperty: "ዛሬውኑ ደንበኛ ያግኙ",
             languageLabel: "ቋንቋ",
         },
         hero: {
@@ -681,6 +765,34 @@ export const translations: Record<Language, TranslationSchema> = {
             privacy: "ግላዊነት",
             terms: "የአገልግሎት ውሎች",
             rights: "ሁሉም መብቶች የተጠበቁ ናቸው።",
+        },
+        ownerRegistration: {
+            title: "ንብረትዎን ያስመዝግቡ",
+            subtitle: "Qirb Alga ን ይቀላቀሉ እና አሁኑኑ ቡኪንግ መቀበል ይጀምሩ።",
+            step1: "የባለቤት ፕሮፋይል",
+            step2: "የንብረት ዝርዝሮች",
+            step3: "ማረጋገጫ",
+            step4: "ይገምግሙ እና ይላኩ",
+            fullName: "ሙሉ ስም",
+            phone: "ስልክ ቁጥር",
+            email: "ኢሜይል (አማራጭ)",
+            role: "የእርስዎ ድርሻ",
+            roleOwner: "የንብረት ባለቤት",
+            roleManager: "ስራ አስኪያጅ",
+            propertyName: "የፔንሽን ስም",
+            city: "ከተማ እና ክፍለ ከተማ",
+            totalRooms: "አጠቃላይ የክፍሎች ብዛት",
+            startingPrice: "የመነሻ ዋጋ በሌሊት (ETB)",
+            licenseNumber: "የንግድ ፈቃድ / ቲን ቁጥር",
+            uploadLicense: "ፈቃድ ወይም መታወቂያ ይስቀሉ",
+            uploadHelp: "የንግድ ፈቃድ/መታወቂያ ፎንቶ ጎትተው ያምጡ ወይም ጠቅ በማድረግ ይምረጡ",
+            back: "ወደ ኋላ",
+            next: "ቀጣይ",
+            submit: "ለማረጋገጫ ላክ",
+            reviewTitle: "ዝርዝርዎን ይገምግሙ",
+            successTitle: "ማመልከቻዎ ደርሷል!",
+            successMessage: "የእርስዎ ንብረት በአሁኑ ጊዜ በመጠባበቅ ላይ ነው። የስርዓት አስተዳዳሪዎች በ24 ሰዓታት ውስጥ ያረጋግጣሉ። ሲፈቀድም ደህንነቱ የተጠበቀ ሊንክ በSMS ይደርስዎታል።",
+            backToHome: "ወደ መነሻ ይመለሱ",
         },
         notFound: {
             message: "ይቅርታ! ገጹ አልተገኘም",

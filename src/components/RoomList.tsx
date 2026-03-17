@@ -153,23 +153,7 @@ const RoomList = () => {
   return (
     <section className="py-16 bg-background" id="rooms">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground mb-3">{t.rooms.listTitle}</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">{t.rooms.listSubtitle}</p>
-        </div>
-
         <div className="max-w-2xl mx-auto mb-10 space-y-4">
-          <div className="relative relative w-full md:w-3/4 mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder={t.hero.searchPlaceholder || "Search places or locations..."}
-              className="pl-10 h-14 rounded-xl border-border bg-card shadow-sm text-base"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
           <div className="flex flex-wrap items-center justify-center gap-2 px-2">
             <Button 
               variant={activeFilter === "nearest" ? "default" : "outline"} 

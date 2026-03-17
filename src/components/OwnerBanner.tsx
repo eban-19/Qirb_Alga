@@ -1,14 +1,16 @@
 import { Building2, TrendingUp, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
+import { useNavigate } from "react-router-dom";
 
 const benefitIcons = [Users, TrendingUp, Zap] as const;
 
 const OwnerBanner = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   return (
-    <section className="py-20 bg-primary">
+    <section className="py-20 bg-primary" id="owner-cta">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-primary-foreground/10 text-primary-foreground px-4 py-2 rounded-full mb-6 text-sm font-medium">
@@ -42,7 +44,7 @@ const OwnerBanner = () => {
         </div>
 
         <div className="text-center">
-          <Button variant="accent" size="lg" className="rounded-xl text-base px-8 shadow-lg">
+          <Button onClick={() => navigate("/register-property")} variant="accent" size="lg" className="rounded-xl text-base px-8 shadow-lg hover:scale-105 transition-transform">
             {t.ownerBanner.cta}
           </Button>
         </div>

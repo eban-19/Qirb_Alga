@@ -35,7 +35,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
       <div className="container mx-auto px-4 lg:px-8">
         
         {/* Header & Back Button */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
           <div>
             <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" /> Back
@@ -52,65 +52,6 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             <PhoneCall className="w-4 h-4" />
             {t.rooms.contactHost}
           </Button>
-        </div>
-
-        {/* Media Block */}
-        <div className="relative w-full h-[40vh] md:h-[60vh] rounded-3xl overflow-hidden border border-border mb-12 bg-muted shadow-sm group">
-          {showVideo && activeMediaType === 'video' && activeMediaUrl ? (
-            <video 
-              key={activeMediaUrl}
-              src={activeMediaUrl} 
-              poster={room.images[0]}
-              controls 
-              autoPlay 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <>
-              <img src={activeMediaUrl && activeMediaType === 'image' ? activeMediaUrl : room.images[0]} alt={room.name} className="w-full h-full object-cover" />
-              {((activeMediaUrl && activeMediaType === 'video') || room.videoUrl) && (
-                <div 
-                  className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={() => setShowVideo(true)}
-                >
-                  <PlayCircle className="w-20 h-20 text-white drop-shadow-xl" />
-                </div>
-              )}
-            </>
-          )}
-
-          {(room.videoUrl || room.packages.some(p => p.videoUrl)) && (
-            <div className="absolute bottom-6 right-6 flex gap-3">
-              <Button 
-                size="sm" 
-                variant={!showVideo ? "outline" : "default"} 
-                className="gap-2 bg-background/95 hover:bg-background text-foreground backdrop-blur-md shadow-lg"
-                onClick={() => {
-                  setShowVideo(false);
-                  setActiveMediaType('image');
-                  setActiveMediaUrl(room.images[0]);
-                }}
-              >
-                <ImageIcon className="w-4 h-4" />
-                Photos
-              </Button>
-              {room.videoUrl && (
-                <Button 
-                  size="sm" 
-                  variant={showVideo && activeMediaUrl === room.videoUrl ? "outline" : "default"} 
-                  className="gap-2 bg-background/95 hover:bg-background text-foreground backdrop-blur-md shadow-lg"
-                  onClick={() => {
-                    setShowVideo(true);
-                    setActiveMediaType('video');
-                    setActiveMediaUrl(room.videoUrl);
-                  }}
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  Room Demo
-                </Button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Layout: Content */}
