@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound.tsx";
 import RoomDetails from "./pages/RoomDetails.tsx";
 import Booking from "./pages/Booking.tsx";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,10 @@ const App = () => (
             <Route path="/room/:id" element={<RoomDetails />} />
             <Route path="/book/:id" element={<Booking />} />
             <Route path="/register-property" element={<RegisterProperty />} />
+            
+            {/* Admin Dashboard Route */}
+            <Route path="/dashboard/admin" element={<AdminDashboard />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
