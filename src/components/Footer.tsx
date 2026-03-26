@@ -53,7 +53,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm hover:text-primary transition-colors inline-block hover:translate-x-1 duration-200">
+                <a href="/register-property" className="text-sm hover:text-primary transition-colors inline-block hover:translate-x-1 duration-200">
                   {t.footer.forOwners}
                 </a>
               </li>

@@ -37,6 +37,9 @@ const Booking = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [passCode, setPassCode] = useState<string | null>(null);
+  const [idDocument, setIdDocument] = useState<File | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -57,21 +60,56 @@ const Booking = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.checkIn || !formData.checkOut || !formData.fullName || !formData.phone) {
-      toast.error("Please fill in all required fields.");
+    if (!formData.checkIn || !formData.checkOut || !formData.fullName || !formData.phone || !idDocument) {
+      toast.error("Please fill in all required fields, including your ID document.");
       return;
     }
 
     setIsSubmitting(true);
 
-    // Mock API Call Latency
-    setTimeout(() => {
+    try {
+      const payload = new FormData();
+      payload.append('pensionId', id);
+      payload.append('packageName', pkgName);
+      payload.append('checkIn', formData.checkIn);
+      payload.append('checkOut', formData.checkOut);
+      payload.append('fullName', formData.fullName);
+      payload.append('phone', formData.phone);
+      payload.append('email', formData.email);
+      payload.append('specialRequests', formData.specialRequests);
+      payload.append('totalPrice', total.toString());
+      payload.append('rooms', formData.rooms.toString());
+      if (idDocument) {
+        payload.append('idDocument', idDocument);
+      }
+
+      const response = await fetch('http://localhost:3005/api/public/bookings', {
+        method: 'POST',
+        body: payload
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.data?.bookingIds?.length > 0) {
+          setBookingId(data.data.bookingIds[0].toString());
+        }
+        if (data.data?.booking?.passCode) {
+          setPassCode(data.data.booking.passCode);
+        }
+        setIsSuccess(true);
+        toast.success("Booking confirmed successfully!");
+      } else {
+        toast.error(data.message || "Failed to confirm booking. Please try again.");
+      }
+    } catch (error) {
+      console.error("Booking submission error:", error);
+      toast.error("An error occurred while submitting your booking.");
+    } finally {
       setIsSubmitting(false);
-      setIsSuccess(true);
-      toast.success("Booking confirmed successfully!");
-    }, 2000);
+    }
   };
 
   if (isLoading || !room || !selectedPackage) {
@@ -97,14 +135,57 @@ const Booking = () => {
             <p className="text-muted-foreground text-lg">
               {t.booking.successDesc} <span className="font-semibold text-foreground">{room.name}</span>.
             </p>
-            <div className="p-4 bg-muted/50 rounded-xl border border-border text-left space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.booking.bookingId}</span> <span className="font-mono font-medium">#BKG-{Math.floor(Math.random() * 10000)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.booking.checkInDate.replace(' *', '')}</span> <span className="font-medium">{formData.checkIn}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t.booking.totalPaid}</span> <span className="font-medium">ETB {total.toLocaleString()}</span></div>
+            <div className="p-6 bg-gradient-to-br from-card to-muted/30 rounded-3xl border border-primary/20 text-left space-y-4 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-700"></div>
+              
+              <div className="flex justify-between items-center border-b border-border pb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Booking Receipt</span>
+                <span className="text-xs font-mono text-primary font-bold">#{bookingId || 'PENDING'}</span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Guest</span>
+                  <span className="text-sm font-semibold">{formData.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Room</span>
+                  <span className="text-sm font-semibold">{room.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Check-in</span>
+                  <span className="text-sm font-semibold">{formData.checkIn}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Check-out</span>
+                  <span className="text-sm font-semibold">{formData.checkOut}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-border">
+                  <span className="text-sm font-bold">Total Paid</span>
+                  <span className="text-lg font-black text-primary">ETB {total.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {passCode && (
+                <div className="mt-6 p-4 bg-primary text-primary-foreground rounded-2xl text-center space-y-1 shadow-lg shadow-primary/20">
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-80">Digital Access Key</p>
+                  <p className="text-3xl font-mono font-black tracking-[0.3em]">{passCode}</p>
+                </div>
+              )}
+
+              <p className="text-[10px] text-center text-muted-foreground mt-4 italic">
+                * Please show this digital slip or the passcode upon arrival for verification.
+              </p>
             </div>
-            <Button size="lg" className="w-full mt-6" onClick={() => navigate("/")}>
-              {t.booking.backToHome}
-            </Button>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => window.print()}>
+                Print Slip
+              </Button>
+              <Button className="flex-1 rounded-xl h-12 shadow-lg shadow-primary/20" onClick={() => navigate("/")}>
+                {t.booking.backToHome}
+              </Button>
+            </div>
           </div>
         </main>
         <Footer />
@@ -194,6 +275,12 @@ const Booking = () => {
                 <div className="space-y-2">
                   <Label htmlFor="email">{t.booking.email}</Label>
                   <Input id="email" name="email" type="email" placeholder={t.booking.emailOptional} value={formData.email} onChange={handleInputChange} className="h-12 w-full" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idDocument">National ID / Passport / Driving License *</Label>
+                  <Input id="idDocument" name="idDocument" type="file" accept="image/*" required onChange={(e) => setIdDocument(e.target.files?.[0] || null)} className="h-12 w-full pt-3" />
+                  <p className="text-xs text-muted-foreground mt-1">Please upload a clear image of your identification document to authorize your booking.</p>
                 </div>
 
                 <div className="space-y-2">

@@ -66,7 +66,6 @@ const RoomList = () => {
             setSearchParams(params, { replace: true });
           },
           (error) => {
-            console.error(error);
             setIsLocating(null);
             toast.error("Location disabled. Showing general results.");
             // Still set filter to apply non-location parts like basic sort

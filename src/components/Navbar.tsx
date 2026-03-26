@@ -1,4 +1,5 @@
-import { MapPin, Globe } from "lucide-react";
+import { useState } from "react";
+import { MapPin, Globe, Search, CheckCircle, XCircle, FileSearch, Calendar, Building, BedDouble } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,13 +7,54 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/hooks/use-language";
 import type { Language } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const { language, setLanguage, options, t } = useLanguage();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const [trackId, setTrackId] = useState("");
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [trackResult, setTrackResult] = useState<any>(null);
+  const [trackError, setTrackError] = useState("");
+
+  const handleTrackBooking = async () => {
+    if (!trackId.trim()) return;
+    
+    setTrackLoading(true);
+    setTrackError("");
+    setTrackResult(null);
+
+    // Strip out # or BKG- if user typed them
+    const cleanId = trackId.replace(/[^0-9]/g, '');
+
+    try {
+      const response = await fetch(`http://localhost:3005/api/public/bookings/${cleanId}/status`);
+      const data = await response.json();
+
+      if (data.success) {
+        setTrackResult(data.data);
+      } else {
+        setTrackError(data.message || "Booking not found.");
+      }
+    } catch (error) {
+      setTrackError("Failed to connect to the server.");
+    } finally {
+      setTrackLoading(false);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
@@ -46,6 +88,8 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+
+
           <Button 
             variant="ghost" 
             size="sm" 
@@ -59,13 +103,29 @@ const Navbar = () => {
           >
             {t.navbar.howItWorks}
           </Button>
-          <Button 
-            variant="accent" 
-            size="sm"
-            onClick={() => navigate("/register-property")}
-          >
-            {t.navbar.listProperty}
-          </Button>
+          
+          {isAuthenticated ? (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hidden sm:inline-flex text-muted-foreground"
+              onClick={() => {
+                logout();
+                navigate("/");
+              }}
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hidden lg:inline-flex text-muted-foreground"
+              onClick={() => navigate("/login")}
+            >
+              Login
+            </Button>
+          )}
         </div>
       </div>
     </nav>

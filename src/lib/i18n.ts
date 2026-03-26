@@ -155,6 +155,7 @@ export interface TranslationSchema {
         fullName: string;
         phone: string;
         email: string;
+        password: string;
         role: string;
         roleOwner: string;
         roleManager: string;
@@ -172,6 +173,30 @@ export interface TranslationSchema {
         successTitle: string;
         successMessage: string;
         backToHome: string;
+    };
+    dashboard: {
+        title: string;
+        overview: string;
+        rooms: string;
+        bookings: string;
+        guests: string;
+        revenue: string;
+        settings: string;
+        stats: {
+            totalRooms: string;
+            activeBookings: string;
+            occupancyRate: string;
+            totalRevenue: string;
+        };
+        recentBookings: string;
+        roomStatus: string;
+        actions: {
+            addRoom: string;
+            updateAvailability: string;
+            viewAll: string;
+        };
+        backToSite: string;
+        logout: string;
     };
     notFound: {
         message: string;
@@ -363,8 +388,9 @@ export const translations: Record<Language, TranslationSchema> = {
             step4: "Review & Submit",
             fullName: "Full Name",
             phone: "Phone Number",
-            email: "Email Address",
-            role: "Your Role",
+            email: "Email",
+            password: "Password",
+            role: "Account Type",
             roleOwner: "Property Owner",
             roleManager: "Manager",
             propertyName: "Pension / Property Name",
@@ -385,6 +411,30 @@ export const translations: Record<Language, TranslationSchema> = {
         notFound: {
             message: "Oops! Page not found",
             backHome: "Return to Home",
+        },
+        dashboard: {
+            title: "Owner Dashboard",
+            overview: "Overview",
+            rooms: "Rooms",
+            bookings: "Bookings",
+            guests: "Guests",
+            revenue: "Revenue",
+            settings: "Settings",
+            stats: {
+                totalRooms: "Total Rooms",
+                activeBookings: "Active Bookings",
+                occupancyRate: "Occupancy Rate",
+                totalRevenue: "Total Revenue",
+            },
+            recentBookings: "Recent Bookings",
+            roomStatus: "Room Status",
+            actions: {
+                addRoom: "Add New Room",
+                updateAvailability: "Update Availability",
+                viewAll: "View All",
+            },
+            backToSite: "Back to Site",
+            logout: "Log Out",
         },
     },
     om: {
@@ -593,6 +643,30 @@ export const translations: Record<Language, TranslationSchema> = {
             message: "Baga gaddite! Fuulli kun hin argamne",
             backHome: "Gara Manaatti Deebi'i",
         },
+        dashboard: {
+            title: "Daashboordii Abbaa Qabeenyaa",
+            overview: "Hubannoo Waliigalaa",
+            rooms: "Kutoota",
+            bookings: "Bukiingii",
+            guests: "Keessummoota",
+            revenue: "Galii",
+            settings: "Sajataa",
+            stats: {
+                totalRooms: "Kutoota Waliigalaa",
+                activeBookings: "Bukiingii Ammaa",
+                occupancyRate: "Reejjii Qabiinsaa",
+                totalRevenue: "Galii Waliigalaa",
+            },
+            recentBookings: "Bukiingii Dhihoo",
+            roomStatus: "Haala Kutaa",
+            actions: {
+                addRoom: "Kutaa Haaraa Dabali",
+                updateAvailability: "Haala Banaa Siri",
+                viewAll: "Hunda Ilaali",
+            },
+            backToSite: "Gara Weebsaayitiitti Deebi'i",
+            logout: "Ba'i",
+        },
     },
     am: {
         navbar: {
@@ -774,15 +848,16 @@ export const translations: Record<Language, TranslationSchema> = {
             step3: "ማረጋገጫ",
             step4: "ይገምግሙ እና ይላኩ",
             fullName: "ሙሉ ስም",
-            phone: "ስልክ ቁጥር",
-            email: "ኢሜይል (አማራጭ)",
-            role: "የእርስዎ ድርሻ",
+            phone: "ስልጽ",
+            email: "ኢሜልሎ",
+            password: "የሚልጽ",
+            role: "የአበቁ ዓይፍ",
             roleOwner: "የንብረት ባለቤት",
             roleManager: "ስራ አስኪያጅ",
             propertyName: "የፔንሽን ስም",
             city: "ከተማ እና ክፍለ ከተማ",
             totalRooms: "አጠቃላይ የክፍሎች ብዛት",
-            startingPrice: "የመነሻ ዋጋ በሌሊት (ETB)",
+            startingPrice: "የሚጀምር ዋጋ በሌሊት (ብር)",
             licenseNumber: "የንግድ ፈቃድ / ቲን ቁጥር",
             uploadLicense: "ፈቃድ ወይም መታወቂያ ይስቀሉ",
             uploadHelp: "የንግድ ፈቃድ/መታወቂያ ፎንቶ ጎትተው ያምጡ ወይም ጠቅ በማድረግ ይምረጡ",
@@ -797,6 +872,30 @@ export const translations: Record<Language, TranslationSchema> = {
         notFound: {
             message: "ይቅርታ! ገጹ አልተገኘም",
             backHome: "ወደ መነሻ ይመለሱ",
+        },
+        dashboard: {
+            title: "የባለቤት ዳሽቦርድ",
+            overview: "አጠቃላይ እይታ",
+            rooms: "ክፍሎች",
+            bookings: "ቡኪንግ",
+            guests: "እንግዶች",
+            revenue: "ገቢ",
+            settings: "ቅንብሮች",
+            stats: {
+                totalRooms: "አጠቃላይ ክፍሎች",
+                activeBookings: "ንቁ ቡኪንግ",
+                occupancyRate: "የመያዝ መጠን",
+                totalRevenue: "ጠቅላላ ገቢ",
+            },
+            recentBookings: "የቅርብ ጊዜ ቡኪንግ",
+            roomStatus: "የክፍል ሁኔታ",
+            actions: {
+                addRoom: "አዲስ ክፍል ጨምር",
+                updateAvailability: "ባዶ መሆኑን አዘምን",
+                viewAll: "ሁሉንም እይ",
+            },
+            backToSite: "ወደ ድረ-ገጽ ተመለስ",
+            logout: "ውጣ",
         },
     },
 };

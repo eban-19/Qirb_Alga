@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
-import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/hooks/use-language";
 import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   const { t, tr } = useLanguage();
   const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | undefined>(room.videoUrl || room.images[0]);
   const [activeMediaType, setActiveMediaType] = useState<'video'|'image'>(room.videoUrl ? 'video' : 'image');
   const mapsUrl = getGoogleMapsNavigationUrl(room);
@@ -48,7 +50,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               </a>
             </div>
           </div>
-          <Button size="lg" className="gap-2 shrink-0 shadow-sm">
+          <Button size="lg" className="gap-2 shrink-0 shadow-sm" onClick={() => setShowContactModal(true)}>
             <PhoneCall className="w-4 h-4" />
             {t.rooms.contactHost}
           </Button>
@@ -93,7 +95,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
             </div>
 
-            <Tabs defaultValue={sortedPackages[1]?.name || sortedPackages[0]?.name} className="w-full">
+            <Tabs defaultValue={sortedPackages.find(p => p.isMostPopular)?.name || sortedPackages[1]?.name || sortedPackages[0]?.name} className="w-full">
               
               <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-8 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
                 {sortedPackages.map((pkg) => (
@@ -108,19 +110,19 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               </TabsList>
 
               {sortedPackages.map((pkg) => {
-                const isStandard = pkg.name === "Standard";
+                const isPopular = pkg.isMostPopular;
                 return (
                   <TabsContent key={pkg.name} value={pkg.name} className="mt-0 focus-visible:outline-none">
-                    <div className={`grid lg:grid-cols-2 gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isStandard ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
+                    <div className={`grid lg:grid-cols-2 gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isPopular ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
                       
                       {/* Package Details */}
                       <div className="flex flex-col justify-center order-2 lg:order-1">
                         <div className="flex items-start justify-between mb-4 gap-4">
                           <h3 className="text-3xl font-bold font-heading flex items-center gap-3 text-foreground">
-                            <PackageOpen className={`w-8 h-8 ${isStandard ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <PackageOpen className={`w-8 h-8 ${isPopular ? 'text-primary' : 'text-muted-foreground'}`} />
                             {tr(pkg.name)}
                           </h3>
-                          {isStandard && (
+                          {isPopular && (
                             <span className="shrink-0 text-xs font-bold px-4 py-1.5 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
                               {t.rooms.mostPopular || "Most Popular"}
                             </span>
@@ -134,16 +136,14 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                           <span className="text-lg text-muted-foreground">{t.propertyCard.perNight || "/ night"}</span>
                         </div>
                         
-                        <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
-                          {tr(pkg.description)}
-                        </p>
-
-                        {pkg.availableRooms <= 3 && (
-                          <div className={`inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full mb-8 ${pkg.availableRooms === 0 ? 'bg-destructive/10 text-destructive' : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
-                            {pkg.availableRooms === 0 ? "Sold Out" : `Only ${pkg.availableRooms} rooms left!`}
-                          </div>
-                        )}
-                        {pkg.availableRooms > 3 && <div className="mb-8" />}
+                        <div className="mb-4">
+                          {pkg.availableRooms <= 3 && (
+                            <div className={`inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full ${pkg.availableRooms === 0 ? 'bg-destructive/10 text-destructive' : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
+                              {pkg.availableRooms === 0 ? "Sold Out" : `Only ${pkg.availableRooms} rooms left!`}
+                            </div>
+                          )}
+                          {pkg.availableRooms > 3 && <div />}
+                        </div>
 
                         <div className="flex-grow space-y-5">
                           <h4 className="text-xl font-semibold flex items-center gap-2 text-foreground">
@@ -168,7 +168,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                           <Button 
                             size="lg" 
                             className="w-full md:w-auto md:min-w-[240px] text-lg h-14 gap-3 rounded-xl shadow-md"
-                            variant={isStandard ? "default" : "secondary"}
+                            variant={isPopular ? "default" : "secondary"}
                             disabled={pkg.availableRooms === 0}
                             onClick={() => navigate(`/book/${room.id}?package=${pkg.name}`)}
                           >
@@ -215,6 +215,68 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
 
         </div>
       </div>
+
+      {/* Contact Host Modal */}
+      <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="w-5 h-5" />
+              Contact Host
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <p className="text-lg font-semibold">{room.name}</p>
+              <p className="text-muted-foreground">{tr(room.ownerInfo)}</p>
+            </div>
+            
+            <div className="space-y-3">
+              {room.phone && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                  <Phone className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <a 
+                      href={`tel:${room.phone}`}
+                      className="text-primary hover:underline"
+                    >
+                      {room.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {room.email && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                  <Mail className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <a 
+                      href={`mailto:${room.email}`}
+                      className="text-primary hover:underline"
+                    >
+                      {room.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {!room.phone && !room.email && (
+                <p className="text-center text-muted-foreground py-4">
+                  Contact information not available
+                </p>
+              )}
+            </div>
+            
+            <div className="flex justify-end pt-4">
+              <Button variant="outline" onClick={() => setShowContactModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

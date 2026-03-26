@@ -46,6 +46,8 @@ export interface Room {
   videoUrl?: string;
   packages: RoomPackage[];
   distance?: number;
+  phone?: string;
+  email?: string;
 }
 
 const roomSeedData: Room[] = [

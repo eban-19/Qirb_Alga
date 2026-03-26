@@ -27,7 +27,6 @@ const HeroSection = () => {
           }
         },
         (error) => {
-          console.error("Error getting location:", error);
           setIsLocating(false);
           alert("Could not get your location. Please check your browser permissions.");
         }

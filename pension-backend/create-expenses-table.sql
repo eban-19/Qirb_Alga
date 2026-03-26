@@ -1,0 +1,12 @@
+-- Create expenses table
+CREATE TABLE IF NOT EXISTS expenses (
+  expense_id INT AUTO_INCREMENT PRIMARY KEY,
+  pension_id INT NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  description TEXT,
+  amount DECIMAL(10, 2) NOT NULL,
+  expense_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (pension_id) REFERENCES pensions(pension_id) ON DELETE CASCADE
+);
