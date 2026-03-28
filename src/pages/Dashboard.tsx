@@ -96,15 +96,9 @@ export const Dashboard: React.FC = () => {
   const [userPension, setUserPension] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
-  const [roomsData, setRoomsData] = useState<any[]>([
-    { id: 101, type: 'Single', status: 'Available', price: 1000, capacity: 1 },
-    { id: 102, type: 'Double', status: 'Occupied', price: 1500, capacity: 2 },
-    { id: 103, type: 'Suite', status: 'Available', price: 2500, capacity: 3 },
-    { id: 104, type: 'Single', status: 'Maintenance', price: 1000, capacity: 1 },
-    { id: 105, type: 'Double', status: 'Available', price: 1500, capacity: 2 }
-  ]);
-  const [packages, setPackageList] = useState<any[]>([]);
+  const [roomsData, setRoomsData] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   const [isStaffLoading, setIsStaffLoading] = useState(false);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
@@ -131,6 +125,55 @@ export const Dashboard: React.FC = () => {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
+
+  // Check owner approval status
+  useEffect(() => {
+    const checkApprovalStatus = async () => {
+      if (isAuthenticated && isPensionOwner() && !isAdmin()) {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.log('No token found, skipping approval check');
+            return;
+          }
+
+          const response = await fetch('/api/auth/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            if (response.status === 401) {
+              console.log('Unauthorized, token may be expired');
+              return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            console.log('Non-JSON response received, skipping approval check');
+            return;
+          }
+          
+          const data = await response.json();
+          
+          // If owner is not approved, redirect to pending approval page (case-insensitive)
+          if (data.success && data.data?.approved !== 1) {
+            navigate('/pending-approval');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking approval status:', error);
+          // Don't show error to user, just let them continue
+        }
+      }
+    };
+
+    checkApprovalStatus();
+  }, [isAuthenticated, isPensionOwner, isAdmin, navigate]);
 
   // Show loading while checking authentication (AFTER all hooks)
   if (!isAuthenticated) {
@@ -246,21 +289,26 @@ export const Dashboard: React.FC = () => {
       setBookings(bookingsResponse?.data?.items || []);
       const pensionsData = pensionsResponse?.data?.items || pensionsResponse?.data || [];
       const pensionsArray = Array.isArray(pensionsData) ? pensionsData : [];
+      
+      // 2. Find user's pension
+      const userId = user?.id || user?.userId;
+      console.log('🔍 Full user object:', user);
+      console.log('🔍 Looking for pension with userId:', userId, 'type:', typeof userId);
+      console.log('🔍 Available pensions:', pensionsArray.map(p => ({ id: p.pension_id, owner_id: p.owner_id, type: typeof p.owner_id, name: p.name })));
+      
+      const foundUserPension = pensionsArray.find(p => 
+        p.owner_id === userId || 
+        p.owner_id === parseInt(userId) ||
+        p.owner_id === userId?.toString()
+      );
+      
+      console.log('🔍 Found pension:', foundUserPension ? foundUserPension.name : 'None');
+      
       setPensions(pensionsArray);
       setReviews(reviewsResponse?.data?.items || []);
 
-      // 2. Find user's pension
-      const userId = user?.id;
-      const foundUserPension = pensionsArray.find(p => 
-        p.owner_id === userId || 
-        p.owner_id?.toString() === userId?.toString()
-      );
-
       if (foundUserPension) {
-        setUserPension(foundUserPension);
-        const pensionId = foundUserPension.id || foundUserPension.pension_id;
-
-        // 3. Second batch load for pension-specific data
+        const pensionId = foundUserPension.pension_id || foundUserPension.id;
         const [
           staffResponse,
           roomsResponse,
@@ -295,7 +343,7 @@ export const Dashboard: React.FC = () => {
 
         // Update packages
         if (packagesResponse?.data) {
-          setPackageList(packagesResponse.data);
+          setPackages(packagesResponse.data);
         }
 
         // Load expenses
@@ -307,6 +355,11 @@ export const Dashboard: React.FC = () => {
           }
         } catch (expErr) {
           // No expenses data yet
+        }
+
+        // Refresh room statistics to update available rooms count
+        if (foundUserPension) {
+          fetchRoomStats(foundUserPension.pension_id || foundUserPension.id);
         }
       }
 
@@ -581,14 +634,28 @@ export const Dashboard: React.FC = () => {
 
   const handlePackageImageUpload = async (file: File) => {
     try {
+      console.log('📸 Package image upload started for file:', file.name);
+      console.log('📸 User authenticated:', !!localStorage.getItem('token'));
+      console.log('📸 Token exists:', !!localStorage.getItem('token'));
       const response = await apiService.uploadImage(file);
+      console.log('📸 Upload response:', response);
+      
       if (response.success && editingPackage) {
+        console.log('📸 Updating existing package with image:', response.data.url);
         setEditingPackage({ ...editingPackage, image: response.data.url });
       } else if (response.success) {
+        console.log('📸 Setting new package image:', response.data.url);
+        console.log('📸 Current newPackage before image:', newPackage);
         setNewPackage({ ...newPackage, image: response.data.url } as any);
+        console.log('📸 New package after image set:', { ...newPackage, image: response.data.url });
+      } else {
+        console.error('📸 Upload failed:', response.message);
+        console.error('📸 Full response:', response);
+        alert(`Image upload failed: ${response.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error('📸 Upload failed:', error);
+      alert(`Image upload failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -699,20 +766,38 @@ export const Dashboard: React.FC = () => {
         );
         
         if (foundPension) {
+          // Wait a moment for image state to update if needed
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           const packageData = {
             name: newPackage.name,
             price: parseInt(newPackage.price),
             description: newPackage.description,
             services: newPackage.services,
             availableRooms: newPackage.availableRooms,
-            image: (newPackage as any).image || ''
+            image: (newPackage as any).image || (editingPackage as any).image || ''
           };
+
+          console.log('📦 Package data being sent to backend:', packageData);
+          console.log('📦 newPackage object:', newPackage);
+          console.log('📦 newPackage.image:', (newPackage as any).image);
 
           if (editingPackage) {
             // Update existing package
-            await apiService.updatePackage(foundPension.pension_id || foundPension.id, parseInt(editingPackage.id), packageData);
-            const updatedPackages = packages.map(pkg => pkg.id === editingPackage.id ? { ...packageData, id: editingPackage.id, isMostPopular: pkg.isMostPopular } : pkg);
-            setPackageList(updatedPackages);
+            const packageId = parseInt(editingPackage.id || editingPackage.package_id);
+            console.log('🔍 Updating package with ID:', packageId, 'from editingPackage.id:', editingPackage.id, 'or package_id:', editingPackage.package_id);
+            
+            if (isNaN(packageId)) {
+              console.error('❌ Invalid package ID:', editingPackage.id);
+              alert('Error: Invalid package ID');
+              return;
+            }
+            
+            await apiService.updatePackage(foundPension.pension_id || foundPension.id, packageId, packageData);
+            const updatedPackages = packages.map(pkg => {
+          const pkgId = editingPackage.id || editingPackage.package_id;
+          return pkg.id === pkgId || pkg.package_id === pkgId ? { ...packageData, id: editingPackage.id || editingPackage.package_id, isMostPopular: pkg.isMostPopular } : pkg;
+        });
             setPackages(updatedPackages);
             setEditingPackage(null);
           } else {
@@ -720,7 +805,6 @@ export const Dashboard: React.FC = () => {
             const response = await apiService.createPackage(foundPension.pension_id || foundPension.id, packageData);
             const newPkg = { ...packageData, id: response.data?.package?.id || Date.now().toString(), isMostPopular: false };
             const updatedPackages = [...packages, newPkg];
-            setPackageList(updatedPackages);
             setPackages(updatedPackages);
           }
           
@@ -740,6 +824,8 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleEditPackage = (pkg: any) => {
+    console.log('🔍 Editing package object:', pkg);
+    console.log('🔍 Package ID type:', typeof pkg.id, 'value:', pkg.id);
     setEditingPackage(pkg);
     setNewPackage({
       name: pkg.name,
@@ -755,23 +841,31 @@ export const Dashboard: React.FC = () => {
 
   const handleDeletePackage = async (packageId: string) => {
     try {
+      console.log('🗑️ Delete package attempt:', packageId);
+      console.log('🔍 Available packages:', packages.map(p => ({ id: p.id, name: p.name })));
+      
       // Get user's pension ID
       const foundPension = pensions.find(p => 
         p.owner_id === user?.id
       );
       
+      console.log('🔍 Found pension:', foundPension ? foundPension.name : 'None');
+      
       if (foundPension) {
+        console.log('🚀 Deleting package:', packageId, 'for pension:', foundPension.pension_id);
         await apiService.deletePackage(foundPension.pension_id || foundPension.id, parseInt(packageId));
+        
         const updatedPackages = packages.filter(pkg => pkg.id !== packageId);
-        setPackageList(updatedPackages);
+        console.log('✅ Updated packages after delete:', updatedPackages.map(p => ({ id: p.id, name: p.name })));
         setPackages(updatedPackages);
         setShowSaveSuccess(true);
         setTimeout(() => setShowSaveSuccess(false), 3000);
       } else {
+        console.error('❌ No pension found for delete operation');
         alert('No pension found!');
       }
     } catch (error) {
-      console.error('Error deleting package:', error);
+      console.error('❌ Error deleting package:', error);
       alert(`Error: ${error.message}`);
     }
   };
@@ -801,9 +895,6 @@ export const Dashboard: React.FC = () => {
           isMostPopular: pkg.id === packageId ? newPopularStatus : (newPopularStatus ? false : pkg.isMostPopular)
         }));
         setPackages(updatedPackages);
-        if (currentPension) {
-          setPackageList(updatedPackages);
-        }
       }
     } catch (error) {
       console.error('Failed to update popular status:', error);

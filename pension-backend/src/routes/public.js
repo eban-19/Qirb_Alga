@@ -30,10 +30,9 @@ router.get('/pensions', async (req, res, next) => {
     const items = await Promise.all(pensionsResult.map(async (p) => {
       const pensionId = p.pension_id;
       
-      // Get real packages for this pension (check both packages table and pensions.packages JSON)
+      // Get real packages for this pension from packages table
       let packages = [];
       
-      // First try to get from packages table
       try {
         packages = await executeQuery(`
           SELECT pk.*, 
@@ -44,43 +43,13 @@ router.get('/pensions', async (req, res, next) => {
                     AND r.availability_status = 'Available') as availableRoomsCount
           FROM packages pk
           WHERE pk.pension_id = ?
+          ORDER BY pk.created_at DESC
         `, [pensionId]);
+        
+        console.log('🔍 Public packages query result:', packages);
+        console.log('🔍 Available rooms per package:', packages.map(pkg => ({ name: pkg.name, count: pkg.availableRoomsCount })));
       } catch (error) {
-        console.log('Packages table not found or error:', error.message);
-      }
-      
-      // If no packages in table, check pensions.packages JSON
-      if (packages.length === 0 && p.packages) {
-        try {
-          const jsonPackages = typeof p.packages === 'string' ? JSON.parse(p.packages) : p.packages;
-          
-          // Calculate actual available rooms for each package
-          const packagesWithAvailability = await Promise.all(
-            jsonPackages.map(async (pkg) => {
-              const availableRoomsCount = await executeQuery(`
-                SELECT COUNT(*) as count
-                FROM rooms r
-                WHERE r.pension_id = ? 
-                  AND r.room_type = ? 
-                  AND r.availability_status = 'Available'
-              `, [pensionId, pkg.name]);
-              
-              const count = availableRoomsCount[0].count;
-              console.log(`Package ${pkg.name}: ${count} available rooms`);
-              
-              return {
-                ...pkg,
-                package_id: pkg.id,
-                availableRoomsCount: count,
-                isMostPopular: pkg.isMostPopular || false // Include popular status
-              };
-            })
-          );
-          
-          packages = packagesWithAvailability;
-        } catch (error) {
-          console.error('Error parsing pension packages JSON:', error);
-        }
+        console.log('Packages table error:', error.message);
       }
 
       const liveAvailableRooms = packages.reduce((sum, pkg) => sum + pkg.availableRoomsCount, 0);
@@ -92,7 +61,7 @@ router.get('/pensions', async (req, res, next) => {
         ownerInfo: p.owner_info || `Managed by property owner`,
         roomDetails: p.room_details || `${p.capacity || 0} rooms total`,
         locationName: p.address,
-        city: p.address,
+        city: p.address ? p.address.split(',')[0] : 'Addis Ababa',
         area: p.address ? p.address.split(',')[0] : 'Addis Ababa',
         latitude: p.latitude || 9.03,
         longitude: p.longitude || 38.74,
@@ -105,7 +74,7 @@ router.get('/pensions', async (req, res, next) => {
           name: pkg.name,
           price: parseFloat(pkg.price),
           description: pkg.description,
-          image: pkg.image_url || pkg.image || '/src/assets/package-101-standard.png',
+          image: pkg.image || pkg.image_url || '/src/assets/package-101-standard.png',
           services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || []),
           availableRooms: pkg.availableRoomsCount || 0, // Use calculated value, not static one
           isMostPopular: pkg.isMostPopular || false // Include popular status

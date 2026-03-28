@@ -113,9 +113,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
-                  <Button size="sm" variant="outline" onClick={() => onUpdateStatus(booking.id || booking.booking_id, 'cancelled')} className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all">
-                    <X className="h-4 w-4 mr-1.5" /> Cancel Reservation
-                  </Button>
                   {booking.status?.toLowerCase() === 'confirmed' && (
                     <Button size="sm" variant="outline" onClick={() => onCompleteEarly(booking.id || booking.booking_id)} className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
                       <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout

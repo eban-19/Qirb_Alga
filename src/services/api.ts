@@ -93,7 +93,7 @@ class ApiService {
     status?: string;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
-    return this.request(`/pensions${query ? `?${query}` : ''}`);
+    return this.request(`/pensions/my/pensions${query ? `?${query}` : ''}`);
   }
 
   async getPension(id: number): Promise<ApiResponse<any>> {
@@ -314,6 +314,45 @@ class ApiService {
     return this.request(`/expenses/${expenseId}`, {
       method: 'DELETE',
     });
+  }
+
+  // Admin methods
+  async getAllOwners(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/owners');
+  }
+
+  async approveOwner(ownerId: number): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}/approve`, {
+      method: 'PUT',
+    });
+  }
+
+  async rejectOwner(ownerId: number): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}/reject`, {
+      method: 'PUT',
+    });
+  }
+
+  async suspendOwner(ownerId: number): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}/suspend`, {
+      method: 'PUT',
+    });
+  }
+
+  async getAllProperties(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/properties');
+  }
+
+  async getAllBookings(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/bookings');
+  }
+
+  async getAdminMetrics(): Promise<ApiResponse<any>> {
+    return this.request('/admin/metrics');
+  }
+
+  async getSystemAlerts(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/alerts');
   }
 }
 

@@ -19,7 +19,12 @@ const Login = () => {
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate("/dashboard");
+      // Redirect based on user role (case-insensitive)
+      if (user.role?.toLowerCase() === 'admin') {
+        navigate("/dashboard/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
   }, [isAuthenticated, user, navigate]);
 

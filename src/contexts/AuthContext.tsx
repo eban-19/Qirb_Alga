@@ -7,8 +7,9 @@ interface User {
   email: string;
   full_name: string;
   phone?: string;
-  role: 'admin' | 'user' | 'manager';
+  role: 'admin' | 'user' | 'manager' | 'owner';
   created_at: string;
+  approved?: number;
 }
 
 interface AuthState {
@@ -175,14 +176,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } catch (error) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          console.error('❌ Failed to verify token with API, using localStorage user:', error);
+          // Fallback to localStorage user if API fails
+          const user = JSON.parse(userStr);
           dispatch({
-            type: AUTH_ACTIONS.LOAD_USER_FAILURE,
-            payload: 'Session expired',
+            type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
+            payload: {
+              user: user,
+              token: token,
+            },
           });
         }
       } else {
+        // No token or user in localStorage, set to null
         dispatch({
           type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
           payload: {
@@ -298,7 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isPensionOwner = (): boolean => {
-    return state.user?.role === 'user' || state.user?.role === 'manager';
+    return state.user?.role?.toLowerCase() === 'owner' || state.user?.role?.toLowerCase() === 'user' || state.user?.role?.toLowerCase() === 'manager';
   };
 
   const isUser = (): boolean => {

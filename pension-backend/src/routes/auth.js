@@ -9,7 +9,18 @@ const router = express.Router();
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, fullName, phone, role = 'Owner' } = req.body;
+    const { 
+      email, 
+      password, 
+      fullName, 
+      phone, 
+      role = 'owner', 
+      businessName,
+      businessEmail,
+      businessPhone,
+      licenseNumber,
+      documentUrl
+    } = req.body;
 
     // Validate input
     if (!email || !password || !fullName) {
@@ -21,7 +32,7 @@ router.post('/register', async (req, res) => {
 
     // Check if user already exists
     const existingUser = await executeQuery(
-      'SELECT user_id FROM Users WHERE email = ?',
+      'SELECT user_id FROM users WHERE email = ?',
       [email]
     );
 
@@ -36,15 +47,15 @@ router.post('/register', async (req, res) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
+    // Create user with pending approval status
     const result = await executeQuery(
-      'INSERT INTO Users (full_name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [fullName, email, phone, hashedPassword, role, 'Approved']
+      'INSERT INTO users (full_name, email, phone, password_hash, role, approved) VALUES (?, ?, ?, ?, ?, ?)',
+      [fullName, email, phone, hashedPassword, role, 0] // 0 = pending approval
     );
 
     // Get created user
     const newUser = await executeQuery(
-      'SELECT user_id, full_name, email, phone, role, created_at FROM Users WHERE user_id = ?',
+      'SELECT user_id, full_name, email, phone, role, approved, created_at FROM users WHERE user_id = ?',
       [result.insertId]
     );
 
@@ -55,8 +66,49 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Auto-login for pension owners (role = 'Owner')
-    if (role === 'Owner' || role === 'Admin') {
+    // Create owner profile for new owners
+    if ((role === 'owner' || role === 'Owner')) {
+      try {
+        console.log('🔍 Creating owner profile for owner ID:', result.insertId);
+        console.log('🔍 Business name from form:', businessName);
+        console.log('🔍 Business email from form:', businessEmail);
+        console.log('🔍 Business phone from form:', businessPhone);
+        console.log('🔍 License number from form:', licenseNumber);
+        console.log('🔍 User creation result:', result);
+        
+        // Get the actual user_id from the result
+        const userId = result.insertId || result[0]?.user_id || result.user_id;
+        console.log('🔍 Extracted user ID:', userId);
+        
+        if (!userId) {
+          console.error('❌ Could not extract user ID from result:', result);
+          throw new Error('Failed to get user ID from user creation');
+        }
+        
+        const profileResult = await executeQuery(`
+          INSERT INTO ownerprofiles (owner_id, business_name, license_number, id_document_url, approval_status)
+          VALUES (?, ?, ?, ?, 'Pending')
+        `, [
+          userId, // owner_id
+          businessName || `${fullName}'s Business`, // business_name
+          licenseNumber || null, // license_number
+          documentUrl || null, // id_document_url (uploaded document URL)
+        ]);
+        
+        console.log('✅ Owner profile created with ID:', profileResult.insertId);
+        console.log('✅ Business name stored:', businessName || `${fullName}'s Business`);
+      } catch (profileError) {
+        console.error('❌ Error creating owner profile:', profileError);
+        console.error('❌ Profile error details:', profileError.message);
+        // Continue with user creation even if profile fails
+      }
+    }
+
+    // Note: Pensions are no longer created during registration
+    // Owners will add properties after their business is approved
+
+    // Auto-login for pension owners (role = 'owner')
+    if (role === 'owner' || role === 'admin') {
       // Create JWT token
       const token = jwt.sign(
         { 
@@ -70,43 +122,43 @@ router.post('/register', async (req, res) => {
 
       res.status(201).json({
         success: true,
-        message: 'Pension owner registered successfully',
+        message: role === 'owner' ? 'Pension owner registered successfully. Awaiting admin approval.' : 'Admin registered successfully',
         data: {
           user: {
             id: newUser[0].user_id,
             email: newUser[0].email,
             full_name: newUser[0].full_name,
             phone: newUser[0].phone,
-            role: newUser[0].role.toLowerCase(),
+            role: newUser[0].role,
+            approved: newUser[0].approved,
             created_at: newUser[0].created_at
           },
-          token: token
+          token
         }
       });
     } else {
-      // Regular customers need approval
       res.status(201).json({
         success: true,
-        message: 'User registered successfully. Please wait for admin approval.',
+        message: 'User registered successfully',
         data: {
           user: {
             id: newUser[0].user_id,
             email: newUser[0].email,
             full_name: newUser[0].full_name,
             phone: newUser[0].phone,
-            role: newUser[0].role.toLowerCase(),
+            role: newUser[0].role,
+            approved: newUser[0].approved,
             created_at: newUser[0].created_at
           }
         }
       });
     }
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Registration failed',
+      error: error.message
     });
   }
 });
@@ -126,7 +178,7 @@ router.post('/login', async (req, res) => {
 
     // Find user
     const users = await executeQuery(
-      'SELECT user_id, email, password_hash, full_name, phone, role, status FROM Users WHERE email = ?',
+      'SELECT user_id, email, password_hash, full_name, phone, role, approved FROM users WHERE email = ?',
       [email]
     );
 
@@ -139,11 +191,21 @@ router.post('/login', async (req, res) => {
 
     const user = users[0];
 
-    // Check if user is approved
-    if (user.status !== 'Approved') {
+    // Debug logging
+    console.log('🔍 Login attempt:', { email, role: user.role, approved: user.approved });
+    console.log('🔍 Approval check:', {
+      isAdmin: user.role?.toLowerCase() === 'admin',
+      isApproved: user.approved === 1,
+      shouldPass: user.role?.toLowerCase() === 'admin' || user.approved === 1
+    });
+
+    // Check if user is approved (except admins)
+    if (user.role?.toLowerCase() !== 'admin' && user.approved !== 1) {
+      console.log('❌ Login rejected: Not approved');
       return res.status(401).json({
         success: false,
-        message: 'Account is not approved. Please wait for admin approval.'
+        message: 'Account is not approved. Please wait for admin approval.',
+        requiresApproval: true
       });
     }
 
@@ -161,7 +223,7 @@ router.post('/login', async (req, res) => {
       {
         userId: user.user_id,
         email: user.email,
-        role: user.role.toLowerCase()
+        role: user.role
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -179,10 +241,11 @@ router.post('/login', async (req, res) => {
           email: user.email,
           full_name: user.full_name,
           phone: user.phone,
-          role: user.role.toLowerCase(),
+          role: user.role,
+          approved: user.approved,
           created_at: user.created_at
         },
-        token: token
+        token
       }
     });
 
@@ -202,7 +265,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     const users = await executeQuery(
-      'SELECT user_id, full_name, email, phone, role, status, created_at FROM Users WHERE user_id = ?',
+      'SELECT user_id, full_name, email, phone, role, approved, created_at FROM users WHERE user_id = ?',
       [userId]
     );
 

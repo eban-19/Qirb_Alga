@@ -20,14 +20,14 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
     }
 
     const expenses = await executeQuery(
-      'SELECT * FROM expenses WHERE pension_id = ? ORDER BY expense_date DESC',
+      'SELECT * FROM expenses WHERE owner_id = ? ORDER BY expense_date DESC',
       [pensionId]
     );
     
-    // If no expenses found with pension_id, try with id
+    // If no expenses found with owner_id, try with id
     if (expenses.length === 0) {
       const expensesById = await executeQuery(
-        'SELECT * FROM expenses WHERE pension_id = ? ORDER BY expense_date DESC',
+        'SELECT * FROM expenses WHERE owner_id = ? ORDER BY expense_date DESC',
         [pensionId]
       );
       expenses.push(...expensesById);

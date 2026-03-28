@@ -1,17 +1,23 @@
 const express = require('express');
 const { executeQuery, executeTransaction } = require('../config/database');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireOwnerApproval } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Get all pensions (protected) - Simple route for frontend
-router.get('/', authenticateToken, async (req, res, next) => {
+router.get('/', authenticateToken, requireOwnerApproval, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     console.log('=== GET PENSIONS FOR USER ===');
     console.log('User ID:', userId);
     
-    const pensions = await executeQuery('SELECT pension_id as id, name, address, description, phone, email, capacity, image_url, owner_id FROM pensions');
+    const pensions = await executeQuery(`
+      SELECT p.pension_id as id, p.name, p.address, p.description, p.phone, p.email, p.capacity, p.image_url, p.owner_id,
+             op.business_name
+      FROM pensions p
+      LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
+      WHERE p.owner_id = ?
+    `, [userId]);
     console.log('Found pensions:', pensions.length);
     console.log('Pensions data:', pensions);
     
@@ -342,46 +348,35 @@ router.get('/my/pensions', authenticateToken, async (req, res) => {
     const offset = (page - 1) * limit;
 
     const pensionsResult = await executeQuery(`
-      SELECT p.*, COUNT(DISTINCT r.room_id) as room_count, COUNT(DISTINCT b.booking_id) as booking_count
+      SELECT p.*, COUNT(DISTINCT r.room_id) as room_count
       FROM pensions p
       LEFT JOIN rooms r ON p.pension_id = r.pension_id
-      LEFT JOIN bookings b ON p.pension_id = b.pension_id
       WHERE p.owner_id = ?
       GROUP BY p.pension_id
       ORDER BY p.created_at DESC
       LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
     `, [userId]);
 
-    const pensions = pensionsResult.map(p => ({
-      ...p,
-      id: p.pension_id
-    }));
-
-    // Get total count
-    const countResult = await executeQuery(
-      'SELECT COUNT(*) as total FROM pensions WHERE owner_id = ?',
+    const totalCount = await executeQuery(
+      'SELECT COUNT(*) as count FROM pensions WHERE owner_id = ?',
       [userId]
     );
-    const total = countResult[0].total;
 
     res.json({
       success: true,
-      data: {
-        pensions,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
+      data: pensionsResult,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount[0].count,
+        pages: Math.ceil(totalCount[0].count / limit)
       }
     });
-
   } catch (error) {
     console.error('Get user pensions error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to fetch pensions'
     });
   }
 });
