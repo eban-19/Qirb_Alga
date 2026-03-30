@@ -4,6 +4,26 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get room types for a pension
+router.get('/pension/:pensionId/room-types', authenticateToken, async (req, res) => {
+  try {
+    const { pensionId } = req.params;
+    
+    const roomTypes = await executeQuery(
+      'SELECT DISTINCT room_type FROM rooms WHERE pension_id = ? ORDER BY room_type',
+      [pensionId]
+    );
+    
+    res.json({
+      success: true,
+      data: roomTypes.map(type => type.room_type)
+    });
+  } catch (error) {
+    console.error('Error fetching room types:', error);
+    res.status(500).json({ success: false, message: 'Error fetching room types' });
+  }
+});
+
 // Get rooms for a specific pension (public)
 router.get('/pension/:pensionId', async (req, res) => {
   try {
@@ -84,8 +104,22 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { pension_id, room_type, capacity, price_per_night, number_of_beds } = req.body;
+    const { 
+      pension_id, 
+      room_type, 
+      capacity, 
+      price_per_night, 
+      number_of_beds, 
+      availability_status, 
+      packageId,
+      room_number  
+    } = req.body;
 
+    console.log('🔍 Room creation request:', {
+      pension_id, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number
+    });
+
+    // Validation
     if (!pension_id || !room_type || !price_per_night) {
       return res.status(400).json({ success: false, message: 'Pension ID, room type, and price per night are required' });
     }
@@ -97,10 +131,14 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const result = await executeQuery(
-      `INSERT INTO rooms (pension_id, owner_id, room_type, capacity, price_per_night, number_of_beds, availability_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'available', NOW())`,
-      [pension_id, userId, room_type, capacity || 1, price_per_night, number_of_beds || 1]
+      `INSERT INTO rooms (pension_id, owner_id, room_type, capacity, price_per_night, number_of_beds, availability_status, package_id, room_number, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [pension_id, userId, room_type, capacity || 1, price_per_night, number_of_beds || 1, availability_status, packageId, room_number]
     );
+
+    console.log('🔍 Room insertion data:', {
+      pension_id, userId, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number
+    });
 
     res.status(201).json({ success: true, message: 'Room created successfully', data: { id: result.insertId } });
   } catch (error) {

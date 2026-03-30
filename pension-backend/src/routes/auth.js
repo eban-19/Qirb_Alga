@@ -14,12 +14,13 @@ router.post('/register', async (req, res) => {
       password, 
       fullName, 
       phone, 
-      role = 'owner', 
+      role = 'owner',
       businessName,
       businessEmail,
       businessPhone,
       licenseNumber,
-      documentUrl
+      documentUrl,
+      pensionData
     } = req.body;
 
     // Validate input
@@ -66,46 +67,79 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Create owner profile for new owners
-    if ((role === 'owner' || role === 'Owner')) {
+    // Create owner profile for business owners
+    if ((role === 'owner' || role === 'Owner') && businessName) {
       try {
-        console.log('🔍 Creating owner profile for owner ID:', result.insertId);
-        console.log('🔍 Business name from form:', businessName);
-        console.log('🔍 Business email from form:', businessEmail);
-        console.log('🔍 Business phone from form:', businessPhone);
-        console.log('🔍 License number from form:', licenseNumber);
-        console.log('🔍 User creation result:', result);
+        console.log('🔍 Creating owner profile for user ID:', result.insertId, 'with business data:', {
+          businessName,
+          businessEmail,
+          businessPhone,
+          licenseNumber,
+          documentUrl
+        });
         
-        // Get the actual user_id from the result
-        const userId = result.insertId || result[0]?.user_id || result.user_id;
-        console.log('🔍 Extracted user ID:', userId);
-        
-        if (!userId) {
-          console.error('❌ Could not extract user ID from result:', result);
-          throw new Error('Failed to get user ID from user creation');
-        }
-        
-        const profileResult = await executeQuery(`
-          INSERT INTO ownerprofiles (owner_id, business_name, license_number, id_document_url, approval_status)
-          VALUES (?, ?, ?, ?, 'Pending')
+        const ownerProfileResult = await executeQuery(`
+          INSERT INTO ownerprofiles (owner_id, business_name, business_email, business_phone, license_number, id_document_url, approval_status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())
         `, [
-          userId, // owner_id
-          businessName || `${fullName}'s Business`, // business_name
-          licenseNumber || null, // license_number
-          documentUrl || null, // id_document_url (uploaded document URL)
+          result.insertId, // owner_id
+          businessName || '', // business_name
+          businessEmail || email || '', // business_email
+          businessPhone || phone || '', // business_phone
+          licenseNumber || '', // license_number
+          documentUrl || '' // id_document_url
         ]);
         
-        console.log('✅ Owner profile created with ID:', profileResult.insertId);
-        console.log('✅ Business name stored:', businessName || `${fullName}'s Business`);
+        console.log('✅ Owner profile created with ID:', ownerProfileResult.insertId);
+        
+        // Verify the owner profile was created
+        const verifyProfile = await executeQuery(
+          'SELECT * FROM ownerprofiles WHERE owner_id = ?',
+          [result.insertId]
+        );
+        console.log('🔍 Verification - found owner profile:', verifyProfile);
+        
       } catch (profileError) {
-        console.error('❌ Error creating owner profile:', profileError);
-        console.error('❌ Profile error details:', profileError.message);
-        // Continue with user creation even if profile fails
+        console.error('❌ Failed to create owner profile:', profileError);
+        console.error('❌ Error details:', profileError.message);
+        // Don't fail registration if profile creation fails
       }
     }
 
-    // Note: Pensions are no longer created during registration
-    // Owners will add properties after their business is approved
+    // Create a pension for new owners using the actual form data
+    if ((role === 'owner' || role === 'Owner') && pensionData) {
+      try {
+        console.log('🔍 Creating pension for owner ID:', result.insertId, 'with data:', pensionData);
+        
+        const pensionResult = await executeQuery(`
+          INSERT INTO pensions (owner_id, name, phone, email, description, city, capacity, status, address)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        `, [
+          result.insertId, // owner_id
+          pensionData.name || `${fullName}'s Pension`, // name
+          pensionData.phone || phone || '', // phone
+          pensionData.email || email || '', // email
+          pensionData.description || `Professional hospitality service`, // description
+          pensionData.address || 'Addis Ababa', // city
+          pensionData.capacity || 0, // capacity
+          pensionData.address || '' // address
+        ]);
+        
+        console.log('✅ Pension created with ID:', pensionResult.insertId);
+        
+        // Verify the pension was created
+        const verifyPension = await executeQuery(
+          'SELECT pension_id, owner_id, name FROM pensions WHERE owner_id = ?',
+          [result.insertId]
+        );
+        console.log('🔍 Verification - found pensions:', verifyPension);
+        
+      } catch (pensionError) {
+        console.error('❌ Failed to create pension:', pensionError);
+        console.error('❌ Error details:', pensionError.message);
+        // Don't fail registration if pension creation fails
+      }
+    }
 
     // Auto-login for pension owners (role = 'owner')
     if (role === 'owner' || role === 'admin') {

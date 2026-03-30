@@ -7,6 +7,47 @@ import { useLanguage } from "@/hooks/use-language";
 import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 import { useNavigate } from "react-router-dom";
 
+// Helper function to construct full URLs for images
+const getFullImageUrl = (imagePath: string | undefined | null): string => {
+  console.log('🔍 getFullImageUrl input:', {
+    imagePath,
+    type: typeof imagePath,
+    isNull: imagePath === null,
+    isUndefined: imagePath === undefined,
+    isEmpty: imagePath === ''
+  });
+  
+  if (!imagePath) {
+    const fallback = '/src/assets/room-1.png';
+    console.log('🔍 Using fallback:', fallback);
+    return fallback;
+  }
+  
+  // If it's already a full URL (starts with http), return as is
+  if (imagePath.startsWith('http')) {
+    console.log('🔍 Already full URL:', imagePath);
+    return imagePath;
+  }
+  
+  // If it's a frontend asset path (/src/assets/), return as-is (served by frontend)
+  if (imagePath.startsWith('/src/assets/')) {
+    console.log('🔍 Frontend asset path, keeping as-is:', imagePath);
+    return imagePath;
+  }
+  
+  // If it's an uploaded file path (/uploads/), prepend the backend URL
+  if (imagePath.startsWith('/uploads/')) {
+    const fullUrl = `http://localhost:3005${imagePath}`;
+    console.log('🔍 Backend uploaded file, constructed full URL:', fullUrl);
+    return fullUrl;
+  }
+  
+  // Default: assume it's a backend file
+  const fullUrl = `http://localhost:3005${imagePath}`;
+  console.log('🔍 Default backend file, constructed full URL:', fullUrl);
+  return fullUrl;
+};
+
 interface RoomProfileProps {
   room: Room;
 }
@@ -137,12 +178,15 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                         </div>
                         
                         <div className="mb-4">
-                          {pkg.availableRooms <= 3 && (
-                            <div className={`inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full ${pkg.availableRooms === 0 ? 'bg-destructive/10 text-destructive' : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
-                              {pkg.availableRooms === 0 ? "Sold Out" : `Only ${pkg.availableRooms} rooms left!`}
+                          {pkg.availableRooms === 0 ? (
+                            <div className="inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-destructive/10 text-destructive">
+                              Sold Out
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-green-500/10 text-green-600 dark:text-green-400">
+                              {pkg.availableRooms} room{pkg.availableRooms !== 1 ? 's' : ''} available
                             </div>
                           )}
-                          {pkg.availableRooms > 3 && <div />}
                         </div>
 
                         <div className="flex-grow space-y-5">
@@ -185,7 +229,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             <>
                               <video 
                                 src={pkg.videoUrl} 
-                                poster={pkg.image}
+                                poster={getFullImageUrl(pkg.image)}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 autoPlay 
                                 loop 
@@ -197,11 +241,34 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                               </div>
                             </>
                           ) : (
-                            <img 
-                              src={pkg.image} 
-                              alt={pkg.name} 
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                            />
+                            (() => {
+                              const imageSrc = getFullImageUrl(pkg.image);
+                              console.log('🔍 Package image rendering:', {
+                                packageName: pkg.name,
+                                originalImage: pkg.image,
+                                finalSrc: imageSrc
+                              });
+                              return (
+                                <img 
+                                  src={imageSrc}
+                                  alt={pkg.name} 
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                  onError={(e) => {
+                                    console.error('🔍 Image load error:', {
+                                      packageName: pkg.name,
+                                      src: imageSrc,
+                                      error: e
+                                    });
+                                  }}
+                                  onLoad={(e) => {
+                                    console.log('🔍 Image loaded successfully:', {
+                                      packageName: pkg.name,
+                                      src: imageSrc
+                                    });
+                                  }}
+                                />
+                              );
+                            })()
                           )}
                         </div>
                       </div>

@@ -25,6 +25,78 @@ interface BookingSectionProps {
   onCompleteEarly: (id: string | number) => void;
 }
 
+const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEarly: (id: string) => void }) => {
+  // Debug: Log booking data to see available fields
+  console.log('🔍 Owner Dashboard Booking data:', booking);
+  console.log('🔍 Room fields available:', {
+    room_number: booking.room_number,
+    room_id: booking.room_id,
+    room_type: booking.room_type,
+    room_name: booking.room_name
+  });
+  
+  // Try different possible room fields
+  const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
+  
+  console.log('🔍 Final roomInfo:', roomInfo);
+  
+  return (
+    <Card key={booking.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02] relative">
+      <CardHeader className="relative pb-0">
+        <div className="flex justify-between items-start mb-4">
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</h3>
+            <p className="text-sm text-slate-600 flex items-center gap-1">
+              <Mail className="h-3 w-3" />
+              {booking.user_email}
+            </p>
+          </div>
+          <Badge className={`${
+            booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
+            booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-red-500 shadow-red-500/25'
+          } text-white text-xs shadow-sm capitalize`}>
+            {booking.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <span className="text-sm text-slate-600 flex items-center gap-2">
+            <BedDouble className="h-4 w-4" />
+            Room
+          </span>
+          <span className="font-bold text-slate-900">{roomInfo}</span>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <span className="text-sm text-slate-600 flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4" />
+            Check-in
+          </span>
+          <span className="font-bold text-slate-900">{new Date(booking.check_in_date).toLocaleDateString()}</span>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <span className="text-sm text-slate-600 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Check-out
+          </span>
+          <span className="font-bold text-slate-900">{new Date(booking.check_out_date).toLocaleDateString()}</span>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
+          <span className="text-sm font-bold text-emerald-700">Total</span>
+          <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
+          {booking.status?.toLowerCase() === 'confirmed' && (
+            <Button size="sm" variant="outline" onClick={() => onCompleteEarly(booking.id || booking.booking_id)} className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
+              <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export const BookingSection: React.FC<BookingSectionProps> = ({
   bookings,
   viewMode,
@@ -92,7 +164,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     <BedDouble className="h-4 w-4" />
                     Room
                   </span>
-                  <span className="font-bold text-slate-900">{booking.room_name || 'N/A'}</span>
+                  <span className="font-bold text-slate-900">{booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                   <span className="text-sm text-slate-600 flex items-center gap-2">
@@ -143,7 +215,14 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bookings.map((booking) => (
+                  {bookings.map((booking) => {
+                    // Debug: Log booking data to see available fields
+                    console.log('🔍 Table booking data:', booking);
+                    
+                    // Try different possible room fields
+                    const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
+                    
+                    return (
                     <TableRow key={booking.id} className="hover:bg-blue-50/50 transition-colors group">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
@@ -162,7 +241,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                       <TableCell>
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
                           <BedDouble className="h-4 w-4 text-slate-600" />
-                          <span className="font-medium">{booking.room_name || 'N/A'}</span>
+                          <span className="font-medium">{roomInfo}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -203,7 +282,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                          </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

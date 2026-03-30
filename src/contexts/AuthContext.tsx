@@ -176,19 +176,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } catch (error) {
-          console.error('❌ Failed to verify token with API, using localStorage user:', error);
-          // Fallback to localStorage user if API fails
-          const user = JSON.parse(userStr);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           dispatch({
-            type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
-            payload: {
-              user: user,
-              token: token,
-            },
+            type: AUTH_ACTIONS.LOAD_USER_FAILURE,
+            payload: 'Session expired',
           });
         }
       } else {
-        // No token or user in localStorage, set to null
         dispatch({
           type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
           payload: {

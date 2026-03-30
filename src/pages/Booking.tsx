@@ -40,6 +40,7 @@ const Booking = () => {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [passCode, setPassCode] = useState<string | null>(null);
   const [idDocument, setIdDocument] = useState<File | null>(null);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -90,19 +91,20 @@ const Booking = () => {
         body: payload
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (data.success) {
-        if (data.data?.bookingIds?.length > 0) {
-          setBookingId(data.data.bookingIds[0].toString());
+      if (responseData.success) {
+        setData(responseData); // Store the full response data
+        if (responseData.data?.bookingIds?.length > 0) {
+          setBookingId(responseData.data.bookingIds[0].toString());
         }
-        if (data.data?.booking?.passCode) {
-          setPassCode(data.data.booking.passCode);
+        if (responseData.data?.booking?.passCode) {
+          setPassCode(responseData.data.booking.passCode);
         }
         setIsSuccess(true);
         toast.success("Booking confirmed successfully!");
       } else {
-        toast.error(data.message || "Failed to confirm booking. Please try again.");
+        toast.error(responseData.message || "Failed to confirm booking. Please try again.");
       }
     } catch (error) {
       console.error("Booking submission error:", error);
@@ -133,7 +135,7 @@ const Booking = () => {
             </div>
             <h1 className="text-3xl font-heading font-bold text-foreground">{t.booking.successTitle}</h1>
             <p className="text-muted-foreground text-lg">
-              {t.booking.successDesc} <span className="font-semibold text-foreground">{room.name}</span>.
+              {t.booking.successDesc} <span className="font-semibold text-foreground">Room {data.data?.booking?.roomNumber || 'Assigned'}</span>.
             </p>
             <div className="p-6 bg-gradient-to-br from-card to-muted/30 rounded-3xl border border-primary/20 text-left space-y-4 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-700"></div>
@@ -150,7 +152,7 @@ const Booking = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Room</span>
-                  <span className="text-sm font-semibold">{room.name}</span>
+                  <span className="text-sm font-semibold">Room {data.data?.booking?.roomNumber || 'Assigned'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Check-in</span>

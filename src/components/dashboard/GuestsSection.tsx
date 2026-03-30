@@ -28,6 +28,16 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   viewMode,
   onToggleView
 }) => {
+  // Debug: Log guest data to see available fields
+  console.log('🔍 Guests Section - Guest data:', guests);
+  if (guests.length > 0) {
+    console.log('🔍 First guest object structure:', guests[0]);
+    console.log('🔍 First guest room fields:', {
+      room_number: guests[0].room_number,
+      roomId: guests[0].roomId,
+      room_id: guests[0].room_id
+    });
+  }
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -104,7 +114,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       <BedDouble className="h-4 w-4 text-purple-600" />
                       Room
                     </span>
-                    <span className="font-bold text-slate-900">{guest.roomId}</span>
+                    <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
@@ -156,7 +166,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       </TableCell>
                       <TableCell className="font-medium">{guest.phone}</TableCell>
                       <TableCell>{guest.nationality}</TableCell>
-                      <TableCell className="font-bold text-purple-700">{guest.roomId}</TableCell>
+                      <TableCell className="font-bold text-purple-700">{guest.room_number || guest.roomId || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge className={`${
                           guest.status === 'Checked In' ? 'bg-emerald-500' :

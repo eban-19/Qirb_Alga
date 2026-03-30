@@ -15,11 +15,13 @@ import { BookingSection } from '../components/dashboard/BookingSection';
 import { RoomsSection } from '../components/dashboard/RoomsSection';
 import { GuestsSection } from '../components/dashboard/GuestsSection';
 import { TransactionsSection } from '../components/dashboard/TransactionsSection';
+import NotificationBell from '../components/NotificationBell';
 import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 import StatsCards from '../components/dashboard/StatsCards';
 import PropertyInfoCard from '../components/dashboard/PropertyInfoCard';
 import ActivityStatsCards from '../components/dashboard/ActivityStatsCards';
 import { useDashboard } from '../hooks/useDashboard';
+import { useRefreshPackages } from "@/hooks/use-rooms";
 import { sidebarLinks, getIcon } from '../data/mock/sidebarData';
 import { 
   Users, 
@@ -75,6 +77,7 @@ import {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshAllPackages } = useRefreshPackages();
   const { user, logout, isAdmin, isPensionOwner, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -246,10 +249,11 @@ export const Dashboard: React.FC = () => {
     phone: b.user_phone || '',
     checkIn: b.check_in_date,
     checkOut: b.check_out_date,
-    room: b.room_name || 'N/A',
+    room: b.room_number || b.room_name || 'N/A',
     status: b.status,
     nationality: 'Ethiopian',
-    roomId: b.room_name || 'N/A',
+    roomId: b.room_number || b.room_name || 'N/A',
+    room_number: b.room_number, // Add room_number field
     totalBookings: 1,
     totalSpent: parseFloat(b.total_price) || 0
   }));
@@ -285,16 +289,28 @@ export const Dashboard: React.FC = () => {
         apiService.getMyReviews()
       ]);
 
+      // Debug: Check bookings response
+      console.log('🔍 Bookings API response:', bookingsResponse);
+      console.log('🔍 Bookings data being set:', bookingsResponse?.data?.items || []);
+      
+      // Log detailed booking structure
+      if (bookingsResponse?.data?.items && bookingsResponse.data.items.length > 0) {
+        console.log('🔍 First booking object structure:', bookingsResponse.data.items[0]);
+        console.log('🔍 First booking room fields:', {
+          room_number: bookingsResponse.data.items[0].room_number,
+          room_id: bookingsResponse.data.items[0].room_id,
+          room_type: bookingsResponse.data.items[0].room_type,
+          room_name: bookingsResponse.data.items[0].room_name
+        });
+      }
+      
       // Update basic state
       setBookings(bookingsResponse?.data?.items || []);
       const pensionsData = pensionsResponse?.data?.items || pensionsResponse?.data || [];
       const pensionsArray = Array.isArray(pensionsData) ? pensionsData : [];
       
       // 2. Find user's pension
-      const userId = user?.id || user?.userId;
-      console.log('🔍 Full user object:', user);
-      console.log('🔍 Looking for pension with userId:', userId, 'type:', typeof userId);
-      console.log('🔍 Available pensions:', pensionsArray.map(p => ({ id: p.pension_id, owner_id: p.owner_id, type: typeof p.owner_id, name: p.name })));
+      const userId = user?.id || user?.user_id || user?.userId;
       
       const foundUserPension = pensionsArray.find(p => 
         p.owner_id === userId || 
@@ -339,11 +355,32 @@ export const Dashboard: React.FC = () => {
             type: room.type.charAt(0).toUpperCase() + room.type.slice(1)
           }));
           setRoomsData(normalizedRooms);
+          setRooms(normalizedRooms); // Also update rooms state
         }
 
         // Update packages
         if (packagesResponse?.data) {
-          setPackages(packagesResponse.data);
+          console.log('🔍 Packages received from backend:', packagesResponse.data.map(p => ({
+            package_id: p.package_id,
+            name: p.name,
+            is_most_popular: p.is_most_popular,
+            isMostPopular: p.isMostPopular
+          })));
+          
+          // Map backend field names to frontend field names
+          const mappedPackages = packagesResponse.data.map(p => ({
+            ...p,
+            id: p.package_id || p.id,
+            isMostPopular: p.is_most_popular === 1 || p.is_most_popular === true
+          }));
+          
+          console.log('🔍 Packages after field mapping:', mappedPackages.map(p => ({
+            id: p.id,
+            name: p.name,
+            isMostPopular: p.isMostPopular
+          })));
+          
+          setPackages(mappedPackages);
         }
 
         // Load expenses
@@ -397,17 +434,19 @@ export const Dashboard: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [newRoom, setNewRoom] = useState({
-    id: '',
     type: '',
     floor: '',
     price: '',
     status: 'Available',
     capacity: '',
-    package: 'Standard',
-    customPackageName: '',
-    customPackagePrice: '',
+    numberOfBeds: '',
+    numberOfRooms: '1',
+    package: '',
+    roomNumbers: '',  // NEW: For entering room numbers like "201, 202, 203"
     imageType: 'Normal',
-    images: []
+    images: [],
+    customPackageName: '',
+    customPackagePrice: ''
   });
 
   // Package management states
@@ -418,9 +457,10 @@ export const Dashboard: React.FC = () => {
     price: '',
     description: '',
     services: ['WiFi', 'Clean Room', 'Basic Amenities'],
-    availableRooms: 1,
     isMostPopular: false,
-    image: ''
+    image: '',
+    customService: '',
+    imageType: 'Normal'
   });
   
   const [propertySettings, setPropertySettings] = useState<PropertySettings>({
@@ -438,6 +478,12 @@ export const Dashboard: React.FC = () => {
     checkOutTime: "10:00",
     cancellationPolicy: "Flexible"
   });
+
+  // Calculate available rooms dynamically based on actual room data
+  const calculateAvailableRooms = (packageId: string) => {
+    const packageRooms = rooms.filter(room => room.package_id === packageId);
+    return packageRooms.filter(room => room.status === 'Available' || room.is_available !== false).length;
+  };
 
   const [actualRoomStats, setActualRoomStats] = useState({
     totalRooms: 0,
@@ -465,7 +511,7 @@ export const Dashboard: React.FC = () => {
     if (pensions.length > 0) {
       // Find the pension that belongs to this user
       const foundPension = pensions.find(p => 
-        p.owner_id === user?.id
+        p.owner_id === (user?.id || user?.user_id)
       );
       
       setUserPension(foundPension || null); // Set the state variable
@@ -566,7 +612,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleSaveStaff = async () => {
-    const foundPension = pensions.find(p => p.owner_id === user?.id);
+    const foundPension = pensions.find(p => p.owner_id === (user?.id || user?.user_id));
     if (!foundPension) {
       alert('Please create a pension first!');
       return;
@@ -577,7 +623,7 @@ export const Dashboard: React.FC = () => {
       const staffData = {
         ...newStaff,
         pension_id: foundPension.pension_id || foundPension.id,
-        owner_id: user?.id
+        owner_id: user?.id || user?.user_id
       };
 
       if (editingStaff) {
@@ -616,7 +662,7 @@ export const Dashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to remove this staff member?')) return;
     try {
       await apiService.deleteStaff(parseInt(id));
-      const foundPension = pensions.find(p => p.owner_id === user?.id);
+      const foundPension = pensions.find(p => p.owner_id === (user?.id || user?.user_id));
       if (foundPension) {
         const response = await apiService.getStaff(foundPension.pension_id || foundPension.id);
         const mappedStaff = response.data.map((s: any) => ({
@@ -636,9 +682,12 @@ export const Dashboard: React.FC = () => {
     try {
       console.log('📸 Package image upload started for file:', file.name);
       console.log('📸 User authenticated:', !!localStorage.getItem('token'));
-      console.log('📸 Token exists:', !!localStorage.getItem('token'));
+      
+      if (!localStorage.getItem('token')) {
+        throw new Error('User not authenticated');
+      }
+
       const response = await apiService.uploadImage(file);
-      console.log('📸 Upload response:', response);
       
       if (response.success && editingPackage) {
         console.log('📸 Updating existing package with image:', response.data.url);
@@ -648,6 +697,34 @@ export const Dashboard: React.FC = () => {
         console.log('📸 Current newPackage before image:', newPackage);
         setNewPackage({ ...newPackage, image: response.data.url } as any);
         console.log('📸 New package after image set:', { ...newPackage, image: response.data.url });
+      } else {
+        console.error('📸 Upload failed:', response.message);
+        console.error('📸 Full response:', response);
+        alert(`Image upload failed: ${response.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('📸 Upload failed:', error);
+      alert(`Image upload failed: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleRoomImageUpload = async (file: File) => {
+    try {
+      console.log('📸 Room image upload started for file:', file.name);
+      console.log('📸 User authenticated:', !!localStorage.getItem('token'));
+      
+      if (!localStorage.getItem('token')) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await apiService.uploadImage(file);
+      
+      if (response.success) {
+        console.log('📸 Room image uploaded successfully:', response.data.url);
+        setNewRoom(prev => ({
+          ...prev,
+          images: [...prev.images, response.data.url]
+        }));
       } else {
         console.error('📸 Upload failed:', response.message);
         console.error('📸 Full response:', response);
@@ -683,10 +760,23 @@ export const Dashboard: React.FC = () => {
     try {
       setIsUpdating(true);
       
+      // Debug logging
+      console.log('🔍 Update pension profile - Full user object:', user);
+      console.log('🔍 Update pension profile - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+      console.log('🔍 Update pension profile - Available pensions:', pensions.map(p => ({ 
+        id: p.id, 
+        pension_id: p.pension_id, 
+        owner_id: p.owner_id, 
+        name: p.name,
+        owner_id_type: typeof p.owner_id
+      })));
+      
       // Check if user has their own pension
       const foundPension = pensions.find(p => 
-        p.owner_id === user?.id
+        p.owner_id === (user?.id || user?.user_id)
       );
+      
+      console.log('🔍 Update pension profile - Found pension:', foundPension ? foundPension.name : 'None');
       
       setUserPension(foundPension);
 
@@ -760,10 +850,23 @@ export const Dashboard: React.FC = () => {
   const handleAddPackage = async () => {
     try {
       if (newPackage.name && newPackage.price && newPackage.description) {
+        // Debug logging
+        console.log('🔍 Package creation - Full user object:', user);
+        console.log('🔍 Package creation - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+        console.log('🔍 Package creation - Available pensions:', pensions.map(p => ({ 
+          id: p.id, 
+          pension_id: p.pension_id, 
+          owner_id: p.owner_id, 
+          name: p.name,
+          owner_id_type: typeof p.owner_id
+        })));
+        
         // Get user's pension ID
         const foundPension = pensions.find(p => 
-          p.owner_id === user?.id
+          p.owner_id === (user?.id || user?.user_id)
         );
+        
+        console.log('🔍 Package creation - Found pension:', foundPension ? foundPension.name : 'None');
         
         if (foundPension) {
           // Wait a moment for image state to update if needed
@@ -774,8 +877,9 @@ export const Dashboard: React.FC = () => {
             price: parseInt(newPackage.price),
             description: newPackage.description,
             services: newPackage.services,
-            availableRooms: newPackage.availableRooms,
-            image: (newPackage as any).image || (editingPackage as any).image || ''
+            image: (newPackage as any).image || (editingPackage as any).image || '',
+            customService: newPackage.customService,
+            imageType: newPackage.imageType
           };
 
           console.log('📦 Package data being sent to backend:', packageData);
@@ -808,7 +912,7 @@ export const Dashboard: React.FC = () => {
             setPackages(updatedPackages);
           }
           
-          setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], availableRooms: 1, isMostPopular: false, image: '' });
+          setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
           setShowAddPackageModal(false);
           setShowSaveSuccess(true);
           setTimeout(() => setShowSaveSuccess(false), 3000);
@@ -832,9 +936,10 @@ export const Dashboard: React.FC = () => {
       price: pkg.price.toString(),
       description: pkg.description,
       services: pkg.services || ['WiFi', 'Clean Room', 'Basic Amenities'],
-      availableRooms: pkg.availableRooms || 1,
       isMostPopular: pkg.isMostPopular,
-      image: pkg.image || ''
+      image: pkg.image || '',
+      customService: pkg.customService || '',
+      imageType: pkg.imageType || 'Normal'
     });
     setShowAddPackageModal(true);
   };
@@ -846,7 +951,7 @@ export const Dashboard: React.FC = () => {
       
       // Get user's pension ID
       const foundPension = pensions.find(p => 
-        p.owner_id === user?.id
+        p.owner_id === user?.user_id
       );
       
       console.log('🔍 Found pension:', foundPension ? foundPension.name : 'None');
@@ -870,34 +975,115 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Room management handlers
+  const handleDeleteRoom = async (roomId: string | number) => {
+    console.log('🔍 Delete room clicked:', roomId);
+    
+    // Find the room to check its status
+    const roomToDelete = roomsData.find(room => room.id === roomId || room.room_id === roomId);
+    
+    if (!roomToDelete) {
+      alert('Room not found!');
+      return;
+    }
+    
+    // Don't allow deletion of occupied rooms
+    if (roomToDelete.status === 'Occupied') {
+      alert('Cannot delete occupied room!');
+      return;
+    }
+    
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to delete room ${roomId}?`)) {
+      try {
+        const response = await apiService.deleteRoom(parseInt(roomId));
+        
+        if (response.success) {
+          // Remove the room from local state
+          const updatedRooms = roomsData.filter(room => 
+            room.id !== roomId && room.room_id !== roomId
+          );
+          setRoomsData(updatedRooms);
+          
+          alert('Room deleted successfully!');
+          console.log('✅ Room deleted:', roomId);
+        } else {
+          alert('Failed to delete room: ' + (response.message || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting room:', error);
+        alert(`Error deleting room: ${error.message}`);
+      }
+    }
+  };
+
   const handleToggleMostPopular = async (packageId: string) => {
     try {
-      // Find the package to toggle
-      const packageToToggle = packages.find(pkg => pkg.id === packageId);
-      if (!packageToToggle) return;
-
-      // Get user's pension ID
+      // Find the package to toggle (check both id and package_id)
+      const packageToToggle = packages.find(pkg => pkg.id === packageId || pkg.package_id === packageId);
+      
+      console.log('🔍 Toggle Most Popular clicked:', {
+        packageId,
+        packageToToggle,
+        currentStatus: packageToToggle?.isMostPopular,
+        availablePackages: packages.map(p => ({ id: p.id, package_id: p.package_id, name: p.name }))
+      });
+      
+      if (!packageToToggle) {
+        console.error('❌ Package not found:', packageId);
+        return;
+      }
+      
+      // Get user's pension (same logic as other functions)
+      console.log('🔍 Toggle Most Popular - Full user object:', user);
+      console.log('🔍 Toggle Most Popular - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+      console.log('🔍 Toggle Most Popular - Available pensions:', pensions.map(p => ({ 
+        id: p.id, 
+        pension_id: p.pension_id, 
+        owner_id: p.owner_id, 
+        name: p.name,
+        owner_id_type: typeof p.owner_id
+      })));
+      
       const foundPension = pensions.find(p => 
-        p.owner_id === user?.id
+        p.owner_id === (user?.id || user?.user_id)
       );
+      
+      console.log('🔍 Toggle Most Popular - Found pension:', foundPension ? foundPension.name : 'None');
       
       if (foundPension) {
         const newPopularStatus = !packageToToggle.isMostPopular;
         
+        console.log('🔍 Updating package popularity:', {
+          packageId,
+          oldStatus: packageToToggle.isMostPopular,
+          newStatus: newPopularStatus,
+          actualPackageId: packageToToggle.id || packageToToggle.package_id
+        });
+        
+        // Use the actual package ID (either id or package_id)
+        const actualPackageId = packageToToggle.id || packageToToggle.package_id;
+        
         // Update backend
-        await apiService.updatePackage(foundPension.pension_id || foundPension.id, parseInt(packageId), {
+        const response = await apiService.updatePackage(foundPension.pension_id || foundPension.id, parseInt(actualPackageId), {
           isMostPopular: newPopularStatus
         });
+        
+        console.log('🔍 Backend response:', response);
         
         // Update frontend state
         const updatedPackages = packages.map(pkg => ({
           ...pkg,
-          isMostPopular: pkg.id === packageId ? newPopularStatus : (newPopularStatus ? false : pkg.isMostPopular)
+          isMostPopular: (pkg.id === packageId || pkg.package_id === packageId) ? newPopularStatus : (newPopularStatus ? false : pkg.isMostPopular)
         }));
         setPackages(updatedPackages);
+        
+        console.log('🔍 Frontend packages updated:', updatedPackages.map(p => ({ id: p.id, package_id: p.package_id, name: p.name, isMostPopular: p.isMostPopular })));
+      } else {
+        console.error('❌ No pension found for most popular toggle');
       }
     } catch (error) {
-      console.error('Failed to update popular status:', error);
+      console.error('❌ Error toggling most popular:', error);
     }
   };
 
@@ -1091,7 +1277,7 @@ export const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 min-h-screen">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-white/80 backdrop-blur-md px-4 lg:px-8 shadow-sm overflow-hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-white/80 backdrop-blur-md px-4 lg:px-8 shadow-sm">
           {isSearchOpenMobile ? (
             <div className="flex items-center w-full gap-3 animate-in slide-in-from-right-4 duration-300">
               <Button
@@ -1146,14 +1332,7 @@ export const Dashboard: React.FC = () => {
                 </Button>
 
                 {/* Notifications */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50"
-                >
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                </Button>
+                <NotificationBell />
 
                 {/* User Avatar */}
                 <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
@@ -1480,13 +1659,18 @@ export const Dashboard: React.FC = () => {
 
             {/* Bookings Section */}
             {activeTab === "bookings" && (
-              <BookingSection 
-                bookings={bookings}
-                viewMode={viewModes.bookings}
-                onToggleView={() => toggleViewMode('bookings')}
-                onUpdateStatus={handleUpdateBookingStatus}
-                onCompleteEarly={handleCompleteBookingEarly}
-              />
+              (() => {
+                console.log('🔍 About to render BookingSection with bookings:', bookings);
+                return (
+                  <BookingSection 
+                    bookings={bookings}
+                    viewMode={viewModes.bookings}
+                    onToggleView={() => toggleViewMode('bookings')}
+                    onUpdateStatus={handleUpdateBookingStatus}
+                    onCompleteEarly={handleCompleteBookingEarly}
+                  />
+                );
+              })()
             )}
 
             {/* Rooms Section */}
@@ -1495,6 +1679,7 @@ export const Dashboard: React.FC = () => {
                 rooms={roomsData}
                 viewMode={viewModes.rooms}
                 onToggleView={() => toggleViewMode('rooms')}
+                onDeleteRoom={handleDeleteRoom}
               />
             )}
 
@@ -2328,6 +2513,9 @@ export const Dashboard: React.FC = () => {
                                     {pkg.isMostPopular && (
                                       <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
                                     )}
+                                    {pkg.imageType === '3D' && (
+                                      <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">3D Tour</span>
+                                    )}
                                   </div>
                                   <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
                                   {pkg.services && pkg.services.length > 0 && (
@@ -2345,14 +2533,14 @@ export const Dashboard: React.FC = () => {
                                     <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
                                     {pkg.availableRooms !== undefined && (
                                       <p className="text-xs text-slate-500">
-                                        {pkg.availableRooms} room{pkg.availableRooms !== 1 ? 's' : ''} available
+                                        {calculateAvailableRooms(pkg.id || pkg.package_id)} room{calculateAvailableRooms(pkg.id || pkg.package_id) !== 1 ? 's' : ''} available
                                       </p>
                                     )}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => handleToggleMostPopular(pkg.id)}
+                                    onClick={() => handleToggleMostPopular(pkg.id || pkg.package_id)}
                                     className={`p-2 rounded-lg transition-all duration-200 ${
                                       pkg.isMostPopular 
                                         ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
@@ -2383,7 +2571,7 @@ export const Dashboard: React.FC = () => {
                             <button
                               onClick={() => {
                                 setEditingPackage(null);
-                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], availableRooms: 1, isMostPopular: false, image: '' });
+                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
                                 setShowAddPackageModal(true);
                               }}
                               className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
@@ -2619,6 +2807,9 @@ export const Dashboard: React.FC = () => {
                                     {pkg.isMostPopular && (
                                       <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
                                     )}
+                                    {pkg.imageType === '3D' && (
+                                      <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">3D Tour</span>
+                                    )}
                                   </div>
                                   <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
                                   {pkg.services && pkg.services.length > 0 && (
@@ -2636,14 +2827,14 @@ export const Dashboard: React.FC = () => {
                                     <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
                                     {pkg.availableRooms !== undefined && (
                                       <p className="text-xs text-slate-500">
-                                        {pkg.availableRooms} room{pkg.availableRooms !== 1 ? 's' : ''} available
+                                        {calculateAvailableRooms(pkg.id || pkg.package_id)} room{calculateAvailableRooms(pkg.id || pkg.package_id) !== 1 ? 's' : ''} available
                                       </p>
                                     )}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => handleToggleMostPopular(pkg.id)}
+                                    onClick={() => handleToggleMostPopular(pkg.id || pkg.package_id)}
                                     className={`p-2 rounded-lg transition-all duration-200 ${
                                       pkg.isMostPopular 
                                         ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
@@ -2674,7 +2865,7 @@ export const Dashboard: React.FC = () => {
                             <button
                               onClick={() => {
                                 setEditingPackage(null);
-                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], availableRooms: 1, isMostPopular: false, image: '' });
+                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
                                 setShowAddPackageModal(true);
                               }}
                               className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
@@ -2737,7 +2928,6 @@ export const Dashboard: React.FC = () => {
         columns={[
           { key: 'id', label: 'Room ID' },
           { key: 'type', label: 'Type' },
-          { key: 'floor', label: 'Floor' },
           { key: 'price', label: 'Price' },
           { key: 'status', label: 'Status' },
           { key: 'capacity', label: 'Capacity' }
@@ -2771,209 +2961,115 @@ export const Dashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 overflow-y-auto max-h-[calc(90vh-120px)] px-6">
-              {/* Basic Info Section */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-primary" />
-                      Room ID
-                    </Label>
-                    <Input
-                      value={newRoom.id}
-                      onChange={(e) => setNewRoom({ ...newRoom, id: e.target.value })}
-                      placeholder="e.g., 101"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <BedDouble className="h-4 w-4 text-primary" />
-                      Type
-                    </Label>
-                    <Input
-                      value={newRoom.type}
-                      onChange={(e) => setNewRoom({ ...newRoom, type: e.target.value })}
-                      placeholder="e.g., Single, Double, Suite"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <Building className="h-4 w-4 text-primary" />
-                      Floor
-                    </Label>
-                    <Input
-                      value={newRoom.floor}
-                      onChange={(e) => setNewRoom({ ...newRoom, floor: e.target.value })}
-                      placeholder="e.g., 1"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      Price (ETB)
-                    </Label>
-                    <Input
-                      value={newRoom.price}
-                      onChange={(e) => setNewRoom({ ...newRoom, price: e.target.value })}
-                      placeholder="e.g., 1500"
-                      type="number"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                      Status
-                    </Label>
-                    <select
-                      value={newRoom.status}
-                      onChange={(e) => setNewRoom({ ...newRoom, status: e.target.value })}
-                      className="h-10 w-full border border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 rounded-lg px-3 transition-all duration-300"
-                    >
-                      <option value="Available">Available</option>
-                      <option value="Occupied">Occupied</option>
-                      <option value="Maintenance">Maintenance</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      Capacity
-                    </Label>
-                    <Input
-                      value={newRoom.capacity}
-                      onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value })}
-                      placeholder="e.g., 2"
-                      type="number"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Package Section - Dropdown */}
+              {/* Package Selection - Dropdown */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <Package className="h-4 w-4 text-primary" />
-                  Room Package
+                  Select Package
                 </Label>
                 <select
                   value={newRoom.package}
-                  onChange={(e) => setNewRoom({ ...newRoom, package: e.target.value })}
+                  onChange={(e) => {
+                    const selectedPackage = packages.find(p => p.id === e.target.value);
+                    setNewRoom({ 
+                      ...newRoom, 
+                      package: e.target.value,
+                      // Auto-fill fields from selected package
+                      type: selectedPackage?.name || '',
+                      capacity: selectedPackage?.services?.length ? '2' : '1', // Approximate capacity based on services
+                      numberOfBeds: selectedPackage?.name?.includes('Double') ? '2' : selectedPackage?.name?.includes('Suite') ? '3' : '1'
+                    });
+                  }}
                   className="h-10 w-full border border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 rounded-lg px-3 transition-all duration-300"
                 >
-                  <option value="Basic">Basic - ETB 1,000 (WiFi, Basic amenities)</option>
-                  <option value="Standard">Standard - ETB 1,500 (WiFi, TV, Mini-fridge, Basic amenities)</option>
-                  <option value="Premium">Premium - ETB 2,500 (WiFi, TV, Mini-fridge, Balcony, Premium amenities)</option>
-                  <option value="custom">Custom Package - Define your own</option>
+                  <option value="">Select a package</option>
+                  {packages.map(pkg => (
+                    <option key={pkg.id || pkg.package_id} value={pkg.id || pkg.package_id}>
+                      {pkg.name} - ETB {pkg.price}/night
+                    </option>
+                  ))}
                 </select>
-                
-                {newRoom.package === 'custom' && (
-                  <div className="mt-2 space-y-2">
-                    <Input
-                      value={newRoom.customPackageName || ''}
-                      onChange={(e) => setNewRoom({ ...newRoom, customPackageName: e.target.value })}
-                      placeholder="Enter custom package name"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                    <Input
-                      value={newRoom.customPackagePrice || ''}
-                      onChange={(e) => setNewRoom({ ...newRoom, customPackagePrice: e.target.value })}
-                      placeholder="Enter package price (ETB)"
-                      type="number"
-                      className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
-                    />
-                  </div>
-                )}
               </div>
 
-              {/* Images Section */}
-              <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
-                    <Image className="h-4 w-4" />
-                  </div>
-                  <h3 className="font-bold text-slate-800">Room Images</h3>
-                </div>
+              {/* Room Details Fields */}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Home className="h-4 w-4 text-primary" />
+                  Room Type (auto-filled from package)
+                </Label>
+                <Input
+                  value={newRoom.type || ''}
+                  onChange={(e) => setNewRoom({ ...newRoom, type: e.target.value })}
+                  placeholder="e.g., Double, Single, Suite"
+                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
+                />
+              </div>
 
-                {/* Image Type Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Image Type</Label>
-                  <div className="flex gap-3">
-                    {['Normal', '3D'].map((type) => (
-                      <button
-                        key={type}
-                        className={`px-4 py-2 rounded-lg border-2 transition-all duration-200 ${
-                          newRoom.imageType === type
-                            ? 'border-purple-500 bg-purple-50 text-purple-700'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-purple-300'
-                        }`}
-                        onClick={() => setNewRoom({ ...newRoom, imageType: type })}
-                      >
-                        {type === '3D' ? '3D Tour' : 'Normal Images'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Room Numbers Field */}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-primary" />
+                  Room Numbers (comma-separated)
+                </Label>
+                <Input
+                  value={newRoom.roomNumbers || ''}
+                  onChange={(e) => setNewRoom({ ...newRoom, roomNumbers: e.target.value })}
+                  placeholder="e.g., 201, 202, 203, 205, 207"
+                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
+                />
+                <p className="text-xs text-slate-500">Enter the actual room numbers as they exist in your building</p>
+              </div>
 
-                {/* Image Upload Area */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">
-                    Upload {newRoom.imageType === '3D' ? '3D Tour Files' : 'Room Images'}
+                  <Label className="text-sm font-bold text-slate-700">Number of Beds (auto-filled from package)</Label>
+                  <Input
+                    value={newRoom.numberOfBeds || ''}
+                    onChange={(e) => setNewRoom({ ...newRoom, numberOfBeds: e.target.value })}
+                    placeholder="e.g., 2"
+                    type="number"
+                    className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Capacity (auto-filled from package)
                   </Label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 bg-white hover:border-purple-400 transition-all duration-300 cursor-pointer">
-                    <div className="flex flex-col items-center gap-2 text-slate-500">
-                      <div className="p-2 rounded-full bg-purple-100">
-                        <Upload className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div className="text-center">
-                        <span className="font-semibold text-sm">Click to upload or drag and drop</span>
-                        <p className="text-xs mt-1">
-                          {newRoom.imageType === '3D' 
-                            ? '3D files (GLB, GLTF, OBJ) - Max 50MB' 
-                            : 'PNG, JPG, GIF up to 10MB each'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <Input
+                    value={newRoom.capacity}
+                    onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value })}
+                    placeholder="e.g., 2"
+                    type="number"
+                    className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
+                  />
                 </div>
+              </div>
 
-                {/* Uploaded Images Preview */}
-                {newRoom.images.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700">Uploaded Files</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {newRoom.images.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <div className="aspect-square bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
-                            <Image className="h-6 w-6 text-slate-400" />
-                          </div>
-                          <button
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onClick={() => {
-                              setNewRoom({
-                                ...newRoom,
-                                images: newRoom.images.filter((_, i) => i !== idx)
-                              });
-                            }}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Status (default: Available)</Label>
+                <select
+                  value={newRoom.status}
+                  onChange={(e) => setNewRoom({ ...newRoom, status: e.target.value })}
+                  className="h-10 w-full border border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 rounded-lg px-3 transition-all duration-300"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="Maintenance">Under Maintenance</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Number of Rooms (for bulk insertion)</Label>
+                <Input
+                  value={newRoom.numberOfRooms || '1'}
+                  onChange={(e) => setNewRoom({ ...newRoom, numberOfRooms: e.target.value })}
+                  placeholder="Number of rooms to create"
+                  type="number"
+                  min="1"
+                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
+                />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -2985,23 +3081,137 @@ export const Dashboard: React.FC = () => {
                   Cancel
                 </Button>
                 <Button 
-                  onClick={() => {
-                    // Here you would typically add the room to your data
-                    setShowAddRoomModal(false);
-                    // Reset form
-                    setNewRoom({
-                      id: '',
-                      type: '',
-                      floor: '',
-                      price: '',
-                      status: 'Available',
-                      capacity: '',
-                      package: 'Standard',
-                      imageType: 'Normal',
-                      images: [],
-                      customPackageName: '',
-                      customPackagePrice: ''
-                    });
+                  onClick={async () => {
+                    try {
+                      // Debug logging
+                      console.log('🔍 Room creation - Full user object:', user);
+                      console.log('🔍 Room creation - userPension:', userPension);
+                      console.log('🔍 Room creation - Available pensions:', pensions.map(p => ({ 
+                        id: p.id, 
+                        pension_id: p.pension_id, 
+                        owner_id: p.owner_id, 
+                        name: p.name,
+                        owner_id_type: typeof p.owner_id
+                      })));
+                      console.log('🔍 Room creation - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+                      
+                      // Get the selected pension
+                      const foundPension = pensions.find(p => p.pension_id === userPension?.pension_id || userPension?.id);
+                      
+                      console.log('🔍 Room creation - Found pension:', foundPension ? foundPension.name : 'None');
+                      
+                      if (foundPension) {
+                        // Check if packages are loaded
+                        if (packages.length === 0) {
+                          alert('Please wait for packages to load or create packages first before adding rooms!');
+                          return;
+                        }
+                        
+                        // Prepare room data for API
+                        console.log('📦 Available packages:', packages);
+                        console.log('📦 Selected package ID:', newRoom.package, 'type:', typeof newRoom.package);
+                        console.log('📦 Package details:', packages.map(p => ({ id: p.id, package_id: p.package_id, name: p.name, idType: typeof p.id })));
+                        const selectedPackage = packages.find(p => (String(p.id) === String(newRoom.package)) || (String(p.package_id) === String(newRoom.package)));
+                        const roomData = {
+                          pension_id: foundPension.pension_id || foundPension.id,
+                          package_id: newRoom.package,
+                          room_type: selectedPackage ? selectedPackage.name : 'Standard',
+                          capacity: parseInt(newRoom.capacity) || 1,
+                          price_per_night: parseFloat(selectedPackage ? selectedPackage.price : 0),
+                          number_of_beds: parseInt(newRoom.numberOfBeds) || 1,
+                          availability_status: newRoom.status,
+                          packageId: newRoom.package
+                        };
+
+                        console.log('🏠 Creating room with data:', roomData);
+                        console.log('📦 Selected package:', selectedPackage);
+                        console.log('📦 Package price:', selectedPackage?.price);
+                        console.log('📤 Sending roomData to API:', JSON.stringify(roomData, null, 2));
+
+                        // Create the room(s) via API
+                        // Parse room numbers and create rooms
+                        const roomNumbersList = newRoom.roomNumbers
+                          .split(',')
+                          .map(num => num.trim())
+                          .filter(num => num.length > 0);
+                        
+                        let createdRooms = [];
+                        
+                        console.log('🔍 Room numbers to create:', roomNumbersList);
+                        
+                        for (const roomNumber of roomNumbersList) {
+                          const roomDataWithNumber = {
+                            ...roomData,
+                            room_number: roomNumber  // Add room number to each room
+                          };
+                          
+                          console.log(`🏠 Creating room ${roomNumber} with data:`, roomDataWithNumber);
+
+                          const response = await apiService.createRoom(roomDataWithNumber);
+                          
+                          if (response.success) {
+                            createdRooms.push({ ...response.data, room_number: roomNumber });
+                          } else {
+                            console.error(`Failed to create room ${roomNumber}:`, response.message);
+                          }
+                        }
+
+                        if (createdRooms.length > 0) {
+                          console.log(`✅ Successfully created ${createdRooms.length} rooms`);
+                          setShowAddRoomModal(false);
+                          // Reset form
+                          setNewRoom({
+                            type: '',
+                            price: '',
+                            status: 'Available',
+                            capacity: '',
+                            numberOfBeds: '',
+                            numberOfRooms: '1',
+                            package: '',
+                            roomNumbers: '',  // Reset room numbers
+                            imageType: 'Normal',
+                            images: [],
+                            customPackageName: '',
+                            customPackagePrice: ''
+                          });
+                          
+                          // Refresh rooms list
+                          console.log('🔍 Refreshing rooms for pension:', foundPension.pension_id || foundPension.id);
+                          const roomsResponse = await apiService.getRooms(foundPension.pension_id || foundPension.id);
+                          console.log('🔍 Rooms API response:', roomsResponse);
+                          if (roomsResponse.success) {
+                            console.log('🔍 Setting rooms state with:', roomsResponse.data);
+                            setRooms(roomsResponse.data);
+                            setRoomsData(roomsResponse.data); // Also update roomsData for UI
+                            
+                            // Update packages with correct available rooms count
+                            const updatedPackages = packages.map(pkg => ({
+                              ...pkg,
+                              availableRooms: calculateAvailableRooms(pkg.id || pkg.package_id)
+                            }));
+                            setPackages(updatedPackages);
+                            
+                            // Refresh all packages globally
+                            if (foundPension) {
+                              await refreshAllPackages(foundPension.pension_id || foundPension.id);
+                            }
+                          }
+                        } else {
+                          alert('Failed to create any rooms. Please check the console for details.');
+                        }
+                      } else {
+                        console.error('❌ No pension found for room creation!');
+                        console.log('🔍 Debug info:', {
+                          user: user,
+                          userPension: userPension,
+                          pensions: pensions
+                        });
+                        alert('Please create a pension first before adding rooms!');
+                      }
+                    } catch (error) {
+                      console.error('Error creating room:', error);
+                      alert(`Error creating room: ${error.message}`);
+                    }
                   }}
                   className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
                 >
@@ -3049,24 +3259,24 @@ export const Dashboard: React.FC = () => {
                 <Input
                   value={newPackage.name}
                   onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
-                  placeholder="e.g., Economy, Business, Luxury"
+                  placeholder="e.g., Luxury Double, Luxury Family, Economy Single"
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Price (ETB)</Label>
+                <Label className="text-sm font-bold text-slate-700">Price per Night (ETB)</Label>
                 <Input
                   value={newPackage.price}
                   onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
-                  placeholder="e.g., 3000"
+                  placeholder="e.g., 5000"
                   type="number"
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Description</Label>
+                <Label className="text-sm font-bold text-slate-700">Description (optional)</Label>
                 <textarea
                   value={newPackage.description}
                   onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
@@ -3077,64 +3287,134 @@ export const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Services (comma-separated)</Label>
-                <Input
-                  value={newPackage.services.join(', ')}
-                  onChange={(e) => setNewPackage({ ...newPackage, services: e.target.value.split(',').map(s => s.trim()).filter(s => s) })}
-                  placeholder="e.g., WiFi, Clean Room, Basic Amenities"
-                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                  <Image className="h-4 w-4 text-purple-600" />
-                  Package Image
-                </Label>
-                <div className="flex items-center gap-4">
-                  {(editingPackage?.image || (newPackage as any).image) && (
-                    <div className="h-16 w-16 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
-                      <img src={editingPackage?.image || (newPackage as any).image} alt="Package" className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div className="flex-1">
+                <Label className="text-sm font-bold text-slate-700">Services</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['WiFi', 'Breakfast', 'TV', 'Mini-fridge', 'Balcony', 'Air Conditioning', 'Parking', 'Pool Access'].map(service => (
+                    <label key={service} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newPackage.services.includes(service)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewPackage({ ...newPackage, services: [...newPackage.services, service] });
+                          } else {
+                            setNewPackage({ ...newPackage, services: newPackage.services.filter(s => s !== service) });
+                          }
+                        }}
+                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="text-sm">{service}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-3 space-y-2">
+                  <Label className="text-sm font-bold text-slate-700">Add Custom Service</Label>
+                  <div className="flex gap-2">
                     <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handlePackageImageUpload(file);
-                      }}
-                      className="cursor-pointer h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                      value={newPackage.customService || ''}
+                      onChange={(e) => setNewPackage({ ...newPackage, customService: e.target.value })}
+                      placeholder="Enter custom service name"
+                      className="flex-1 h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP up to 5MB</p>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (newPackage.customService && newPackage.customService.trim()) {
+                          setNewPackage({ 
+                            ...newPackage, 
+                            services: [...newPackage.services, newPackage.customService.trim()],
+                            customService: ''
+                          });
+                        }
+                      }}
+                      disabled={!newPackage.customService || !newPackage.customService.trim()}
+                      className="h-10 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50"
+                    >
+                      Add
+                    </Button>
                   </div>
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Available Rooms</Label>
-                <Input
-                  value={newPackage.availableRooms}
-                  onChange={(e) => setNewPackage({ ...newPackage, availableRooms: parseInt(e.target.value) || 1 })}
-                  placeholder="Number of rooms available"
-                  type="number"
-                  min="1"
-                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                />
+                <Label className="text-sm font-bold text-slate-700">Package Image (required for customer display)</Label>
+                
+                {/* Image Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-slate-700">Image Type</Label>
+                  <div className="flex gap-3">
+                    {['Normal', '3D'].map((type) => (
+                      <button
+                        key={type}
+                        className={`px-4 py-2 rounded-lg border-2 transition-all duration-200 ${
+                          newPackage.imageType === type
+                            ? 'border-purple-500 bg-purple-50 text-purple-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-purple-300'
+                        }`}
+                        onClick={() => setNewPackage({ ...newPackage, imageType: type })}
+                      >
+                        {type === '3D' ? '3D Tour' : 'Normal Images'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Image Upload Area */}
+                <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-4 bg-white hover:border-purple-400 transition-all duration-300">
+                  <div className="flex flex-col items-center gap-2 text-slate-500">
+                    <div className="p-2 rounded-full bg-purple-100">
+                      <Upload className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="text-center">
+                      <span className="font-semibold text-sm">Click to upload {newPackage.imageType === '3D' ? '3D tour files' : 'package image'}</span>
+                      <p className="text-xs mt-1">
+                        {newPackage.imageType === '3D' 
+                          ? '3D files (GLB, GLTF, OBJ) - Max 50MB' 
+                          : 'PNG, JPG, GIF up to 10MB'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    accept={newPackage.imageType === '3D' ? "model/*" : "image/*"}
+                    multiple={false}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePackageImageUpload(file);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                {(newPackage as any).image && (
+                  <div className="mt-2">
+                    {newPackage.imageType === '3D' ? (
+                      <div className="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="p-2 rounded-full bg-purple-100 inline-block mb-2">
+                            <Upload className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <p className="text-sm text-slate-600">3D Tour File Uploaded</p>
+                          <p className="text-xs text-slate-500 mt-1">{(newPackage as any).image.split('/').pop()}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={(newPackage as any).image} alt="Package preview" className="w-full h-32 object-cover rounded-lg" />
+                    )}
+                  </div>
+                )}
               </div>
               
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isMostPopular"
-                  checked={newPackage.isMostPopular}
-                  onChange={(e) => setNewPackage({ ...newPackage, isMostPopular: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
-                />
-                <Label htmlFor="isMostPopular" className="text-sm font-medium text-slate-700">
-                  Mark as "Most Popular"
-                </Label>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={(newPackage as any).isMostPopular || false}
+                    onChange={(e) => setNewPackage({ ...newPackage, isMostPopular: e.target.checked } as any)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-bold text-slate-700">Mark as Most Popular</span>
+                </label>
               </div>
 
               <div className="flex gap-3 pt-4">

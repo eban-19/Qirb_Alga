@@ -9,7 +9,8 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const owners = await executeQuery(`
       SELECT u.user_id, u.email, u.full_name, u.phone, u.role, u.approved, u.created_at,
-             op.business_name, op.approval_status, op.license_number, op.id_document_url,
+             op.business_name, op.business_email, op.business_phone, op.license_number, 
+             op.id_document_url, op.approval_status,
              COUNT(DISTINCT p.pension_id) as property_count
       FROM users u
       LEFT JOIN ownerprofiles op ON u.user_id = op.owner_id
@@ -19,24 +20,24 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
       ORDER BY u.created_at DESC
     `);
 
-    console.log('🔍 Admin owners query result:', owners);
-
     const formattedOwners = owners.map(owner => ({
       id: owner.user_id.toString(),
       businessName: owner.business_name || owner.full_name || 'Unknown',
       ownerName: owner.full_name,
-      email: owner.email,
-      phone: owner.phone || '',
+      email: owner.business_email || owner.email,
+      phone: owner.business_phone || owner.phone || '',
       businessId: `BUS${owner.user_id}`,
-      status: owner.approval_status === 'Approved' ? 'verified' : (owner.approval_status === 'Rejected' ? 'suspended' : 'pending'),
+      status: owner.approved === 1 ? 'verified' : (owner.approved === -1 ? 'suspended' : 'pending'),
       registrationDate: owner.created_at,
       totalProperties: owner.property_count,
       totalRevenue: 0, // Would need to calculate from bookings
       rating: 0, // Would need to calculate from reviews
-      documentStatus: owner.approval_status === 'Approved' ? 'approved' : 'pending',
-      licenseNumber: owner.license_number || '',
-      documentUrl: owner.id_document_url || '',
-      lastActive: owner.created_at
+      documentStatus: owner.approval_status || 'pending',
+      lastActive: owner.created_at,
+      // Add business details
+      licenseNumber: owner.license_number,
+      documentUrl: owner.id_document_url,
+      approvalStatus: owner.approval_status
     }));
 
     res.json({
@@ -52,24 +53,83 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Get detailed business information for a specific owner
+router.get('/owners/:ownerId/details', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+    
+    const businessDetails = await executeQuery(`
+      SELECT u.user_id, u.email, u.full_name, u.phone, u.role, u.approved, u.created_at,
+             op.business_name, op.business_email, op.business_phone, op.license_number, 
+             op.id_document_url, op.approval_status, op.created_at as profile_created_at,
+             COUNT(DISTINCT p.pension_id) as property_count
+      FROM users u
+      LEFT JOIN ownerprofiles op ON u.user_id = op.owner_id
+      LEFT JOIN pensions p ON u.user_id = p.owner_id
+      WHERE u.user_id = ? AND u.role = 'Owner'
+      GROUP BY u.user_id
+    `, [ownerId]);
+
+    if (businessDetails.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Owner not found'
+      });
+    }
+
+    const owner = businessDetails[0];
+    const formattedDetails = {
+      id: owner.user_id.toString(),
+      businessName: owner.business_name || owner.full_name || 'Unknown',
+      ownerName: owner.full_name,
+      email: owner.business_email || owner.email,
+      phone: owner.business_phone || owner.phone || '',
+      businessId: `BUS${owner.user_id}`,
+      status: owner.approved === 1 ? 'verified' : (owner.approved === -1 ? 'suspended' : 'pending'),
+      registrationDate: owner.created_at,
+      profileCreatedAt: owner.profile_created_at,
+      totalProperties: owner.property_count,
+      totalRevenue: 0, // Would need to calculate from bookings
+      rating: 0, // Would need to calculate from reviews
+      documentStatus: owner.approval_status || 'pending',
+      lastActive: owner.created_at,
+      // Business details from ownerprofiles
+      licenseNumber: owner.license_number,
+      documentUrl: owner.id_document_url,
+      approvalStatus: owner.approval_status
+    };
+
+    res.json({
+      success: true,
+      data: formattedDetails
+    });
+  } catch (error) {
+    console.error('Get owner details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch owner details'
+    });
+  }
+});
+
 // Approve owner
 router.put('/owners/:ownerId/approve', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { ownerId } = req.params;
     
-    // Update both users and ownerprofiles tables
-    await Promise.all([
-      executeQuery(
-        'UPDATE users SET approved = 1 WHERE user_id = ? AND role = "Owner"',
-        [ownerId]
-      ),
-      executeQuery(
-        'UPDATE ownerprofiles SET approval_status = "Approved", reviewed_by = ?, reviewed_at = NOW() WHERE owner_id = ?',
-        [req.user.userId, ownerId]
-      )
-    ]);
+    // Update both users table and ownerprofiles table
+    await executeQuery(
+      'UPDATE users SET approved = 1 WHERE user_id = ? AND role = "Owner"',
+      [ownerId]
+    );
+    
+    // Also update ownerprofiles approval status
+    await executeQuery(
+      'UPDATE ownerprofiles SET approval_status = "Approved" WHERE owner_id = ?',
+      [ownerId]
+    );
 
-    console.log(`✅ Owner ${ownerId} approved and profile updated`);
+    console.log(`✅ Owner ${ownerId} approved in both users and ownerprofiles tables`);
 
     res.json({
       success: true,
@@ -89,10 +149,19 @@ router.put('/owners/:ownerId/reject', authenticateToken, requireAdmin, async (re
   try {
     const { ownerId } = req.params;
     
+    // Update both users table and ownerprofiles table
     await executeQuery(
       'UPDATE users SET approved = 0 WHERE user_id = ? AND role = "Owner"',
       [ownerId]
     );
+    
+    // Also update ownerprofiles approval status
+    await executeQuery(
+      'UPDATE ownerprofiles SET approval_status = "Rejected" WHERE owner_id = ?',
+      [ownerId]
+    );
+
+    console.log(`✅ Owner ${ownerId} rejected in both users and ownerprofiles tables`);
 
     res.json({
       success: true,
@@ -208,22 +277,13 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
 // Get admin metrics
 router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    console.log('🔍 Admin metrics route hit');
-    
     // Get counts
     const [ownersCount, propertiesCount, bookingsCount, pendingCount] = await Promise.all([
-      executeQuery('SELECT COUNT(*) as count FROM users u JOIN ownerprofiles op ON u.user_id = op.owner_id WHERE u.role = "Owner" AND op.approval_status = "Approved"'),
+      executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner"'),
       executeQuery('SELECT COUNT(*) as count FROM pensions'),
       executeQuery('SELECT COUNT(*) as count FROM bookings'),
-      executeQuery('SELECT COUNT(*) as count FROM users u JOIN ownerprofiles op ON u.user_id = op.owner_id WHERE u.role = "Owner" AND op.approval_status != "Approved"')
+      executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner" AND approved != 1')
     ]);
-    
-    console.log('🔍 Admin counts:', {
-      ownersCount: ownersCount[0].count,
-      propertiesCount: propertiesCount[0].count,
-      bookingsCount: bookingsCount[0].count,
-      pendingCount: pendingCount[0].count
-    });
 
     const metrics = {
       totalOwners: ownersCount[0].count,

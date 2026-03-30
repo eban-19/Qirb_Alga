@@ -28,6 +28,8 @@ export interface RoomPackage {
   videoUrl?: string;
   services: string[];
   availableRooms: number;
+  isMostPopular?: boolean;
+  imageType?: string;
 }
 
 export interface Room {

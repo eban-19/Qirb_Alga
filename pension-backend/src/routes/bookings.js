@@ -1,8 +1,8 @@
 const express = require('express');
-const { executeQuery, executeTransaction } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
-
 const router = express.Router();
+const { executeQuery } = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
 
 // Get bookings for user (protected)
 router.get('/', authenticateToken, async (req, res, next) => {
@@ -14,7 +14,7 @@ router.get('/', authenticateToken, async (req, res, next) => {
     let query = `
       SELECT b.*, 
              u.full_name as user_name, u.email as user_email, u.phone as user_phone,
-             r.pension_id, r.room_type, r.price_per_night
+             r.pension_id, r.room_type, r.price_per_night, r.room_number
       FROM bookings b
       LEFT JOIN users u ON b.customer_id = u.user_id
       LEFT JOIN rooms r ON b.room_id = r.room_id
@@ -104,6 +104,38 @@ router.post('/', authenticateToken, async (req, res, next) => {
        VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
       [userId, room_id, package_id, check_in_date, check_out_date, total_price]
     );
+
+    // Get booking details for notification
+    const bookingDetails = await executeQuery(`
+      SELECT b.*, r.room_number, r.pension_id, p.owner_id, u.full_name as customer_name, u.email as customer_email
+      FROM bookings b
+      JOIN rooms r ON b.room_id = r.room_id
+      JOIN pensions p ON r.pension_id = p.pension_id
+      JOIN users u ON b.customer_id = u.user_id
+      WHERE b.booking_id = ?
+    `, [result.insertId]);
+
+    if (bookingDetails.length > 0) {
+      const booking = bookingDetails[0];
+      
+      // Send notification to pension owner
+      const notificationTitle = 'New Booking Received';
+      const notificationMessage = `${booking.customer_name} booked Room ${booking.room_number || booking.room_id} from ${new Date(booking.check_in_date).toLocaleDateString()} to ${new Date(booking.check_out_date).toLocaleDateString()}`;
+      
+      try {
+        await notificationService.createAndSendNotification(
+          booking.owner_id,
+          notificationTitle,
+          notificationMessage,
+          'new_booking',
+          'New Booking Received'
+        );
+        console.log('✅ New booking notification sent to owner:', booking.owner_id);
+      } catch (notificationError) {
+        console.error('❌ Failed to send booking notification:', notificationError);
+        // Don't fail the booking if notification fails
+      }
+    }
 
     res.status(201).json({
       success: true,

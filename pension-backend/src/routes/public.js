@@ -1,8 +1,10 @@
 const express = require('express');
+const router = express.Router();
 const { executeQuery } = require('../config/database');
 const upload = require('../middleware/upload');
-
-const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const notificationService = require('../services/notificationService');
 
 // Debug middleware to log all requests to public routes
 router.use((req, res, next) => {
@@ -39,7 +41,7 @@ router.get('/pensions', async (req, res, next) => {
                  (SELECT COUNT(*) 
                   FROM rooms r 
                   WHERE r.pension_id = pk.pension_id 
-                    AND r.room_type = pk.name 
+                    AND r.package_id = pk.package_id
                     AND r.availability_status = 'Available') as availableRoomsCount
           FROM packages pk
           WHERE pk.pension_id = ?
@@ -47,7 +49,30 @@ router.get('/pensions', async (req, res, next) => {
         `, [pensionId]);
         
         console.log('🔍 Public packages query result:', packages);
-        console.log('🔍 Available rooms per package:', packages.map(pkg => ({ name: pkg.name, count: pkg.availableRoomsCount })));
+        console.log('🔍 Available rooms per package:', packages.map(pkg => ({ 
+          name: pkg.name, 
+          package_id: pkg.package_id,
+          count: pkg.availableRoomsCount 
+        })));
+        
+        // Debug: Check individual room-package relationships
+        for (const pkg of packages) {
+          const individualRooms = await executeQuery(`
+            SELECT room_id, room_type, package_id, availability_status 
+            FROM rooms 
+            WHERE pension_id = ? AND package_id = ?
+          `, [pensionId, pkg.package_id]);
+          
+          console.log(`🔍 Package "${pkg.name}" (ID: ${pkg.package_id}):`, {
+            availableCount: pkg.availableRoomsCount,
+            individualRooms: individualRooms.map(r => ({
+              id: r.room_id,
+              type: r.room_type,
+              package_id: r.package_id,
+              status: r.availability_status
+            }))
+          });
+        }
       } catch (error) {
         console.log('Packages table error:', error.message);
       }
@@ -74,12 +99,30 @@ router.get('/pensions', async (req, res, next) => {
           name: pkg.name,
           price: parseFloat(pkg.price),
           description: pkg.description,
-          image: pkg.image || pkg.image_url || '/src/assets/package-101-standard.png',
+          image: pkg.image_url || pkg.image || null,
           services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || []),
-          availableRooms: pkg.availableRoomsCount || 0, // Use calculated value, not static one
-          isMostPopular: pkg.isMostPopular || false // Include popular status
+          availableRooms: pkg.availableRoomsCount || 0,
+          isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
         }))
       };
+      
+      console.log('🔍 Final package data with images:', packages.map(pkg => ({
+        name: pkg.name,
+        package_id: pkg.package_id,
+        image: pkg.image,
+        image_url: pkg.image_url,
+        finalImage: pkg.image_url || pkg.image || null,
+        availableRoomsCount: pkg.availableRoomsCount,
+        availableRooms: pkg.availableRoomsCount || 0,
+        image_urlType: typeof pkg.image_url,
+        image_urlIsNull: pkg.image_url === null,
+        image_urlUndefined: pkg.image_url === undefined
+      })));
+      
+      console.log('🔍 Final package data available rooms for list:', packages.map(pkg => ({
+        name: pkg.name,
+        availableRooms: pkg.availableRoomsCount || 0
+      })));
     }));
 
     // Pagination
@@ -126,13 +169,39 @@ router.get('/pensions/:id', async (req, res, next) => {
                (SELECT COUNT(*) 
                 FROM rooms r 
                 WHERE r.pension_id = pk.pension_id 
-                  AND r.room_type = pk.name 
+                  AND r.package_id = pk.package_id
                   AND r.availability_status = 'Available') as availableRoomsCount
         FROM packages pk
         WHERE pk.pension_id = ?
       `, [id]);
     } catch (error) {
       console.log('Packages table not found or error:', error.message);
+    }
+    
+    console.log('🔍 Single pension packages query result:', packages);
+    console.log('🔍 Available rooms per package:', packages.map(pkg => ({ 
+      name: pkg.name, 
+      package_id: pkg.package_id,
+      count: pkg.availableRoomsCount 
+    })));
+    
+    // Debug: Check individual room-package relationships for single pension
+    for (const pkg of packages) {
+      const individualRooms = await executeQuery(`
+        SELECT room_id, room_type, package_id, availability_status 
+        FROM rooms 
+        WHERE pension_id = ? AND package_id = ?
+      `, [id, pkg.package_id]);
+      
+      console.log(`🔍 Single Pension Package "${pkg.name}" (ID: ${pkg.package_id}):`, {
+        availableCount: pkg.availableRoomsCount,
+        individualRooms: individualRooms.map(r => ({
+          id: r.room_id,
+          type: r.room_type,
+          package_id: r.package_id,
+          status: r.availability_status
+        }))
+      });
     }
     
     // If no packages in table, check pensions.packages JSON
@@ -158,7 +227,7 @@ router.get('/pensions/:id', async (req, res, next) => {
               ...pkg,
               package_id: pkg.id,
               availableRoomsCount: count,
-              isMostPopular: pkg.isMostPopular || false // Include popular status
+              isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true // Include popular status
             };
           })
         );
@@ -194,12 +263,27 @@ router.get('/pensions/:id', async (req, res, next) => {
         name: pkg.name,
         price: parseFloat(pkg.price),
         description: pkg.description,
-        image: pkg.image_url || pkg.image || '/src/assets/package-101-standard.png',
+        image: pkg.image_url || pkg.image || null,
         services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || []),
-        availableRooms: pkg.availableRoomsCount || 0, // Use calculated value, not static one
-        isMostPopular: pkg.isMostPopular || false // Include popular status
+        availableRooms: pkg.availableRoomsCount || 0,
+        isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
       }))
     };
+    
+    console.log('🔍 Single pension package images:', packages.map(pkg => ({
+      name: pkg.name,
+      package_id: pkg.package_id,
+      image: pkg.image,
+      image_url: pkg.image_url,
+      finalImage: pkg.image_url || pkg.image || null,
+      availableRoomsCount: pkg.availableRoomsCount,
+      availableRooms: pkg.availableRoomsCount || 0
+    })));
+    
+    console.log('🔍 Final package data available rooms:', packages.map(pkg => ({
+      name: pkg.name,
+      availableRooms: pkg.availableRoomsCount || 0
+    })));
 
     res.json({
       success: true,
@@ -216,24 +300,100 @@ router.get('/test', (req, res) => {
   res.json({ success: true, message: 'Public routes working' });
 });
 
+// Temporary fix endpoint to update package images
+router.post('/fix-package-images/:pensionId', async (req, res) => {
+  try {
+    const { pensionId } = req.params;
+    const { imageUpdates } = req.body; // [{packageId: 11, imageUrl: '/uploads/luxury.jpg'}, ...]
+    
+    console.log('🔧 Fixing package images:', imageUpdates);
+    
+    for (const update of imageUpdates) {
+      await executeQuery(
+        'UPDATE packages SET image_url = ? WHERE package_id = ? AND pension_id = ?',
+        [update.imageUrl, update.packageId, pensionId]
+      );
+    }
+    
+    res.json({ success: true, message: 'Package images updated' });
+  } catch (error) {
+    console.error('Error fixing package images:', error);
+    res.status(500).json({ success: false, message: 'Error updating package images' });
+  }
+});
+
 // Create a new public booking
 router.post('/bookings', upload.single('idDocument'), async (req, res) => {
   try {
-    const { 
-      pensionId, packageName, checkIn, checkOut, 
-      fullName, phone, email, specialRequests, totalPrice, rooms: quantity 
-    } = req.body;
+    console.log('🔍 Raw booking request body:', req.body);
+    console.log('🔍 Request file:', req.file);
+    console.log('🔍 Request body keys:', Object.keys(req.body));
+    console.log('🔍 File upload details:', {
+      originalname: req.file?.originalname,
+      filename: req.file?.filename,
+      mimetype: req.file?.mimetype,
+      size: req.file?.size
+    });
+    
+    console.log('🔧 Starting booking process...');
+    
+    // When using FormData, fields come as strings
+    const pensionId = req.body.pensionId;
+    const packageName = req.body.packageName;
+    const checkIn = req.body.checkIn;
+    const checkOut = req.body.checkOut;
+    const fullName = req.body.fullName;
+    const phone = req.body.phone;
+    const email = req.body.email;
+    const specialRequests = req.body.specialRequests;
+    const totalPrice = req.body.totalPrice;
+    const quantity = req.body.rooms; // Note: frontend sends 'rooms' not 'quantity'
 
     const idDocumentUrl = req.file ? '/uploads/' + req.file.filename : null;
 
-    console.log('Booking request:', { pensionId, packageName, quantity });
+    console.log('🔍 Parsed booking data:', { 
+      pensionId, 
+      packageName, 
+      checkIn, 
+      checkOut, 
+      fullName, 
+      phone, 
+      email, 
+      specialRequests, 
+      totalPrice, 
+      quantity,
+      idDocumentUrl,
+      hasFile: !!req.file
+    });
 
     // Validate required fields
+    console.log('🔧 Validating fields:', {
+      pensionId: !!pensionId,
+      packageName: !!packageName,
+      checkIn: !!checkIn,
+      checkOut: !!checkOut,
+      fullName: !!fullName,
+      phone: !!phone,
+      quantity: !!quantity
+    });
+    
     if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || !phone || !quantity) {
+      console.error('❌ Missing required fields:', {
+        pensionId: !!pensionId,
+        packageName: !!packageName,
+        checkIn: !!checkIn,
+        checkOut: !!checkOut,
+        fullName: !!fullName,
+        phone: !!phone,
+        quantity: !!quantity
+      });
       return res.status(400).json({ success: false, message: 'Missing required booking information' });
     }
 
+    console.log('🔧 Fields validation passed');
+
     if (!idDocumentUrl) {
+      console.error('❌ Missing ID document');
       return res.status(400).json({ success: false, message: 'ID Document is required' });
     }
 
@@ -328,8 +488,8 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
       const availableRoomsResult = await executeQuery(`
         SELECT COUNT(*) as availableRoomsCount
         FROM rooms 
-        WHERE pension_id = ? AND room_type = ? AND availability_status = 'Available'
-      `, [pensionId, packageName]);
+        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
+      `, [pensionId, foundPackage.package_id]);
 
       const availableRooms = availableRoomsResult[0].availableRoomsCount || 0;
       console.log(`Available rooms for ${packageName}: ${availableRooms}`);
@@ -344,12 +504,12 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
       // 3. Create booking record
       const pricePerRoom = parseFloat(totalPrice) / roomQuantity;
       
-      // Get the room_id for the booking
+      // Get the room_id and room_number for the booking
       const roomForBooking = await executeQuery(`
-        SELECT room_id FROM rooms 
-        WHERE pension_id = ? AND room_type = ? AND availability_status = 'Available'
-        LIMIT 1
-      `, [pensionId, packageName]);
+        SELECT room_id, room_number FROM rooms 
+        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
+        LIMIT ?
+      `, [pensionId, foundPackage.package_id, roomQuantity]);
       
       if (roomForBooking.length === 0) {
         return res.status(400).json({ 
@@ -361,18 +521,63 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
       const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const bookingResult = await executeQuery(`
-        INSERT INTO bookings (room_id, customer_id, check_in_date, check_out_date, total_price, status, created_at, id_document_url, pass_code)
-        VALUES (?, ?, ?, ?, ?, 'Confirmed', NOW(), ?, ?)
-      `, [roomForBooking[0].room_id, customerId, checkIn, checkOut, totalPrice, idDocumentUrl, passCode]);
+        INSERT INTO bookings (room_id, room_number, customer_id, check_in_date, check_out_date, total_price, status, created_at, id_document_url, pass_code)
+        VALUES (?, ?, ?, ?, ?, ?, 'Confirmed', NOW(), ?, ?)
+      `, [roomForBooking[0].room_id, roomForBooking[0].room_number, customerId, checkIn, checkOut, totalPrice, idDocumentUrl, passCode]);
 
       const bookingId = bookingResult.insertId;
+
+      // Send notification to pension owner
+      try {
+        console.log('🔧 Attempting to send notification for booking:', bookingId);
+        
+        // Get pension owner info
+        const ownerResult = await executeQuery(`
+          SELECT p.owner_id, u.email as owner_email
+          FROM pensions p
+          JOIN users u ON p.owner_id = u.user_id
+          WHERE p.pension_id = ?
+        `, [pensionId]);
+
+        console.log('🔧 Owner query result:', ownerResult);
+
+        if (ownerResult.length > 0) {
+          const owner = ownerResult[0];
+          
+          const notificationTitle = 'New Booking Received';
+          const notificationMessage = `${fullName} booked Room ${roomForBooking[0].room_number} for ${new Date(checkIn).toLocaleDateString()} to ${new Date(checkOut).toLocaleDateString()}`;
+          
+          console.log('🔧 Creating notification:', {
+            owner_id: owner.owner_id,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'new_booking'
+          });
+          
+          await notificationService.createAndSendNotification(
+            owner.owner_id,
+            notificationTitle,
+            notificationMessage,
+            'new_booking',
+            'New Booking Received'
+          );
+          
+          console.log('✅ New booking notification sent to owner:', owner.owner_id);
+        } else {
+          console.log('⚠️ No owner found for pension:', pensionId);
+        }
+      } catch (notificationError) {
+        console.error('❌ Failed to send booking notification:', notificationError);
+        console.error('❌ Full error details:', notificationError.stack);
+        // Don't fail the booking if notification fails
+      }
 
       // 4. Update room availability - mark rooms as occupied
       const roomsToBook = await executeQuery(`
         SELECT room_id FROM rooms 
-        WHERE pension_id = ? AND room_type = ? AND availability_status = 'Available'
+        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
         LIMIT ?
-      `, [pensionId, packageName, roomQuantity]);
+      `, [pensionId, foundPackage.package_id, roomQuantity]);
 
       if (roomsToBook.length < roomQuantity) {
         return res.status(400).json({ 
@@ -406,7 +611,8 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
             checkOut,
             totalPrice,
             packageName,
-            passCode
+            passCode,
+            roomNumber: roomForBooking[0].room_number  // Add room number to response
           }
         }
       });

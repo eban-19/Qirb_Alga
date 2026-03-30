@@ -321,19 +321,23 @@ class ApiService {
     return this.request('/admin/owners');
   }
 
-  async approveOwner(ownerId: number): Promise<ApiResponse<any>> {
+  async getOwnerDetails(ownerId: string): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}/details`);
+  }
+
+  async approveOwner(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}/approve`, {
       method: 'PUT',
     });
   }
 
-  async rejectOwner(ownerId: number): Promise<ApiResponse<any>> {
+  async rejectOwner(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}/reject`, {
       method: 'PUT',
     });
   }
 
-  async suspendOwner(ownerId: number): Promise<ApiResponse<any>> {
+  async suspendOwner(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}/suspend`, {
       method: 'PUT',
     });
@@ -353,6 +357,34 @@ class ApiService {
 
   async getSystemAlerts(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/alerts');
+  }
+
+  // Notification methods
+  async getNotifications(limit: number = 50): Promise<ApiResponse<any>> {
+    return this.request(`/notifications?limit=${limit}`);
+  }
+
+  async getUnreadCount(): Promise<ApiResponse<any>> {
+    return this.request('/notifications/unread-count');
+  }
+
+  async markNotificationAsRead(notificationId: number): Promise<ApiResponse<any>> {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PUT'
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<ApiResponse<any>> {
+    return this.request('/notifications/mark-all-read', {
+      method: 'PUT'
+    });
+  }
+
+  async sendTestNotification(title: string, message: string, type: string): Promise<ApiResponse<any>> {
+    return this.request('/notifications/test', {
+      method: 'POST',
+      body: JSON.stringify({ title, message, type })
+    });
   }
 }
 

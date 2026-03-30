@@ -2,8 +2,8 @@ const express = require('express');
 const { executeQuery } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const upload = require('../middleware/upload');
-const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -73,6 +73,13 @@ router.get('/pensions/:pensionId/packages', authenticateToken, async (req, res) 
       ORDER BY p.created_at DESC
     `, [pensionId]);
     
+    console.log('🔍 Packages loaded from database:', packages.map(p => ({
+      package_id: p.package_id,
+      name: p.name,
+      is_most_popular: p.is_most_popular,
+      is_most_popular_type: typeof p.is_most_popular
+    })));
+    
     res.json({
       success: true,
       data: packages
@@ -90,12 +97,12 @@ router.post('/pensions/:pensionId/packages', authenticateToken, upload.single('i
     const userId = req.user.userId;
     const packageData = req.body;
 
-    // Upload image to Cloudinary if provided
+    // Upload image locally if provided
     let imageUrl = '';
     if (req.file) {
-      console.log('📄 Uploading package image:', req.file.filename);
+      console.log('📄 Uploading package image locally:', req.file.filename);
       imageUrl = await uploadToCloudinary(req.file);
-      console.log('✅ Package image uploaded to Cloudinary:', imageUrl);
+      console.log('✅ Package image saved locally:', imageUrl);
     }
 
     // Verify ownership
@@ -130,16 +137,6 @@ router.post('/pensions/:pensionId/packages', authenticateToken, upload.single('i
       imageUrl
     ]);
 
-    // Auto-create rooms for the new package
-    if (packageData.availableRooms > 0) {
-      for (let i = 0; i <packageData.availableRooms; i++) {
-        await executeQuery(`
-          INSERT INTO rooms (pension_id, owner_id, room_type, price_per_night, availability_status, created_at)
-          VALUES (?, ?, ?, ?, 'Available', NOW())
-        `, [pensionId, userId, packageData.name, packageData.price]);
-      }
-    }
-
     res.json({
       success: true,
       message: 'Package created successfully',
@@ -158,6 +155,15 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
     const userId = req.user.userId;
     const packageData = req.body;
 
+    console.log('🔍 Package update request:', {
+      pensionId,
+      packageId,
+      userId,
+      packageData,
+      bodyKeys: Object.keys(req.body),
+      hasFile: !!req.file
+    });
+
     // Verify ownership
     const pensionCheck = await executeQuery(
       'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
@@ -165,6 +171,7 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
     );
     
     if (pensionCheck.length === 0) {
+      console.error('❌ Access denied for pension:', pensionId, 'user:', userId);
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
@@ -175,8 +182,11 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
     );
     
     if (packageCheck.length === 0) {
+      console.error('❌ Package not found:', packageId, 'for pension:', pensionId);
       return res.status(404).json({ success: false, message: 'Package not found' });
     }
+
+    console.log('🔍 Package found in database:', packageCheck[0]);
     
     // Upload image to Cloudinary if provided
     let imageUrl = packageCheck[0].image_url; // Keep existing image if no new one
@@ -188,7 +198,7 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
     if (req.file) {
       console.log('📄 Uploading package image for update:', req.file.filename);
       imageUrl = await uploadToCloudinary(req.file);
-      console.log('✅ Package image uploaded to Cloudinary:', imageUrl);
+      console.log('✅ Package image saved locally:', imageUrl);
     } 
     // Check if image URL was provided in JSON body (for cases where image was uploaded separately)
     else if (packageData.image && packageData.image !== packageCheck[0].image_url) {
@@ -206,51 +216,60 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
       );
     }
 
+    // Build dynamic update query - only update fields that are provided
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (packageData.name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(packageData.name);
+    }
+    if (packageData.description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(packageData.description);
+    }
+    if (packageData.price !== undefined) {
+      updateFields.push('price = ?');
+      updateValues.push(packageData.price);
+    }
+    if (packageData.services !== undefined) {
+      updateFields.push('services = ?');
+      updateValues.push(JSON.stringify(packageData.services));
+    }
+    if (packageData.isMostPopular !== undefined) {
+      updateFields.push('is_most_popular = ?');
+      updateValues.push(packageData.isMostPopular ? 1 : 0);
+    }
+    if (imageUrl !== undefined) {
+      updateFields.push('image_url = ?');
+      updateValues.push(imageUrl);
+    }
+    
+    // Always add WHERE clause values
+    updateValues.push(packageId, pensionId);
+
+    console.log('🔍 Executing dynamic database update:', {
+      updateFields,
+      updateValues,
+      sqlQuery: `UPDATE packages SET ${updateFields.join(', ')} WHERE package_id = ? AND pension_id = ?`
+    });
+
     // Update package in packages table
     await executeQuery(`
       UPDATE packages 
-      SET name = ?, description = ?, price = ?, services = ?, is_most_popular = ?, image_url = ?
+      SET ${updateFields.join(', ')}
       WHERE package_id = ? AND pension_id = ?
-    `, [
-      packageData.name,
-      packageData.description,
-      packageData.price,
-      JSON.stringify(packageData.services || []),
-      packageData.isMostPopular ? 1 : 0,
-      imageUrl,
-      packageId,
-      pensionId
-    ]);
+    `, updateValues);
 
-    // Sync rooms table if availableRooms changed
-    if (packageData.availableRooms !== undefined) {
-      const currentRoomCount = await executeQuery(
-        'SELECT COUNT(*) as count FROM rooms WHERE pension_id = ? AND room_type = ?',
-        [pensionId, packageCheck[0].name]
-      );
-      
-      const newRoomCount = packageData.availableRooms;
-      const currentCount = currentRoomCount[0].count;
-      
-      if (newRoomCount !== currentCount) {
-        if (newRoomCount < currentCount) {
-          // Remove excess rooms
-          await executeQuery(
-            'DELETE FROM rooms WHERE pension_id = ? AND room_type = ? LIMIT ?',
-            [pensionId, packageCheck[0].name, currentCount - newRoomCount]
-          );
-        } else {
-          // Add new rooms
-          const roomsToAdd = newRoomCount - currentCount;
-          for (let i = 0; i < roomsToAdd; i++) {
-            await executeQuery(
-              'INSERT INTO rooms (pension_id, owner_id, room_type, price_per_night, availability_status, created_at) VALUES (?, ?, ?, ?, \'Available\', NOW())',
-              [pensionId, userId, packageData.name, packageData.price]
-            );
-          }
-        }
-      }
-    }
+    console.log('✅ Package updated successfully in database');
+    
+    // Verify the update by reading the package back
+    const verifyPackage = await executeQuery(
+      'SELECT * FROM packages WHERE package_id = ? AND pension_id = ?',
+      [packageId, pensionId]
+    );
+    
+    console.log('🔍 Verification - Package in DB after update:', verifyPackage[0]);
 
     res.json({
       success: true,
@@ -294,14 +313,6 @@ router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken, asy
       'DELETE FROM packages WHERE id = ? AND pension_id = ?',
       [packageId, pensionId]
     );
-    
-    // Also delete corresponding rooms from rooms table
-    await executeQuery(
-      'DELETE FROM rooms WHERE pension_id = ? AND room_type = ?',
-      [pensionId, packageToDelete[0].name]
-    );
-    
-    console.log(`🗑️ Deleted package "${packageToDelete[0].name}" and its rooms from database`);
 
     res.json({
       success: true,

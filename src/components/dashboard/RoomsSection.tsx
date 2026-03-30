@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   LayoutDashboard, 
   BarChart3, 
-  Edit, 
   TrashIcon 
 } from "lucide-react";
 
@@ -14,12 +13,14 @@ interface RoomsSectionProps {
   rooms: any[];
   viewMode: 'card' | 'table';
   onToggleView: () => void;
+  onDeleteRoom?: (roomId: string | number) => void;
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
   rooms,
   viewMode,
-  onToggleView
+  onToggleView,
+  onDeleteRoom
 }) => {
   return (
     <div className="space-y-6">
@@ -67,11 +68,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                     <div className={`h-14 w-14 flex items-center justify-center rounded-xl font-bold text-xl shadow-lg ${room.status === "Available" ? "bg-emerald-100 text-emerald-700" :
                       room.status === "Occupied" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
                       }`}>
-                      {room.id}
+                      {room.room_number || room.id}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-slate-900">{room.type}</h3>
-                      <p className="text-sm text-slate-500">Floor {room.floor}</p>
+                      <p className="text-sm text-slate-500">Room {room.room_number || room.id}</p>
                     </div>
                   </div>
                   <Badge className={`${
@@ -88,13 +89,17 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300 h-10">
-                    <Edit className="h-4 w-4" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-red-50 hover:text-red-600 transition-all duration-300 h-10">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 gap-2 hover:bg-red-50 hover:text-red-600 transition-all duration-300 h-10"
+                    onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                    disabled={room.status === 'Occupied'}
+                  >
                     <TrashIcon className="h-4 w-4" />
-                    <span className="hidden sm:inline">Delete</span>
+                    <span className="hidden sm:inline">
+                      {room.status === 'Occupied' ? 'Occupied' : 'Delete'}
+                    </span>
                   </Button>
                 </div>
               </CardContent>
@@ -111,9 +116,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="font-bold">Room ID</TableHead>
+                    <TableHead className="font-bold">Room Number</TableHead>
                     <TableHead className="font-bold">Type</TableHead>
-                    <TableHead className="font-bold">Floor</TableHead>
                     <TableHead className="font-bold">Price</TableHead>
                     <TableHead className="font-bold">Status</TableHead>
                     <TableHead className="font-bold">Capacity</TableHead>
@@ -123,9 +127,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 <TableBody>
                   {rooms.map((room) => (
                     <TableRow key={room.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-bold">{room.id}</TableCell>
+                      <TableCell className="font-bold">{room.room_number || room.id}</TableCell>
                       <TableCell className="font-medium">{room.type}</TableCell>
-                      <TableCell>{room.floor}</TableCell>
                       <TableCell className="font-bold text-emerald-600">ETB {room.price}</TableCell>
                       <TableCell>
                         <Badge className={`${
@@ -138,10 +141,14 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       <TableCell>{room.capacity}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-blue-600">
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="hover:bg-red-50 hover:text-red-600"
+                            onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                            disabled={room.status === 'Occupied'}
+                            title={room.status === 'Occupied' ? 'Cannot delete occupied room' : 'Delete room'}
+                          >
                             <TrashIcon className="h-3.5 w-3.5" />
                           </Button>
                         </div>

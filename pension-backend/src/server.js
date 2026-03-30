@@ -20,7 +20,10 @@ const staffRoutes = require('./routes/staff');
 const uploadRoutes = require('./routes/uploads');
 const expenseRoutes = require('./routes/expenses');
 const adminRoutes = require('./routes/admin');
+const notificationRoutes = require('./routes/notifications');
+const emailTestRoutes = require('./routes/email-test'); // Add email test routes
 const errorLogger = require('./middleware/errorLogger');
+const wsServer = require('./websocket'); // Add WebSocket server
 const path = require('path');
 const fs = require('fs');
 
@@ -55,7 +58,10 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// API Routes (must come before static files)
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/pensions', pensionRoutes);
 app.use('/api/packages', packageRoutes);
@@ -68,32 +74,11 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/admin', adminRoutes);
-
-// Static files (must come after API routes)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/email-test', emailTestRoutes); // Add email test routes
 
 // Error logging
 app.use(errorLogger);
-
-// Global error handler to catch ALL errors
-app.use((err, req, res, next) => {
-  console.error('🔥 GLOBAL ERROR HANDLER:', err);
-  console.error('🔥 Error message:', err.message);
-  console.error('🔥 Error stack:', err.stack);
-  console.error('🔥 Request URL:', req.url);
-  console.error('🔥 Request method:', req.method);
-  console.error('🔥 Request headers:', req.headers);
-  
-  if (res.headersSent) {
-    return next(err);
-  }
-  
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -141,6 +126,10 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🔗 API endpoint: http://localhost:${PORT}/api`);
+      
+      // Initialize WebSocket server
+      wsServer.initialize(server);
+      console.log(`🔌 WebSocket server ready for real-time notifications`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

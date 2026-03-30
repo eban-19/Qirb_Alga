@@ -29,9 +29,7 @@ const authenticateToken = (req, res, next) => {
 // Middleware to check if owner is approved
 const requireOwnerApproval = async (req, res, next) => {
   try {
-    console.log('🔍 Approval check - req.user:', req.user);
-    const userId = req.user.userId || req.user.id; // Handle both userId and id
-    console.log('🔍 Approval check - userId:', userId);
+    const userId = req.user.userId;
     
     // Check if user is admin (admins bypass approval)
     if (req.user.role === 'admin') {
