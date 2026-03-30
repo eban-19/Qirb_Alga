@@ -4,7 +4,7 @@ REM Pension Management System
 
 REM Database configuration
 set DB_USER=root
-set DB_NAME=pension_management
+set DB_NAME=pension_management_system
 set MIGRATIONS_DIR=./migrations
 
 echo 🗄️  Pension Management System - Database Migration

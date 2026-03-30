@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains all database migration files for the pension management system.
+This directory contains all database migration files for pension management system.
 
 ## Migration Files
 
@@ -24,22 +24,22 @@ This directory contains all database migration files for the pension management 
 ### For New Setup (Fresh Database):
 ```bash
 # Run all migrations in order
-mysql -u username -p pension_management < migrations/001_initial_schema.sql
-mysql -u username -p pension_management < migrations/002_add_pension_approval.sql
-mysql -u username -p pension_management < migrations/003_add_websocket_tracking.sql
+mysql -u username -p pension_management_system < migrations/001_initial_schema.sql
+mysql -u username -p pension_management_system < migrations/002_add_pension_approval.sql
+mysql -u username -p pension_management_system < migrations/003_add_websocket_tracking.sql
 ```
 
 ### For Existing Database:
 ```bash
 # Only run new migrations that haven't been applied
-mysql -u username -p pension_management < migrations/002_add_pension_approval.sql
-mysql -u username -p pension_management < migrations/003_add_websocket_tracking.sql
+mysql -u username -p pension_management_system < migrations/002_add_pension_approval.sql
+mysql -u username -p pension_management_system < migrations/003_add_websocket_tracking.sql
 ```
 
 ### Quick Setup (All at once):
 ```bash
 # Run all migrations in sequence
-mysql -u username -p pension_management < migrations/001_initial_schema.sql && mysql -u username -p pension_management < migrations/002_add_pension_approval.sql && mysql -u username -p pension_management < migrations/003_add_websocket_tracking.sql
+mysql -u username -p pension_management_system < migrations/001_initial_schema.sql && mysql -u username -p pension_management_system < migrations/002_add_pension_approval.sql && mysql -u username -p pension_management_system < migrations/003_add_websocket_tracking.sql
 ```
 
 ## Migration Naming Convention
@@ -85,3 +85,7 @@ mysql -u username -p pension_management < migrations/001_initial_schema.sql && m
 - Review and rating system
 - Financial tracking
 - Staff management
+
+## Database Name
+
+**Correct database name:** `pension_management_system`

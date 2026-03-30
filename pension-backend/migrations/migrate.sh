@@ -5,7 +5,7 @@
 
 # Database configuration
 DB_USER="root"
-DB_NAME="pension_management"
+DB_NAME="pension_management_system"
 DB_PASS=""
 
 # Migration directory
