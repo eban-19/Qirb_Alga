@@ -17,11 +17,14 @@ interface RoomsSectionProps {
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
-  rooms,
+  rooms = [], // Default to empty array
   viewMode,
   onToggleView,
   onDeleteRoom
 }) => {
+  // Ensure rooms is always an array
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -56,8 +59,18 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
 
       {/* Cards View */}
       {viewMode === "card" && (
-        <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {rooms.map((room) => (
+        <>
+          {safeRooms.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <LayoutDashboard className="h-12 w-12 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No rooms found</h3>
+              <p className="text-slate-500 mb-4">Get started by adding your first room to this pension.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {safeRooms.map((room) => (
             <Card key={room.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02]">
               <div className={`h-3 w-full ${room.status === "Available" ? "bg-emerald-500" :
                 room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
@@ -105,7 +118,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               </CardContent>
             </Card>
           ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Table View */}
@@ -125,36 +140,47 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rooms.map((room) => (
-                    <TableRow key={room.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-bold">{room.room_number || room.id}</TableCell>
-                      <TableCell className="font-medium">{room.type}</TableCell>
-                      <TableCell className="font-bold text-emerald-600">ETB {room.price}</TableCell>
-                      <TableCell>
-                        <Badge className={`${
-                          room.status === "Available" ? "bg-emerald-500" :
-                          room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
-                        } text-white text-xs shadow-sm`}>
-                          {room.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{room.capacity}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="hover:bg-red-50 hover:text-red-600"
-                            onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
-                            disabled={room.status === 'Occupied'}
-                            title={room.status === 'Occupied' ? 'Cannot delete occupied room' : 'Delete room'}
-                          >
-                            <TrashIcon className="h-3.5 w-3.5" />
-                          </Button>
+                  {safeRooms.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex flex-col items-center">
+                          <LayoutDashboard className="h-12 w-12 text-slate-400 mb-2" />
+                          <p className="text-slate-500">No rooms found</p>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    safeRooms.map((room) => (
+                      <TableRow key={room.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="font-bold">{room.room_number || room.id}</TableCell>
+                        <TableCell className="font-medium">{room.type}</TableCell>
+                        <TableCell className="font-bold text-emerald-600">ETB {room.price}</TableCell>
+                        <TableCell>
+                          <Badge className={`${
+                            room.status === "Available" ? "bg-emerald-500" :
+                            room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
+                          } text-white text-xs shadow-sm`}>
+                            {room.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{room.capacity}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="hover:bg-red-50 hover:text-red-600"
+                              onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                              disabled={room.status === 'Occupied'}
+                              title={room.status === 'Occupied' ? 'Cannot delete occupied room' : 'Delete room'}
+                            >
+                              <TrashIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

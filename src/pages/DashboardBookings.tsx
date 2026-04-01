@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Eye, Edit, Trash2, Plus, MoreHorizontal, Calendar, DollarSign, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Search, Eye, Edit, Trash2, Plus, MoreHorizontal, Calendar, DollarSign, CheckCircle, Clock, XCircle, ArrowLeft, ArrowRight, User, MapPin, CreditCard, Home } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -26,6 +27,32 @@ interface Booking {
 export default function DashboardBookings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // Multi-step booking form state
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [bookingData, setBookingData] = useState({
+    // Step 1: Guest Information
+    guestName: "",
+    guestEmail: "",
+    guestPhone: "",
+    guestAddress: "",
+    
+    // Step 2: Property & Dates
+    propertyName: "",
+    checkIn: "",
+    checkOut: "",
+    roomType: "",
+    
+    // Step 3: Payment & Additional Info
+    totalPrice: 0,
+    specialRequests: "",
+    paymentMethod: "",
+    
+    // Summary
+    status: "pending" as const,
+    paymentStatus: "pending" as const
+  });
 
   // Mock booking data
   const bookings: Booking[] = [
@@ -115,7 +142,62 @@ export default function DashboardBookings() {
   };
 
   const handleCreateBooking = () => {
-    console.log('Create new booking');
+    setShowBookingModal(true);
+    setCurrentStep(1);
+    setBookingData({
+      guestName: "",
+      guestEmail: "",
+      guestPhone: "",
+      guestAddress: "",
+      propertyName: "",
+      checkIn: "",
+      checkOut: "",
+      roomType: "",
+      totalPrice: 0,
+      specialRequests: "",
+      paymentMethod: "",
+      status: "pending",
+      paymentStatus: "pending"
+    });
+  };
+
+  const handleNextStep = () => {
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleBookingSubmit = () => {
+    console.log('Creating booking:', bookingData);
+    // Here you would normally call your API to create the booking
+    setShowBookingModal(false);
+    // Show success message
+    alert('Booking created successfully!');
+  };
+
+  const updateBookingData = (field: string, value: any) => {
+    setBookingData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return bookingData.guestName && bookingData.guestEmail && bookingData.guestPhone;
+      case 2:
+        return bookingData.propertyName && bookingData.checkIn && bookingData.checkOut;
+      case 3:
+        return bookingData.paymentMethod;
+      case 4:
+        return true; // Summary step is always valid
+      default:
+        return false;
+    }
   };
 
   return (
@@ -295,6 +377,279 @@ export default function DashboardBookings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Multi-Step Booking Modal */}
+      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-green-600" />
+              Create New Booking
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mb-6">
+            {[1, 2, 3, 4].map((step) => (
+              <div key={step} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                  currentStep >= step 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {step}
+                </div>
+                {step < 4 && (
+                  <div className={`w-12 h-1 mx-2 ${
+                    currentStep > step ? 'bg-green-600' : 'bg-slate-200'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Step Content */}
+          <div className="space-y-6">
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <User className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Guest Information</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Guest Name *</label>
+                    <Input
+                      value={bookingData.guestName}
+                      onChange={(e) => updateBookingData('guestName', e.target.value)}
+                      placeholder="Enter guest name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Email Address *</label>
+                    <Input
+                      type="email"
+                      value={bookingData.guestEmail}
+                      onChange={(e) => updateBookingData('guestEmail', e.target.value)}
+                      placeholder="guest@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
+                    <Input
+                      value={bookingData.guestPhone}
+                      onChange={(e) => updateBookingData('guestPhone', e.target.value)}
+                      placeholder="+251 9XX XXX XXX"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                    <Input
+                      value={bookingData.guestAddress}
+                      onChange={(e) => updateBookingData('guestAddress', e.target.value)}
+                      placeholder="Guest address (optional)"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Home className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Property & Dates</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Property *</label>
+                    <select
+                      value={bookingData.propertyName}
+                      onChange={(e) => updateBookingData('propertyName', e.target.value)}
+                      className="w-full h-10 px-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Select Property</option>
+                      <option value="Sunshine Pension">Sunshine Pension</option>
+                      <option value="Abyssinia Guest House">Abyssinia Guest House</option>
+                      <option value="Lalibela Lodge">Lalibela Lodge</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Room Type</label>
+                    <select
+                      value={bookingData.roomType}
+                      onChange={(e) => updateBookingData('roomType', e.target.value)}
+                      className="w-full h-10 px-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Select Room Type</option>
+                      <option value="Single">Single Room</option>
+                      <option value="Double">Double Room</option>
+                      <option value="Suite">Suite</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Check-in Date *</label>
+                    <Input
+                      type="date"
+                      value={bookingData.checkIn}
+                      onChange={(e) => updateBookingData('checkIn', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Check-out Date *</label>
+                    <Input
+                      type="date"
+                      value={bookingData.checkOut}
+                      onChange={(e) => updateBookingData('checkOut', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <CreditCard className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Payment & Additional Info</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Total Price (ETB) *</label>
+                    <Input
+                      type="number"
+                      value={bookingData.totalPrice}
+                      onChange={(e) => updateBookingData('totalPrice', parseInt(e.target.value))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method *</label>
+                    <select
+                      value={bookingData.paymentMethod}
+                      onChange={(e) => updateBookingData('paymentMethod', e.target.value)}
+                      className="w-full h-10 px-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Select Payment Method</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Credit Card">Credit Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Mobile Payment">Mobile Payment</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Special Requests</label>
+                    <textarea
+                      value={bookingData.specialRequests}
+                      onChange={(e) => updateBookingData('specialRequests', e.target.value)}
+                      placeholder="Any special requests or notes..."
+                      className="w-full h-20 px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Booking Summary</h3>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm text-slate-600">Guest Name:</span>
+                      <p className="font-medium">{bookingData.guestName || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Email:</span>
+                      <p className="font-medium">{bookingData.guestEmail || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Phone:</span>
+                      <p className="font-medium">{bookingData.guestPhone || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Property:</span>
+                      <p className="font-medium">{bookingData.propertyName || 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Room Type:</span>
+                      <p className="font-medium">{bookingData.roomType || 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Dates:</span>
+                      <p className="font-medium">
+                        {bookingData.checkIn && bookingData.checkOut 
+                          ? `${bookingData.checkIn} to ${bookingData.checkOut}`
+                          : 'Not selected'
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Total Price:</span>
+                      <p className="font-medium text-green-600">
+                        {bookingData.totalPrice ? `${bookingData.totalPrice} ETB` : 'Not set'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-600">Payment Method:</span>
+                      <p className="font-medium">{bookingData.paymentMethod || 'Not selected'}</p>
+                    </div>
+                  </div>
+                  {bookingData.specialRequests && (
+                    <div>
+                      <span className="text-sm text-slate-600">Special Requests:</span>
+                      <p className="font-medium">{bookingData.specialRequests}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm text-green-700">
+                    <strong>Please review all information before submitting the booking.</strong>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={handlePrevStep}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            
+            <div className="flex gap-2">
+              {currentStep < 4 ? (
+                <Button
+                  onClick={handleNextStep}
+                  disabled={!isStepValid()}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleBookingSubmit}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                  disabled={!isStepValid()}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Create Booking
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 const Booking = () => {
@@ -42,6 +42,10 @@ const Booking = () => {
   const [idDocument, setIdDocument] = useState<File | null>(null);
   const [data, setData] = useState<any>(null);
 
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -59,6 +63,44 @@ const Booking = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.checkIn && formData.checkOut && formData.rooms > 0;
+      case 2:
+        return formData.fullName && formData.phone && formData.email;
+      case 3:
+        return formData.paymentMethod;
+      default:
+        return false;
+    }
+  };
+
+  const handleStepSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentStep < totalSteps) {
+      if (isStepValid()) {
+        handleNextStep();
+      } else {
+        toast.error("Please fill in all required fields for this step.");
+      }
+    } else {
+      handleSubmit(e);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,156 +260,274 @@ const Booking = () => {
               <p className="text-muted-foreground text-lg">{t.booking.secureBookingDesc}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-10">
+            <form onSubmit={handleStepSubmit} className="space-y-10">
               
-              {/* Section 1: Stay Details */}
-              <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                  <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span> 
-                  {t.booking.stepStayInfo}
-                </h2>
-                
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="checkIn">{t.booking.checkInDate}</Label>
-                    <Input id="checkIn" name="checkIn" type="date" required min={new Date().toISOString().split('T')[0]} value={formData.checkIn} onChange={handleInputChange} className="h-12 w-full" />
+              {/* Progress Steps */}
+              <div className="flex items-center justify-between mb-8">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className="flex items-center">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+                      currentStep >= step 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {step === 1 && <Calendar className="w-4 h-4" />}
+                      {step === 2 && <User className="w-4 h-4" />}
+                      {step === 3 && <CreditCard className="w-4 h-4" />}
+                    </div>
+                    {step < totalSteps && (
+                      <div className={`w-16 h-1 mx-2 transition-colors ${
+                        currentStep > step ? 'bg-primary' : 'bg-muted'
+                      }`} />
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="checkOut">{t.booking.checkOutDate}</Label>
-                    <Input id="checkOut" name="checkOut" type="date" required min={formData.checkIn || new Date().toISOString().split('T')[0]} value={formData.checkOut} onChange={handleInputChange} className="h-12 w-full" />
+                ))}
+              </div>
+
+              {/* Step 1: Stay Details */}
+              {currentStep === 1 && (
+                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    {t.booking.stepStayInfo}
+                  </h2>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="checkIn">{t.booking.checkInDate}</Label>
+                      <Input id="checkIn" name="checkIn" type="date" required min={new Date().toISOString().split('T')[0]} value={formData.checkIn} onChange={handleInputChange} className="h-12 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="checkOut">{t.booking.checkOutDate}</Label>
+                      <Input id="checkOut" name="checkOut" type="date" required min={formData.checkIn || new Date().toISOString().split('T')[0]} value={formData.checkOut} onChange={handleInputChange} className="h-12 w-full" />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="rooms">{t.booking.numberOfRooms}</Label>
-                  <select 
-                    id="rooms" 
-                    name="rooms" 
-                    required 
-                    value={formData.rooms} 
-                    onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
-                    className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {Array.from({ length: selectedPackage.availableRooms || 1 }).map((_, i) => (
-                      <option key={i + 1} value={i + 1}>{i + 1}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground">{t.booking.maxAvailable} {selectedPackage.availableRooms}</p>
-                </div>
-              </section>
-
-              {/* Section 2: Guest Details */}
-              <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                  <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span> 
-                  Guest Details
-                </h2>
-                
-                <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">{t.booking.fullName}</Label>
-                    <Input id="fullName" name="fullName" placeholder="Abebe Bikila" required value={formData.fullName} onChange={handleInputChange} className="h-12 w-full" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t.booking.phone}</Label>
-                    <Input id="phone" name="phone" placeholder="0911..." required value={formData.phone} onChange={handleInputChange} className="h-12 w-full" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t.booking.email}</Label>
-                  <Input id="email" name="email" type="email" placeholder={t.booking.emailOptional} value={formData.email} onChange={handleInputChange} className="h-12 w-full" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="idDocument">National ID / Passport / Driving License *</Label>
-                  <Input id="idDocument" name="idDocument" type="file" accept="image/*" required onChange={(e) => setIdDocument(e.target.files?.[0] || null)} className="h-12 w-full pt-3" />
-                  <p className="text-xs text-muted-foreground mt-1">Please upload a clear image of your identification document to authorize your booking.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="specialRequests">{t.booking.specialRequests}</Label>
-                  <Textarea id="specialRequests" name="specialRequests" placeholder={t.booking.specialRequestsOptional} value={formData.specialRequests} onChange={handleInputChange} className="resize-none h-24 w-full" />
-                </div>
-              </section>
-
-              {/* Section 3: Payment Method */}
-              <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                  <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span> 
-                  {t.booking.stepPayment}
-                </h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    { id: 'pay_at_hotel', label: t.booking.payAtProperty, icon: '🏨' },
-                    { id: 'telebirr', label: 'Telebirr', icon: '📱' },
-                    { id: 'cbe_birr', label: 'CBE Birr', icon: '🏦' },
-                  ].map(method => (
-                    <label 
-                      key={method.id} 
-                      className={`cursor-pointer flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.paymentMethod === method.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                    <Label htmlFor="rooms">{t.booking.numberOfRooms}</Label>
+                    <select 
+                      id="rooms" 
+                      name="rooms" 
+                      required 
+                      value={formData.rooms} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
+                      className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value={method.id} 
-                        checked={formData.paymentMethod === method.id} 
-                        onChange={handleInputChange} 
-                        className="sr-only" 
-                      />
-                      <span className="text-2xl">{method.icon}</span>
-                      <span className="text-sm font-medium">{method.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </section>
+                      {Array.from({ length: selectedPackage.availableRooms || 1 }).map((_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">{t.booking.maxAvailable} {selectedPackage.availableRooms}</p>
+                  </div>
+                </section>
+              )}
 
-              <Button type="submit" size="lg" className="w-full h-14 text-lg rounded-2xl shadow-lg" disabled={isSubmitting}>
-                {isSubmitting ? t.booking.processing : t.booking.confirmBooking}
-              </Button>
+              {/* Step 2: Guest Details */}
+              {currentStep === 2 && (
+                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
+                    <User className="w-5 h-5 text-primary" />
+                    Guest Details
+                  </h2>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">{t.booking.fullName}</Label>
+                      <Input id="fullName" name="fullName" placeholder="Abebe Bikila" required value={formData.fullName} onChange={handleInputChange} className="h-12 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input id="phone" name="phone" type="tel" placeholder="+251 9XX XXX XXX" required value={formData.phone} onChange={handleInputChange} className="h-12 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input id="email" name="email" type="email" placeholder="guest@email.com" required value={formData.email} onChange={handleInputChange} className="h-12 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="specialRequests">{t.booking.specialRequests}</Label>
+                      <Textarea id="specialRequests" name="specialRequests" placeholder="Any special requests..." value={formData.specialRequests} onChange={handleInputChange} className="min-h-[100px] w-full" />
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Step 3: Payment */}
+              {currentStep === 3 && (
+                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    {t.booking.stepPayment}
+                  </h2>
+                  
+                  <div className="grid cols-1 sm:grid-cols-3 gap-4">
+                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                      formData.paymentMethod === "pay_at_hotel" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="pay_at_hotel"
+                        checked={formData.paymentMethod === "pay_at_hotel"}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className="text-center">
+                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
+                          <Home className="w-4 h-4" />
+                        </div>
+                        <div className="font-semibold">Pay at Hotel</div>
+                        <div className="text-xs text-muted-foreground mt-1">Pay when you arrive</div>
+                      </div>
+                    </label>
+
+                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                      formData.paymentMethod === "telebirr" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="telebirr"
+                        checked={formData.paymentMethod === "telebirr"}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className="text-center">
+                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <div className="font-semibold">Telebirr</div>
+                        <div className="text-xs text-muted-foreground mt-1">Pay with Telebirr</div>
+                      </div>
+                    </label>
+
+                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                      formData.paymentMethod === "bank_transfer" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="bank_transfer"
+                        checked={formData.paymentMethod === "bank_transfer"}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className="text-center">
+                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div className="font-semibold">Bank Transfer</div>
+                        <div className="text-xs text-muted-foreground mt-1">Transfer to our bank</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="idDocument">ID Document (Required)</Label>
+                    <Input
+                      id="idDocument"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setIdDocument(e.target.files?.[0] || null)}
+                      className="h-12 w-full"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Please upload a valid ID document for verification</p>
+                  </div>
+                </section>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  disabled={currentStep === 1}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                
+                <Button
+                  type="submit"
+                  disabled={!isStepValid()}
+                  className="flex items-center gap-2"
+                >
+                  {currentStep === totalSteps ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      {isSubmitting ? 'Processing...' : 'Complete Booking'}
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </div>
 
-          {/* Right Column: Summary Sticky Panel */}
-          <div className="w-full lg:w-2/5 lg:sticky lg:top-24 space-y-6 lg:mt-0">
-            <div className="bg-card p-1 rounded-3xl border border-border shadow-xl overflow-hidden">
-              <div className="h-48 relative overflow-hidden rounded-t-2xl">
-                <img src={selectedPackage.image || room.images[0]} alt={room.name} className="w-full h-full object-cover" />
-                <div className="absolute top-4 left-4 bg-background/90 backdrop-blur text-foreground px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                  {tr(selectedPackage.name)}
+          {/* Right Column: Room Details & Pricing */}
+          <div className="w-full lg:w-2/5">
+            <div className="sticky top-24 space-y-6">
+              {/* Room Card */}
+              <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Home className="w-16 h-16 text-primary/30" />
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-bold text-lg">{room.name}</h3>
+                    <p className="text-muted-foreground text-sm">{selectedPackage.name}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Per Night</span>
+                    <span className="font-bold text-lg">ETB {selectedPackage.price.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="p-6 md:p-8 space-y-6 bg-card">
-                <div>
-                  <h3 className="text-xl font-heading font-bold text-foreground">{room.name}</h3>
-                  <p className="text-muted-foreground text-sm mt-1">{room.locationName}</p>
-                </div>
 
-                <div className="bg-muted p-4 rounded-xl space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{diffDays} {t.booking.nights} x {formData.rooms} {t.propertyCard.rooms}</span>
-                    <span className="font-medium">ETB {subtotal.toLocaleString()}</span>
+              {/* Pricing Summary */}
+              <div className="bg-card rounded-3xl border border-border shadow-sm p-6 space-y-4">
+                <h3 className="font-bold text-lg">Pricing Summary</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Room Rate</span>
+                    <span className="text-sm">ETB {selectedPackage.price.toLocaleString()} x {diffDays} nights</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t.booking.tax}</span>
-                    <span className="font-medium">ETB {tax.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Subtotal</span>
+                    <span className="font-semibold">ETB {subtotal.toLocaleString()}</span>
                   </div>
-                  <div className="border-t border-border pt-3 flex justify-between items-center text-lg font-bold">
-                    <span>{t.booking.totalPayable}</span>
-                    <span className="text-primary text-2xl">ETB {total.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">VAT (15%)</span>
+                    <span className="font-semibold">ETB {tax.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="font-bold">Total</span>
+                    <span className="font-bold text-lg text-primary">ETB {total.toLocaleString()}</span>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex items-start gap-3 mt-4 text-xs text-muted-foreground">
-                  <ShieldCheck className="w-5 h-5 shrink-0 text-green-600" />
-                  <p>{t.booking.secureBookingMessage}</p>
-                </div>
+              {/* Security Badge */}
+              <div className="bg-green-50 border border-green-200 rounded-3xl p-4 flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 shrink-0 text-green-600" />
+                <p className="text-sm text-green-700">Your booking is secure and protected</p>
               </div>
             </div>
           </div>
-
         </div>
       </main>
       

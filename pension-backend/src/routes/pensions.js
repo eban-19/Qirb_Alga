@@ -151,8 +151,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
     console.log('About to execute INSERT query...');
     const result = await executeQuery(
-      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, owner_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, owner_id, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
       [name, description, owner_info, room_details, address, phone, email, capacity || 0, userId]
     );
 

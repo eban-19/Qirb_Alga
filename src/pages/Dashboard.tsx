@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -96,6 +97,7 @@ export const Dashboard: React.FC = () => {
     capacity: ''
   });
   const [pensions, setPensions] = useState<any[]>([]);
+  const [selectedPensionId, setSelectedPensionId] = useState<string>('');
   const [userPension, setUserPension] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -189,6 +191,85 @@ export const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Handle pension selection change
+  const handlePensionSelectionChange = async (selectedPensionId: string) => {
+    console.log('🔄 Dropdown selection changed to:', selectedPensionId);
+    
+    const selectedPension = pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId));
+    
+    if (!selectedPension) {
+      console.log('🔄 Selected pension not found, skipping update');
+      return;
+    }
+    
+    console.log('🔄 Switching to pension:', selectedPension.name);
+    
+    // Update the selected pension states
+    setSelectedPensionId(selectedPensionId);
+    setUserPension(selectedPension);
+    
+    // Load data for the new pension
+    try {
+      const pensionId = selectedPension.pension_id || selectedPension.id;
+      
+      // Load pension-specific data
+      const [
+        staffResponse,
+        roomsResponse,
+        packagesResponse
+      ] = await Promise.all([
+        apiService.getStaff(pensionId),
+        apiService.getRooms(pensionId),
+        apiService.getPackages(pensionId)
+      ]);
+      
+      // Update staff data
+      const mappedStaff = (staffResponse.data || []).map((s: any) => ({
+        ...s,
+        id: (s.id || s.staff_id).toString(),
+        role: s.role || 'staff',
+        status: s.status || 'active'
+      }));
+      setStaffData(mappedStaff);
+      
+      // Update rooms data
+      const roomsData = roomsResponse.data?.items || roomsResponse.data || [];
+      setRoomsData(Array.isArray(roomsData) ? roomsData : []);
+      setRooms(Array.isArray(roomsData) ? roomsData : []);
+      
+      // Update packages data
+      const packagesData = packagesResponse.data || [];
+      setPackages(packagesData);
+      
+      // Update room statistics
+      fetchRoomStats(pensionId);
+      
+      // Load expenses for the new pension
+      try {
+        const expensesResponse = await apiService.getExpenses(pensionId);
+        if (expensesResponse?.data) {
+          setExpensesData(expensesResponse.data.items || []);
+          setTotalExpenses(expensesResponse.data.totalExpenses || 0);
+        }
+      } catch (error) {
+        console.error('Error loading expenses:', error);
+      }
+      
+      // Update bookings for the selected pension
+      const allBookingsResponse = await apiService.getBookings();
+      const allBookings = allBookingsResponse?.data?.items || [];
+      const filteredBookings = allBookings.filter(booking => 
+        booking.pension_id === pensionId
+      );
+      setBookings(filteredBookings);
+      
+      console.log('✅ Successfully switched to pension:', selectedPension.name);
+      
+    } catch (error) {
+      console.error('Error loading pension data:', error);
+    }
+  };
 
   // Handle pension creation
   const handleCreatePension = async () => {
@@ -323,8 +404,45 @@ export const Dashboard: React.FC = () => {
       setPensions(pensionsArray);
       setReviews(reviewsResponse?.data?.items || []);
 
-      if (foundUserPension) {
-        const pensionId = foundUserPension.pension_id || foundUserPension.id;
+      // Initialize pension selection for owners
+      if (isPensionOwner()) {
+        const ownerPensions = pensionsArray.filter(p => 
+          p.owner_id === userId || 
+          p.owner_id === parseInt(userId) ||
+          p.owner_id === userId?.toString()
+        );
+        
+        // If no pension is selected yet, select the first active one
+        if (!selectedPensionId && ownerPensions.length > 0) {
+          const firstActivePension = ownerPensions.find(p => 
+            p.status === 'active' || p.status === 'Approved'
+          ) || ownerPensions[0];
+          
+          setSelectedPensionId(String(firstActivePension.pension_id || firstActivePension.id));
+          setUserPension(firstActivePension);
+          console.log('🔄 Auto-selected pension:', firstActivePension.name);
+        }
+      }
+
+      // Use the currently selected pension from dropdown or auto-found pension
+      const currentPension = selectedPensionId 
+        ? pensionsArray.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+        : foundUserPension;
+
+      console.log('🔄 Loading data for pension:', currentPension ? currentPension.name : 'None');
+
+      // Now filter bookings by selected pension
+      const allBookings = bookingsResponse?.data?.items || [];
+      const filteredBookings = currentPension 
+        ? allBookings.filter(booking => 
+            booking.pension_id === currentPension.pension_id || 
+            booking.pension_id === currentPension.id
+          )
+        : allBookings;
+      setBookings(filteredBookings); // Update with filtered bookings
+
+      if (currentPension) {
+        const pensionId = currentPension.pension_id || currentPension.id;
         const [
           staffResponse,
           roomsResponse,
@@ -354,8 +472,12 @@ export const Dashboard: React.FC = () => {
             price: room.price_per_night,
             type: room.type.charAt(0).toUpperCase() + room.type.slice(1)
           }));
-          setRoomsData(normalizedRooms);
-          setRooms(normalizedRooms); // Also update rooms state
+          setRoomsData(Array.isArray(normalizedRooms) ? normalizedRooms : []);
+          setRooms(Array.isArray(normalizedRooms) ? normalizedRooms : []); // Also update rooms state
+        } else {
+          // Ensure roomsData is always an array even if no rooms data
+          setRoomsData([]);
+          setRooms([]);
         }
 
         // Update packages
@@ -395,8 +517,8 @@ export const Dashboard: React.FC = () => {
         }
 
         // Refresh room statistics to update available rooms count
-        if (foundUserPension) {
-          fetchRoomStats(foundUserPension.pension_id || foundUserPension.id);
+        if (currentPension) {
+          fetchRoomStats(currentPension.pension_id || currentPension.id);
         }
       }
 
@@ -410,7 +532,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadRealData();
-  }, [activeTab, isAuthenticated, user, pensions.length]);
+  }, [activeTab, isAuthenticated, user, pensions.length, selectedPensionId]);
 
   // Type for property settings
   interface PropertySettings {
@@ -508,54 +630,31 @@ export const Dashboard: React.FC = () => {
 
   // Load pension data when component mounts or pensions change
   useEffect(() => {
-    if (pensions.length > 0) {
-      // Find the pension that belongs to this user
-      const foundPension = pensions.find(p => 
-        p.owner_id === (user?.id || user?.user_id)
-      );
+    const currentPension = selectedPensionId 
+      ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+      : null;
+    
+    if (currentPension) {
+      setPropertySettings({
+        name: currentPension.name || "",
+        address: currentPension.address || "",
+        phone: currentPension.phone || "",
+        email: currentPension.email || "",
+        website: "",
+        description: currentPension.description || "",
+        ownerInfo: currentPension.owner_info || `Managed by ${user?.full_name || 'Property Owner'}`,
+        roomDetails: currentPension.room_details || "",
+        capacity: currentPension.capacity || 0,
+        amenities: [],
+        checkInTime: "12:00",
+        checkOutTime: "10:00",
+        cancellationPolicy: "Flexible"
+      });
       
-      setUserPension(foundPension || null); // Set the state variable
-
-      if (foundPension) {
-        setPropertySettings({
-          name: foundPension.name || "",
-          address: foundPension.address || "",
-          phone: foundPension.phone || "",
-          email: foundPension.email || "",
-          website: "",
-          description: foundPension.description || "",
-          ownerInfo: foundPension.owner_info || `Managed by ${user?.full_name || 'Property Owner'}`,
-          roomDetails: foundPension.room_details || "",
-          capacity: foundPension.capacity || 0,
-          amenities: [],
-          checkInTime: "12:00",
-          checkOutTime: "10:00",
-          cancellationPolicy: "Flexible"
-        });
-        
-        // Fetch actual room statistics
-        fetchRoomStats(foundPension.pension_id || foundPension.id);
-      } else {
-        // No pension belongs to this user, use default values
-        setPropertySettings({
-          name: "",
-          address: "",
-          phone: "",
-          email: "",
-          website: "",
-          description: "",
-          ownerInfo: "",
-          roomDetails: "",
-          capacity: 0,
-          amenities: [],
-          checkInTime: "12:00",
-          checkOutTime: "10:00",
-          cancellationPolicy: "Flexible"
-        });
-      }
-    } else {
-      // No pensions at all, use default values
-      setUserPension(null); // Ensure userPension is null if no pensions
+      // Fetch actual room statistics
+      fetchRoomStats(currentPension.pension_id || currentPension.id);
+    } else if (pensions.length > 0) {
+      // If no pension is selected but pensions exist, use default values
       setPropertySettings({
         name: "",
         address: "",
@@ -572,15 +671,19 @@ export const Dashboard: React.FC = () => {
         cancellationPolicy: "Flexible"
       });
     }
-  }, [pensions, user]);
+  }, [pensions, user, selectedPensionId]);
 
   // Load staff data
   useEffect(() => {
     const fetchStaff = async () => {
-      if (activeTab === 'staff' && userPension && userPension.pension_id) { // Added null check
+      const currentPension = selectedPensionId 
+        ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+        : userPension;
+      
+      if (activeTab === 'staff' && currentPension && (currentPension.pension_id || currentPension.id)) {
         setIsStaffLoading(true);
         try {
-          const response = await apiService.getStaff(userPension.pension_id);
+          const response = await apiService.getStaff(currentPension.pension_id || currentPension.id);
           const mappedStaff = response.data.map((s: any) => ({
             ...s,
             id: (s.id || s.staff_id).toString(),
@@ -595,7 +698,7 @@ export const Dashboard: React.FC = () => {
       }
     };
     fetchStaff();
-  }, [activeTab, userPension]); // Added userPension to dependencies
+  }, [activeTab, selectedPensionId, userPension, pensions]); // Updated dependencies
 
   const handleEditStaff = (member: any) => {
     setEditingStaff(member);
@@ -612,8 +715,11 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleSaveStaff = async () => {
-    const foundPension = pensions.find(p => p.owner_id === (user?.id || user?.user_id));
-    if (!foundPension) {
+    const currentPension = selectedPensionId 
+      ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+      : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+      
+    if (!currentPension) {
       alert('Please create a pension first!');
       return;
     }
@@ -622,14 +728,14 @@ export const Dashboard: React.FC = () => {
       // Prepare staff data with required fields
       const staffData = {
         ...newStaff,
-        pension_id: foundPension.pension_id || foundPension.id,
+        pension_id: currentPension.pension_id || currentPension.id,
         owner_id: user?.id || user?.user_id
       };
 
       if (editingStaff) {
         await apiService.updateStaff(parseInt(editingStaff.id), staffData);
       } else {
-        await apiService.addStaff(foundPension.pension_id || foundPension.id, staffData);
+        await apiService.addStaff(currentPension.pension_id || currentPension.id, staffData);
       }
       setShowAddStaffModal(false);
       setNewStaff({ 
@@ -645,7 +751,7 @@ export const Dashboard: React.FC = () => {
       });
       setEditingStaff(null);
       // Refresh staff list
-      const response = await apiService.getStaff(foundPension.pension_id || foundPension.id);
+      const response = await apiService.getStaff(currentPension.pension_id || currentPension.id);
       const mappedStaff = response.data.map((s: any) => ({
         ...s,
         id: (s.id || s.staff_id).toString(),
@@ -662,9 +768,11 @@ export const Dashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to remove this staff member?')) return;
     try {
       await apiService.deleteStaff(parseInt(id));
-      const foundPension = pensions.find(p => p.owner_id === (user?.id || user?.user_id));
-      if (foundPension) {
-        const response = await apiService.getStaff(foundPension.pension_id || foundPension.id);
+      const currentPension = selectedPensionId 
+        ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+        : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+      if (currentPension) {
+        const response = await apiService.getStaff(currentPension.pension_id || currentPension.id);
         const mappedStaff = response.data.map((s: any) => ({
           ...s,
           id: (s.id || s.staff_id).toString(),
@@ -861,14 +969,14 @@ export const Dashboard: React.FC = () => {
           owner_id_type: typeof p.owner_id
         })));
         
-        // Get user's pension ID
-        const foundPension = pensions.find(p => 
-          p.owner_id === (user?.id || user?.user_id)
-        );
+        // Get the currently selected pension
+        const currentPension = selectedPensionId 
+          ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+          : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
         
-        console.log('🔍 Package creation - Found pension:', foundPension ? foundPension.name : 'None');
+        console.log('🔍 Package creation - Found pension:', currentPension ? currentPension.name : 'None');
         
-        if (foundPension) {
+        if (currentPension) {
           // Wait a moment for image state to update if needed
           await new Promise(resolve => setTimeout(resolve, 100));
           
@@ -897,7 +1005,7 @@ export const Dashboard: React.FC = () => {
               return;
             }
             
-            await apiService.updatePackage(foundPension.pension_id || foundPension.id, packageId, packageData);
+            await apiService.updatePackage(currentPension.pension_id || currentPension.id, packageId, packageData);
             const updatedPackages = packages.map(pkg => {
           const pkgId = editingPackage.id || editingPackage.package_id;
           return pkg.id === pkgId || pkg.package_id === pkgId ? { ...packageData, id: editingPackage.id || editingPackage.package_id, isMostPopular: pkg.isMostPopular } : pkg;
@@ -906,7 +1014,7 @@ export const Dashboard: React.FC = () => {
             setEditingPackage(null);
           } else {
             // Create new package
-            const response = await apiService.createPackage(foundPension.pension_id || foundPension.id, packageData);
+            const response = await apiService.createPackage(currentPension.pension_id || currentPension.id, packageData);
             const newPkg = { ...packageData, id: response.data?.package?.id || Date.now().toString(), isMostPopular: false };
             const updatedPackages = [...packages, newPkg];
             setPackages(updatedPackages);
@@ -949,16 +1057,16 @@ export const Dashboard: React.FC = () => {
       console.log('🗑️ Delete package attempt:', packageId);
       console.log('🔍 Available packages:', packages.map(p => ({ id: p.id, name: p.name })));
       
-      // Get user's pension ID
-      const foundPension = pensions.find(p => 
-        p.owner_id === user?.user_id
-      );
+      // Get the currently selected pension
+      const currentPension = selectedPensionId 
+        ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+        : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
       
-      console.log('🔍 Found pension:', foundPension ? foundPension.name : 'None');
+      console.log('🔍 Found pension:', currentPension ? currentPension.name : 'None');
       
-      if (foundPension) {
-        console.log('🚀 Deleting package:', packageId, 'for pension:', foundPension.pension_id);
-        await apiService.deletePackage(foundPension.pension_id || foundPension.id, parseInt(packageId));
+      if (currentPension) {
+        console.log('🚀 Deleting package:', packageId, 'for pension:', currentPension.pension_id);
+        await apiService.deletePackage(currentPension.pension_id || currentPension.id, parseInt(packageId));
         
         const updatedPackages = packages.filter(pkg => pkg.id !== packageId);
         console.log('✅ Updated packages after delete:', updatedPackages.map(p => ({ id: p.id, name: p.name })));
@@ -1173,6 +1281,42 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* Pension Selection - Sidebar Top */}
+          {isPensionOwner() && pensions.filter(p => p.owner_id === (user?.id || user?.user_id)).length > 1 && (
+            <div className="px-4 py-3 border-b border-slate-100">
+              <Select value={selectedPensionId} onValueChange={handlePensionSelectionChange}>
+                <SelectTrigger className="w-full h-9 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all">
+                  <SelectValue placeholder="Select Pension" />
+                </SelectTrigger>
+                <SelectContent className="w-64 max-h-60 overflow-y-auto">
+                  {pensions
+                    .filter(p => p.owner_id === (user?.id || user?.user_id))
+                    .map((pension) => (
+                      <SelectItem 
+                        key={pension.pension_id || pension.id} 
+                        value={String(pension.pension_id || pension.id)}
+                      >
+                        <div className="flex items-center gap-2 py-1">
+                          <Building className="h-4 w-4 text-slate-500" />
+                          <div className="flex-1 min-w-0">
+                            <span className="truncate text-sm font-medium">{pension.name}</span>
+                            <div className="text-xs text-slate-500">
+                              {pension.location || 'Main Location'}
+                            </div>
+                          </div>
+                          {pension.status === 'active' || pension.status === 'Approved' ? (
+                            <Building className="h-3 w-3 text-green-600 ml-2" />
+                          ) : (
+                            <Building className="h-3 w-3 text-slate-400 ml-2" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <nav className="flex-1 space-y-1.5 px-3 py-6">
             {sidebarLinks.map((link) => {
               const Icon = getIcon(link.icon);
@@ -1302,22 +1446,26 @@ export const Dashboard: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-4 flex-1">
-                {/* Mobile Menu Toggle */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50"
-                  onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-                >
-                  {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 flex-1 lg:flex-1 min-w-0">
+                {/* Top row for mobile - Menu and Title */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Mobile Menu Toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50 flex-shrink-0"
+                    onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                  >
+                    {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  </Button>
 
-                <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
-                  {activeTab === "staff" ? "Staff & HR Management" : 
-                   activeTab === "overview" ? "Dashboard Overview" : 
-                   activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                </h1>
+                  {/* Page Title */}
+                  <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
+                    {activeTab === "staff" ? "Staff & HR Management" : 
+                     activeTab === "overview" ? "Dashboard Overview" : 
+                     activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  </h1>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
@@ -1411,11 +1559,25 @@ export const Dashboard: React.FC = () => {
                     Bulk Upload
                   </Button>
                   <Button 
-                    onClick={() => setShowAddRoomModal(true)}
-                    className="gap-2 bg-primary hover:bg-primary/90"
+                    onClick={() => {
+                      if (packages.length === 0) {
+                        alert('❌ Please create at least one package before adding rooms!');
+                        return;
+                      }
+                      setShowAddRoomModal(true);
+                    }}
+                    disabled={packages.length === 0}
+                    className={`gap-2 ${
+                      packages.length === 0 
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                        : 'bg-primary hover:bg-primary/90'
+                    }`}
                   >
                     <Bed className="h-4 w-4" />
                     Add Room
+                    {packages.length === 0 && (
+                      <span className="text-xs ml-1">(No packages)</span>
+                    )}
                   </Button>
                 </div>
               )}
@@ -2966,6 +3128,9 @@ export const Dashboard: React.FC = () => {
                 <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <Package className="h-4 w-4 text-primary" />
                   Select Package
+                  {packages.length === 0 && (
+                    <span className="text-red-500 text-xs font-normal ml-2">(No packages available)</span>
+                  )}
                 </Label>
                 <select
                   value={newRoom.package}
@@ -2980,15 +3145,32 @@ export const Dashboard: React.FC = () => {
                       numberOfBeds: selectedPackage?.name?.includes('Double') ? '2' : selectedPackage?.name?.includes('Suite') ? '3' : '1'
                     });
                   }}
-                  className="h-10 w-full border border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 rounded-lg px-3 transition-all duration-300"
+                  disabled={packages.length === 0}
+                  className={`h-10 w-full border rounded-lg px-3 transition-all duration-300 ${
+                    packages.length === 0 
+                      ? 'border-red-200 bg-red-50 cursor-not-allowed' 
+                      : 'border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50'
+                  }`}
                 >
-                  <option value="">Select a package</option>
+                  <option value="">
+                    {packages.length === 0 ? 'Create packages first' : 'Select a package'}
+                  </option>
                   {packages.map(pkg => (
                     <option key={pkg.id || pkg.package_id} value={pkg.id || pkg.package_id}>
                       {pkg.name} - ETB {pkg.price}/night
                     </option>
                   ))}
                 </select>
+                {packages.length === 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-700">
+                      <strong>No packages available!</strong> Please create at least one package before adding rooms.
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      Packages define room types, pricing, and amenities.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Room Details Fields */}
@@ -3096,24 +3278,55 @@ export const Dashboard: React.FC = () => {
                       console.log('🔍 Room creation - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
                       
                       // Get the selected pension
-                      const foundPension = pensions.find(p => p.pension_id === userPension?.pension_id || userPension?.id);
+                      const currentPension = selectedPensionId 
+                        ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
+                        : pensions.find(p => p.pension_id === userPension?.pension_id || userPension?.id);
                       
-                      console.log('🔍 Room creation - Found pension:', foundPension ? foundPension.name : 'None');
+                      console.log('🔍 Room creation - Found pension:', currentPension ? currentPension.name : 'None');
                       
-                      if (foundPension) {
-                        // Check if packages are loaded
+                      if (currentPension) {
+                        // Enhanced package validation
                         if (packages.length === 0) {
-                          alert('Please wait for packages to load or create packages first before adding rooms!');
+                          alert('❌ No packages found! Please create at least one package before adding rooms.');
                           return;
                         }
+                        
+                        // Check if a package is selected
+                        if (!newRoom.package || newRoom.package === '') {
+                          alert('❌ Please select a package for the room!');
+                          return;
+                        }
+                        
+                        // Verify the selected package exists
+                        const selectedPackage = packages.find(p => 
+                          String(p.id) === String(newRoom.package) || 
+                          String(p.package_id) === String(newRoom.package)
+                        );
+                        
+                        if (!selectedPackage) {
+                          alert('❌ Selected package not found! Please select a valid package.');
+                          return;
+                        }
+                        
+                        // Validate required room fields
+                        if (!newRoom.type || newRoom.type.trim() === '') {
+                          alert('❌ Please enter a room type!');
+                          return;
+                        }
+                        
+                        if (!newRoom.roomNumbers || newRoom.roomNumbers.trim() === '') {
+                          alert('❌ Please enter at least one room number!');
+                          return;
+                        }
+                        
+                        console.log('✅ All validations passed, proceeding with room creation');
                         
                         // Prepare room data for API
                         console.log('📦 Available packages:', packages);
                         console.log('📦 Selected package ID:', newRoom.package, 'type:', typeof newRoom.package);
                         console.log('📦 Package details:', packages.map(p => ({ id: p.id, package_id: p.package_id, name: p.name, idType: typeof p.id })));
-                        const selectedPackage = packages.find(p => (String(p.id) === String(newRoom.package)) || (String(p.package_id) === String(newRoom.package)));
                         const roomData = {
-                          pension_id: foundPension.pension_id || foundPension.id,
+                          pension_id: currentPension.pension_id || currentPension.id,
                           package_id: newRoom.package,
                           room_type: selectedPackage ? selectedPackage.name : 'Standard',
                           capacity: parseInt(newRoom.capacity) || 1,
@@ -3176,13 +3389,14 @@ export const Dashboard: React.FC = () => {
                           });
                           
                           // Refresh rooms list
-                          console.log('🔍 Refreshing rooms for pension:', foundPension.pension_id || foundPension.id);
-                          const roomsResponse = await apiService.getRooms(foundPension.pension_id || foundPension.id);
+                          console.log('🔍 Refreshing rooms for pension:', currentPension.pension_id || currentPension.id);
+                          const roomsResponse = await apiService.getRooms(currentPension.pension_id || currentPension.id);
                           console.log('🔍 Rooms API response:', roomsResponse);
                           if (roomsResponse.success) {
                             console.log('🔍 Setting rooms state with:', roomsResponse.data);
-                            setRooms(roomsResponse.data);
-                            setRoomsData(roomsResponse.data); // Also update roomsData for UI
+                            const roomsData = roomsResponse.data?.items || roomsResponse.data || [];
+                            setRooms(Array.isArray(roomsData) ? roomsData : []);
+                            setRoomsData(Array.isArray(roomsData) ? roomsData : []); // Also update roomsData for UI
                             
                             // Update packages with correct available rooms count
                             const updatedPackages = packages.map(pkg => ({
@@ -3192,8 +3406,8 @@ export const Dashboard: React.FC = () => {
                             setPackages(updatedPackages);
                             
                             // Refresh all packages globally
-                            if (foundPension) {
-                              await refreshAllPackages(foundPension.pension_id || foundPension.id);
+                            if (currentPension) {
+                              await refreshAllPackages(currentPension.pension_id || currentPension.id);
                             }
                           }
                         } else {

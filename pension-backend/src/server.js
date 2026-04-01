@@ -20,6 +20,7 @@ const staffRoutes = require('./routes/staff');
 const uploadRoutes = require('./routes/uploads');
 const expenseRoutes = require('./routes/expenses');
 const adminRoutes = require('./routes/admin');
+const adminApprovalRoutes = require('./routes/admin'); // Use same admin routes for approvals
 const notificationRoutes = require('./routes/notifications');
 const emailTestRoutes = require('./routes/email-test'); // Add email test routes
 const errorLogger = require('./middleware/errorLogger');
@@ -74,6 +75,7 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin-approvals', adminApprovalRoutes); // Add route for frontend compatibility
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/email-test', emailTestRoutes); // Add email test routes
 

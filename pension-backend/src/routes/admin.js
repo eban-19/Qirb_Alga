@@ -215,12 +215,13 @@ router.get('/properties', authenticateToken, requireAdmin, async (req, res) => {
       address: property.address,
       ownerName: property.full_name,
       ownerEmail: property.owner_email,
-      status: 'active', // Would need to determine based on business logic
+      status: property.status || 'pending', // Track actual status from database
       roomsCount: 0, // Would need to calculate from rooms table
       occupancyRate: 0, // Would need to calculate from bookings
       monthlyRevenue: 0, // Would need to calculate from bookings
       rating: 0, // Would need to calculate from reviews
-      registeredDate: property.created_at
+      registeredDate: property.created_at,
+      rejectionReason: property.rejection_reason || null
     }));
 
     res.json({
@@ -274,9 +275,11 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Get admin metrics
-router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
+// Test endpoint without auth for debugging
+router.get('/test-debug', async (req, res) => {
   try {
+    console.log('🔍 Debug: Testing admin routes without auth...');
+    
     // Get counts
     const [ownersCount, propertiesCount, bookingsCount, pendingCount] = await Promise.all([
       executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner"'),
@@ -289,9 +292,231 @@ router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
       totalOwners: ownersCount[0].count,
       totalProperties: propertiesCount[0].count,
       totalBookings: bookingsCount[0].count,
+      monthlyRevenue: 0,
+      occupancyRate: 0,
+      pendingVerifications: pendingCount[0].count,
+      activeProperties: propertiesCount[0].count,
+      averageRating: 0
+    };
+
+    console.log('🔍 Debug: Admin metrics result:', metrics);
+
+    res.json({
+      success: true,
+      data: metrics,
+      debug: 'Admin routes working without authentication'
+    });
+  } catch (error) {
+    console.error('🔍 Debug: Admin metrics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch metrics',
+      error: error.message
+    });
+  }
+});
+
+// Get all pensions for admin approval (matches frontend expectation)
+router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    console.log('🔍 Admin fetching all pensions for approval...');
+    
+    const pensions = await executeQuery(`
+      SELECT p.*, u.full_name as owner_name, u.email as owner_email
+      FROM pensions p
+      JOIN users u ON p.owner_id = u.user_id
+      ORDER BY p.created_at DESC
+    `);
+
+    const formattedPensions = pensions.map(property => {
+      // Debug the raw pension data
+      console.log(`🔍 Raw pension data for ${property.name}:`, {
+        pension_id: property.pension_id,
+        name: property.name,
+        description: property.description,
+        address: property.address,
+        phone: property.phone,
+        email: property.email,
+        capacity: property.capacity,
+        owner_name: property.owner_name,
+        owner_email: property.owner_email,
+        created_at: property.created_at,
+        created_at_type: typeof property.created_at,
+        created_at_value: property.created_at ? JSON.stringify(property.created_at) : 'NULL',
+        all_fields: Object.keys(property)
+      });
+
+      // Safe date conversion with multiple fallbacks
+      let safeDate;
+      try {
+        if (property.created_at) {
+          const dateObj = new Date(property.created_at);
+          if (isNaN(dateObj.getTime())) {
+            console.log(`⚠️ Invalid date for pension ${property.pension_id}: ${property.created_at}`);
+            safeDate = new Date().toISOString();
+          } else {
+            safeDate = dateObj.toISOString();
+          }
+        } else {
+          safeDate = new Date().toISOString();
+        }
+      } catch (dateError) {
+        console.error(`❌ Date conversion error for pension ${property.pension_id}:`, dateError);
+        safeDate = new Date().toISOString();
+      }
+
+      return {
+        id: property.pension_id.toString(),
+        name: property.name,
+        description: property.description,
+        address: property.address,
+        phone: property.phone,
+        email: property.email,
+        capacity: property.capacity,
+        ownerName: property.owner_name,
+        ownerEmail: property.owner_email,
+        owner_name: property.owner_name, // Frontend expects this
+        owner_email: property.owner_email, // Frontend expects this
+        status: property.status || 'pending', // Track actual status from database
+        roomsCount: 0, // Would need to calculate from rooms table
+        occupancyRate: 0, // Would need to calculate from bookings
+        monthlyRevenue: 0, // Would need to calculate from bookings
+        rating: 0, // Would need to calculate from reviews
+        registeredDate: safeDate,
+        created_at: safeDate, // Add this field for frontend compatibility
+        rejectionReason: property.rejection_reason || null
+      };
+    });
+
+    console.log('🔍 Admin pensions result:', formattedPensions.length, 'pensions');
+    
+    // Log sample data for debugging
+    if (formattedPensions.length > 0) {
+      console.log('🔍 Sample pension data being sent to frontend:', formattedPensions[0]);
+    }
+
+    res.json({
+      success: true,
+      data: formattedPensions
+    });
+  } catch (error) {
+    console.error('Get admin pensions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch pensions'
+    });
+  }
+});
+
+// Approve pension
+router.put('/pensions/:pensionId/approve', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { pensionId } = req.params;
+    
+    // Update pension status to active
+    await executeQuery(
+      'UPDATE pensions SET status = "active", reviewed_by = ?, reviewed_at = NOW() WHERE pension_id = ?',
+      [req.user.userId, pensionId]
+    );
+
+    console.log(`✅ Pension ${pensionId} approved by admin ${req.user.userId}`);
+
+    res.json({
+      success: true,
+      message: 'Pension approved successfully'
+    });
+  } catch (error) {
+    console.error('Approve pension error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve pension'
+    });
+  }
+});
+
+// Reject pension
+router.put('/pensions/:pensionId/reject', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { pensionId } = req.params;
+    const { rejectionReason } = req.body;
+    
+    // Update pension status to rejected
+    await executeQuery(
+      'UPDATE pensions SET status = "rejected", rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW() WHERE pension_id = ?',
+      [rejectionReason, req.user.userId, pensionId]
+    );
+
+    console.log(`❌ Pension ${pensionId} rejected by admin ${req.user.userId}`);
+
+    res.json({
+      success: true,
+      message: 'Pension rejected successfully'
+    });
+  } catch (error) {
+    console.error('Reject pension error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject pension'
+    });
+  }
+});
+
+// Debug endpoint - raw pension data without date processing
+router.get('/pensions-debug', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    console.log('🔍 Debug: Fetching raw pension data...');
+    
+    const pensions = await executeQuery(`
+      SELECT p.*, u.full_name as owner_name, u.email as owner_email
+      FROM pensions p
+      JOIN users u ON p.owner_id = u.user_id
+      ORDER BY p.created_at DESC
+    `);
+
+    console.log('🔍 Debug: Raw pension data:', pensions);
+
+    res.json({
+      success: true,
+      data: pensions,
+      debug: {
+        count: pensions.length,
+        sample: pensions[0] ? {
+          pension_id: pensions[0].pension_id,
+          created_at: pensions[0].created_at,
+          created_at_type: typeof pensions[0].created_at
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('🔍 Debug: Raw pensions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch raw pensions',
+      error: error.message
+    });
+  }
+});
+
+// Get admin metrics
+router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Get counts
+    const [ownersCount, propertiesCount, bookingsCount, pendingCount, pendingPensionsCount] = await Promise.all([
+      executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner"'),
+      executeQuery('SELECT COUNT(*) as count FROM pensions'),
+      executeQuery('SELECT COUNT(*) as count FROM bookings'),
+      executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner" AND approved != 1'),
+      executeQuery('SELECT COUNT(*) as count FROM pensions WHERE status = "pending"')
+    ]);
+
+    const metrics = {
+      totalOwners: ownersCount[0].count,
+      totalProperties: propertiesCount[0].count,
+      totalBookings: bookingsCount[0].count,
       monthlyRevenue: 0, // Would need to calculate from bookings
       occupancyRate: 0, // Would need to calculate from bookings vs rooms
       pendingVerifications: pendingCount[0].count,
+      pendingPensions: pendingPensionsCount[0].count, // Track pending pension approvals
       activeProperties: propertiesCount[0].count, // Would need to filter active ones
       averageRating: 0 // Would need to calculate from reviews
     };
@@ -326,6 +551,23 @@ router.get('/alerts', authenticateToken, requireAdmin, async (req, res) => {
         title: 'Pending Owner Verifications',
         message: `${pendingOwners[0].count} owners waiting for approval`,
         severity: 'medium',
+        status: 'open',
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    // Get pending pension approvals
+    const pendingPensions = await executeQuery(
+      'SELECT COUNT(*) as count FROM pensions WHERE status = "pending"'
+    );
+
+    if (pendingPensions[0].count > 0) {
+      alerts.push({
+        id: 'ALT002',
+        type: 'pension_approval',
+        title: 'Pending Pension Approvals',
+        message: `${pendingPensions[0].count} pensions waiting for approval`,
+        severity: 'high',
         status: 'open',
         createdAt: new Date().toISOString()
       });

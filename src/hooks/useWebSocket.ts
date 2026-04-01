@@ -43,6 +43,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     updateState({ connectionStatus: 'connecting', error: null });
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      updateState({ 
+        isConnected: false, 
+        connectionStatus: 'error', 
+        error: 'No authentication token found' 
+      });
+      return;
+    }
+
     wsService.connect({
       onConnect: () => {
         updateState({ 

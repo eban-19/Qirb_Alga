@@ -5,6 +5,7 @@ const upload = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs');
 const notificationService = require('../services/notificationService');
+const geocodingService = require('../services/geocoding');
 
 // Debug middleware to log all requests to public routes
 router.use((req, res, next) => {
@@ -79,6 +80,24 @@ router.get('/pensions', async (req, res, next) => {
 
       const liveAvailableRooms = packages.reduce((sum, pkg) => sum + pkg.availableRoomsCount, 0);
 
+      // Only include pension if it has available rooms
+      if (liveAvailableRooms === 0) {
+        console.log(`🔍 Pension ${p.name} excluded: No available rooms (${liveAvailableRooms} rooms)`);
+        return null; // Skip this pension
+      }
+
+      // Get coordinates (use existing or geocode from address)
+      let coordinates = { lat: p.latitude, lng: p.longitude };
+      if (!p.latitude || !p.longitude) {
+        try {
+          coordinates = await geocodingService.geocodeAddress(p.address);
+          console.log(`🗺️ Geocoded "${p.name}" address to:`, coordinates);
+        } catch (error) {
+          console.log(`⚠️ Geocoding failed for "${p.name}":`, error.message);
+          coordinates = { lat: 9.03, lng: 38.74 }; // Default fallback
+        }
+      }
+
       return {
         id: pensionId.toString(),
         name: p.name,
@@ -88,8 +107,8 @@ router.get('/pensions', async (req, res, next) => {
         locationName: p.address,
         city: p.address ? p.address.split(',')[0] : 'Addis Ababa',
         area: p.address ? p.address.split(',')[0] : 'Addis Ababa',
-        latitude: p.latitude || 9.03,
-        longitude: p.longitude || 38.74,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
         availableRooms: liveAvailableRooms,
         images: [p.image_url || '/src/assets/room-1.png'],
         phone: p.phone || '',
@@ -125,9 +144,13 @@ router.get('/pensions', async (req, res, next) => {
       })));
     }));
 
+    // Filter out pensions with no available rooms
+    const availableItems = items.filter(item => item !== null);
+    console.log(`🔍 Total pensions: ${items.length}, Available pensions: ${availableItems.length}`);
+
     // Pagination
     const startIndex = (page - 1) * limit;
-    const paginatedItems = items.slice(startIndex, startIndex + parseInt(limit));
+    const paginatedItems = availableItems.slice(startIndex, startIndex + parseInt(limit));
 
     res.json({
       success: true,
@@ -136,8 +159,8 @@ router.get('/pensions', async (req, res, next) => {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: items.length,
-          totalPages: Math.ceil(items.length / parseInt(limit))
+          total: availableItems.length,
+          totalPages: Math.ceil(availableItems.length / parseInt(limit))
         }
       }
     });
@@ -243,6 +266,27 @@ router.get('/pensions/:id', async (req, res, next) => {
     
     const liveAvailableRooms = packages.reduce((sum, pkg) => sum + pkg.availableRoomsCount, 0);
 
+    // Check if pension has available rooms
+    if (liveAvailableRooms === 0) {
+      console.log(`🔍 Single pension ${id} excluded: No available rooms (${liveAvailableRooms} rooms)`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Pension not available - no rooms currently available' 
+      });
+    }
+
+    // Get coordinates (use existing or geocode from address)
+    let coordinates = { lat: p.latitude, lng: p.longitude };
+    if (!p.latitude || !p.longitude) {
+      try {
+        coordinates = await geocodingService.geocodeAddress(p.address);
+        console.log(`🗺️ Single pension geocoded "${p.name}" to:`, coordinates);
+      } catch (error) {
+        console.log(`⚠️ Single pension geocoding failed:`, error.message);
+        coordinates = { lat: 9.03, lng: 38.74 }; // Default fallback
+      }
+    }
+
     const mappedPension = {
       id: p.pension_id.toString(),
       name: p.name,
@@ -252,8 +296,8 @@ router.get('/pensions/:id', async (req, res, next) => {
       locationName: p.address,
       city: p.address,
       area: p.address ? p.address.split(',')[0] : 'Addis Ababa',
-      latitude: p.latitude || 9.03,
-      longitude: p.longitude || 38.74,
+      latitude: coordinates.lat,
+      longitude: coordinates.lng,
       availableRooms: liveAvailableRooms,
       images: [p.image_url || '/src/assets/room-1.png'],
       phone: p.phone || '',

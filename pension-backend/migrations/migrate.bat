@@ -2,17 +2,37 @@
 REM Database Migration Script for Windows
 REM Pension Management System
 
-REM Database configuration
-set DB_USER=root
-set DB_NAME=pension_management_system
-set MIGRATIONS_DIR=./migrations
+REM Get absolute path of script
+set SCRIPT_DIR=%~dp0
+
+REM Auto-detect migrations directory
+if exist "%SCRIPT_DIR%\migrations" (
+    set MIGRATIONS_DIR=%SCRIPT_DIR%\migrations
+) else if exist "%SCRIPT_DIR%\..\migrations" (
+    set MIGRATIONS_DIR=%SCRIPT_DIR%\..\migrations
+) else (
+    echo ❌ Cannot find migrations directory
+    echo 💡 Please run from: pension-backend\migrations\ or pension-backend\
+    pause
+    exit /b 1
+)
 
 echo 🗄️  Pension Management System - Database Migration
 echo ==================================================
+echo 📍 Script location: %SCRIPT_DIR%
+echo 📂 Migrations directory: %MIGRATIONS_DIR%
+echo.
 
-REM Check if database exists
+REM Database configuration
+set DB_USER=root
+set DB_PASS=your_mysql_password_here
+set DB_NAME=pension_management_system
+
+echo 🔧 Database: %DB_NAME%
+echo 👤 User: %DB_USER%
+echo.
 echo 📋 Checking database connection...
-mysql -u %DB_USER% -e "USE %DB_NAME%;" 2>nul
+mysql -u %DB_USER% -p%DB_PASS% -e "USE %DB_NAME%;" 2>nul
 if errorlevel 1 (
     echo ❌ Database '%DB_NAME%' does not exist or connection failed
     echo 💡 Please create database first:
@@ -42,7 +62,7 @@ echo.
 REM Run each migration
 for /f "tokens=*" %%f in (migration_list.txt) do (
     echo 📄 Running migration: %%f
-    mysql -u %DB_USER% %DB_NAME% < %MIGRIONS_DIR%\%%f
+    mysql -u %DB_USER% -p%DB_PASS% %DB_NAME% < %MIGRIONS_DIR%\%%f
     
     if errorlevel 1 (
         echo ❌ Migration failed: %%f
