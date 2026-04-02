@@ -1,11 +1,11 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // Get room types for a pension
-router.get('/pension/:pensionId/room-types', authenticateToken, async (req, res) => {
+router.get('/pension/:pensionId/room-types', authenticateToken as any, async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     
@@ -16,24 +16,24 @@ router.get('/pension/:pensionId/room-types', authenticateToken, async (req, res)
     
     res.json({
       success: true,
-      data: roomTypes.map(type => type.room_type)
+      data: roomTypes.map((type: any) => type.room_type)
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching room types:', error);
     res.status(500).json({ success: false, message: 'Error fetching room types' });
   }
 });
 
 // Get rooms for a specific pension (public)
-router.get('/pension/:pensionId', async (req, res) => {
+router.get('/pension/:pensionId', async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const rooms = await executeQuery(
       'SELECT r.* FROM rooms r WHERE r.pension_id = ? ORDER BY r.created_at DESC LIMIT ? OFFSET ?',
-      [pensionId, parseInt(limit), parseInt(offset)]
+      [pensionId, parseInt(limit as string), offset]
     );
 
     const countResult = await executeQuery(
@@ -45,29 +45,29 @@ router.get('/pension/:pensionId', async (req, res) => {
     res.json({
       success: true,
       data: {
-        items: rooms.map(r => ({ 
+        items: rooms.map((r: any) => ({ 
           ...r, 
           id: r.room_id, 
           type: r.room_type,
           is_available: r.availability_status?.toLowerCase() === 'available'
         })),
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
           total,
-          totalPages: Math.ceil(total / limit)
+          totalPages: Math.ceil(total / parseInt(limit as string))
         }
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get rooms error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Get room by ID (public)
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
 
@@ -94,14 +94,14 @@ router.get('/:id', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get room error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Create new room (protected)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { 
@@ -141,14 +141,14 @@ router.post('/', authenticateToken, async (req, res) => {
     });
 
     res.status(201).json({ success: true, message: 'Room created successfully', data: { id: result.insertId } });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create room error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Update room (protected)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
@@ -176,14 +176,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
     );
 
     res.json({ success: true, message: 'Room updated successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update room error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Delete room (protected)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
@@ -194,18 +194,18 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await executeQuery('DELETE FROM rooms WHERE room_id = ?', [id]);
     res.json({ success: true, message: 'Room deleted successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete room error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Get user's rooms
-router.get('/my/rooms', authenticateToken, async (req, res) => {
+router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { pension_id, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     let query = `
       SELECT r.*, p.name as pension_name
@@ -213,7 +213,7 @@ router.get('/my/rooms', authenticateToken, async (req, res) => {
       JOIN pensions p ON r.pension_id = p.pension_id
       WHERE p.owner_id = ?
     `;
-    const params = [userId];
+    const params: any[] = [userId];
 
     if (pension_id) {
       query += ' AND r.pension_id = ?';
@@ -221,10 +221,10 @@ router.get('/my/rooms', authenticateToken, async (req, res) => {
     }
 
     query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(parseInt(limit as string), offset);
 
     const rooms = await executeQuery(query, params);
-    const normalizedRooms = rooms.map(r => ({ 
+    const normalizedRooms = rooms.map((r: any) => ({ 
       ...r, 
       id: r.room_id, 
       type: r.room_type,
@@ -232,14 +232,14 @@ router.get('/my/rooms', authenticateToken, async (req, res) => {
     }));
 
     res.json({ success: true, data: { items: normalizedRooms } });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get user rooms error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Get room statistics for a pension
-router.get('/stats/:pensionId', async (req, res) => {
+router.get('/stats/:pensionId', async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     
@@ -258,10 +258,10 @@ router.get('/stats/:pensionId', async (req, res) => {
         availableRooms: roomStats[0].availableRooms || 0
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get room stats error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
-module.exports = router;
+export default router;

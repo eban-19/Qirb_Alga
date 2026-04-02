@@ -1492,7 +1492,7 @@ export default function AdminDashboard() {
 
 
 
-    <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
+    <div className="space-y-2 sm:space-y-3 bg-slate-50 min-h-screen overflow-x-hidden pt-28 sm:pt-32">
 
 
 
@@ -1500,7 +1500,7 @@ export default function AdminDashboard() {
 
 
 
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-6 rounded-xl shadow-xl">
+      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-4 md:p-6 shadow-xl fixed top-0 left-0 right-0 z-10">
 
 
 
@@ -1528,11 +1528,11 @@ export default function AdminDashboard() {
 
 
 
-              <h1 className="text-2xl font-bold">Pension Platform Admin</h1>
+              <h1 className="text-lg md:text-2xl font-bold">Pension Platform Admin</h1>
 
 
 
-              <p className="text-blue-200">Manage Ethiopian Pension Properties Network</p>
+              <p className="text-blue-200 text-sm md:text-base hidden sm:block">Manage Ethiopian Pension Properties Network</p>
 
 
 
@@ -1562,49 +1562,21 @@ export default function AdminDashboard() {
 
           </div>
 
-
-
           <div className="flex items-center gap-4">
-
-
-
-            <div className="text-right">
-
-
-
+            <div className="text-right hidden md:block">
               <p className="text-sm text-blue-200 mb-1">Real-time Connection</p>
-
-
-
               {getConnectionBadge()}
-
-
-
             </div>
-
-
-
+            {/* Mobile connection badge */}
+            <div className="md:hidden">
+              {getConnectionBadge()}
+            </div>
           </div>
-
-
-
         </div>
-
-
-
       </div>
-
-
-
-
-
-
-
       {/* Key Metrics */}
 
-
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-2 sm:px-4 sm:gap-6 mt-32">
 
 
 
@@ -1732,7 +1704,7 @@ export default function AdminDashboard() {
 
 
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 overflow-x-hidden">
 
 
 
@@ -1744,11 +1716,11 @@ export default function AdminDashboard() {
 
 
 
-          <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 border-2 border-white/50 shadow-xl">
+          <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-4 md:p-6 border-2 border-white/50 shadow-xl max-w-full overflow-x-hidden">
 
 
 
-            <TabsList className="flex flex-wrap items-center justify-center gap-4 bg-transparent border-0 p-0">
+            <TabsList className="flex flex-wrap items-center justify-start gap-2 bg-transparent border-0 p-2 md:justify-center md:gap-4 md:p-0">
 
 
 
@@ -1796,7 +1768,7 @@ export default function AdminDashboard() {
 
 
 
-                  px-6 py-3 text-base
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
 
 
 
@@ -1932,7 +1904,7 @@ export default function AdminDashboard() {
 
 
 
-                  px-6 py-3 text-base
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
 
 
 
@@ -2042,61 +2014,127 @@ export default function AdminDashboard() {
 
                 value="properties" 
 
+
+
                 className="
+
+
 
                   group relative overflow-hidden
 
+
+
                   data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-700 data-[state=active]:via-slate-800 data-[state=active]:to-slate-900 
+
+
 
                   data-[state=active]:text-white 
 
+
+
                   data-[state=active]:border-2 data-[state=active]:border-slate-900
+
+
+
+                  bg-gradient-to-r from-slate-100 via-slate-200 to-slate-300
+
+
 
                   hover:from-slate-200 hover:via-slate-300 hover:to-slate-400
 
+
+
                   text-slate-700 hover:text-slate-900
+
+
 
                   font-bold 
 
-                  px-6 py-3 text-base
+
+
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
+
+
 
                   shadow-md hover:shadow-lg
 
+
+
                   transform hover:scale-105
+
+
 
                   transition-all duration-300
 
+
+
                   border-2 border-slate-300
+
+
 
                   rounded-xl
 
+
+
                   before:absolute before:inset-0
+
+
 
                   before:bg-gradient-to-r before:from-white/30 before:via-transparent before:to-white/10
 
+
+
                   before:opacity-0 hover:before:opacity-100
+
+
+
+                  before:transition-opacity before:duration-300
+
+
 
                   active:scale-95
 
+
+
                 "
+
+
 
               >
 
+
+
                 <span className="relative z-10 flex items-center gap-3">
+
+
 
                   <div className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300">
 
+
+
                     <div className="w-full h-full bg-gradient-to-br from-slate-600 to-slate-800 rounded-lg group-hover:from-slate-700 group-hover:to-slate-900 transition-all duration-300 flex items-center justify-center">
+
+
 
                       <div className="w-2 h-2 bg-white rounded-full"></div>
 
+
+
                     </div>
+
+
 
                   </div>
 
+
+
                   <span className="font-bold">Properties</span>
 
+
+
                 </span>
+
+
 
               </TabsTrigger>
 
@@ -2134,6 +2172,10 @@ export default function AdminDashboard() {
 
 
 
+                  bg-gradient-to-r from-slate-100 via-slate-200 to-slate-300
+
+
+
                   hover:from-slate-200 hover:via-slate-300 hover:to-slate-400
 
 
@@ -2146,7 +2188,7 @@ export default function AdminDashboard() {
 
 
 
-                  px-6 py-3 text-base
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
 
 
 
@@ -2179,6 +2221,10 @@ export default function AdminDashboard() {
 
 
                   before:opacity-0 hover:before:opacity-100
+
+
+
+                  before:transition-opacity before:duration-300
 
 
 
@@ -2290,7 +2336,7 @@ export default function AdminDashboard() {
 
 
 
-                  px-6 py-3 text-base
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
 
 
 
@@ -2438,7 +2484,7 @@ export default function AdminDashboard() {
 
 
 
-                  px-6 py-3 text-base
+                  px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base
 
 
 

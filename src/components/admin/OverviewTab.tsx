@@ -220,14 +220,14 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="space-y-4">
               {recentOwners.slice(0, 4).map((owner, index) => (
                 <div 
                   key={owner.id} 
-                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl hover:from-blue-50 hover:to-purple-50 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-blue-200"
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl hover:from-blue-50 hover:to-purple-50 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-blue-200"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mb-3 sm:mb-0">
                     <div className="relative">
                       <Avatar className="w-12 h-12 ring-2 ring-slate-200 group-hover:ring-blue-300 transition-all duration-300">
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold">
@@ -238,20 +238,20 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                         <div className="w-2 h-2 bg-white rounded-full"></div>
                       </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors truncate">
                         {owner.businessName || 'Unknown Business'}
                       </div>
-                      <div className="text-sm text-slate-600">{owner.ownerName || 'Unknown Owner'}</div>
+                      <div className="text-sm text-slate-600 truncate">{owner.ownerName || 'Unknown Owner'}</div>
                       <div className="text-xs text-slate-500 mt-1">Registered {owner.registrationDate || 'Recently'}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between sm:justify-end gap-3">
                     <div className="text-right">
                       <div className="text-sm font-bold text-slate-900">{owner.totalProperties || 0} props</div>
                       <div className="text-xs text-slate-600">{owner.totalRevenue ? `ETB ${(owner.totalRevenue / 1000).toFixed(1)}k` : 'No revenue'}</div>
                     </div>
-                    <Badge className={`px-3 py-1 text-xs font-bold ${getStatusColor(owner.status)} transform hover:scale-105 transition-all duration-200`}>
+                    <Badge className={`px-2 sm:px-3 py-1 text-xs font-bold shrink-0 ${getStatusColor(owner.status)} transform hover:scale-105 transition-all duration-200`}>
                       {owner.status || 'Unknown'}
                     </Badge>
                   </div>

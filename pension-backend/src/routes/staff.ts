@@ -1,11 +1,21 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
+interface StaffData {
+  full_name: string;
+  role: string;
+  phone: string;
+  salary: number;
+  department: string;
+  email: string;
+  status: string;
+}
+
 // Get all staff for a pension
-router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => {
+router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
@@ -17,25 +27,25 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
     }
 
     const staffResult = await executeQuery('SELECT * FROM staff WHERE pension_id = ? ORDER BY full_name', [pensionId]);
-    const staff = staffResult.map(s => ({ 
+    const staff = staffResult.map((s: any) => ({ 
       ...s, 
       id: s.staff_id,
       full_name: s.full_name, // Keep original field name
       name: s.full_name // Also provide name for compatibility
     }));
     res.json({ success: true, data: staff });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get staff error:', error);
     next(error);
   }
 });
 
 // Add staff member
-router.post('/pensions/:pensionId', authenticateToken, async (req, res) => {
+router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
-    const { full_name, role, phone, salary, department, email, status } = req.body;
+    const { full_name, role, phone, salary, department, email, status }: StaffData = req.body;
 
     // Check ownership
     const pension = await executeQuery('SELECT * FROM pensions WHERE pension_id = ? AND owner_id = ?', [pensionId, userId]);
@@ -49,18 +59,18 @@ router.post('/pensions/:pensionId', authenticateToken, async (req, res) => {
     );
 
     res.status(201).json({ success: true, message: 'Staff member added', data: { id: result.insertId } });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Add staff error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Update staff member
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const { full_name, role, phone, salary, department, email, status } = req.body;
+    const { full_name, role, phone, salary, department, email, status }: StaffData = req.body;
 
     // Check ownership
     const staffCheck = await executeQuery(
@@ -77,14 +87,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
     );
 
     res.json({ success: true, message: 'Staff member updated' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update staff error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
 // Delete staff member
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -99,10 +109,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await executeQuery('DELETE FROM staff WHERE staff_id = ?', [id]);
     res.json({ success: true, message: 'Staff member deleted' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete staff error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
-module.exports = router;
+export default router;

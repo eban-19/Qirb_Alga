@@ -1,11 +1,11 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();
 
 // Get all owners for admin dashboard
-router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/owners', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     const owners = await executeQuery(`
       SELECT u.user_id, u.email, u.full_name, u.phone, u.role, u.approved, u.created_at,
@@ -20,7 +20,7 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
       ORDER BY u.created_at DESC
     `);
 
-    const formattedOwners = owners.map(owner => ({
+    const formattedOwners = owners.map((owner: any) => ({
       id: owner.user_id.toString(),
       businessName: owner.business_name || owner.full_name || 'Unknown',
       ownerName: owner.full_name,
@@ -44,7 +44,7 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
       success: true,
       data: formattedOwners
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get owners error:', error);
     res.status(500).json({
       success: false,
@@ -54,7 +54,7 @@ router.get('/owners', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Get detailed business information for a specific owner
-router.get('/owners/:ownerId/details', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/owners/:ownerId/details', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     const { ownerId } = req.params;
     
@@ -103,7 +103,7 @@ router.get('/owners/:ownerId/details', authenticateToken, requireAdmin, async (r
       success: true,
       data: formattedDetails
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get owner details error:', error);
     res.status(500).json({
       success: false,
@@ -113,7 +113,7 @@ router.get('/owners/:ownerId/details', authenticateToken, requireAdmin, async (r
 });
 
 // Approve owner
-router.put('/owners/:ownerId/approve', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/owners/:ownerId/approve', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
     
@@ -135,7 +135,7 @@ router.put('/owners/:ownerId/approve', authenticateToken, requireAdmin, async (r
       success: true,
       message: 'Owner approved successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Approve owner error:', error);
     res.status(500).json({
       success: false,
@@ -145,7 +145,7 @@ router.put('/owners/:ownerId/approve', authenticateToken, requireAdmin, async (r
 });
 
 // Reject owner
-router.put('/owners/:ownerId/reject', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/owners/:ownerId/reject', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
     
@@ -167,7 +167,7 @@ router.put('/owners/:ownerId/reject', authenticateToken, requireAdmin, async (re
       success: true,
       message: 'Owner rejected successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Reject owner error:', error);
     res.status(500).json({
       success: false,
@@ -177,7 +177,7 @@ router.put('/owners/:ownerId/reject', authenticateToken, requireAdmin, async (re
 });
 
 // Suspend owner
-router.put('/owners/:ownerId/suspend', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/owners/:ownerId/suspend', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
     
@@ -190,7 +190,7 @@ router.put('/owners/:ownerId/suspend', authenticateToken, requireAdmin, async (r
       success: true,
       message: 'Owner suspended successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Suspend owner error:', error);
     res.status(500).json({
       success: false,
@@ -200,7 +200,7 @@ router.put('/owners/:ownerId/suspend', authenticateToken, requireAdmin, async (r
 });
 
 // Get all properties for admin dashboard
-router.get('/properties', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/properties', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     const properties = await executeQuery(`
       SELECT p.*, u.full_name, u.email as owner_email
@@ -209,7 +209,7 @@ router.get('/properties', authenticateToken, requireAdmin, async (req, res) => {
       ORDER BY p.created_at DESC
     `);
 
-    const formattedProperties = properties.map(property => ({
+    const formattedProperties = properties.map((property: any) => ({
       id: property.pension_id.toString(),
       name: property.name,
       address: property.address,
@@ -228,7 +228,7 @@ router.get('/properties', authenticateToken, requireAdmin, async (req, res) => {
       success: true,
       data: formattedProperties
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get properties error:', error);
     res.status(500).json({
       success: false,
@@ -238,35 +238,44 @@ router.get('/properties', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Get all bookings for admin dashboard
-router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/bookings', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
-    // Use only columns we know exist from the database schema
+    // Use JOIN to get property names and guest information
     const bookings = await executeQuery(`
       SELECT b.booking_id, b.room_id, b.customer_id, b.check_in_date, b.check_out_date, 
-             b.total_price, b.status, b.created_at
+             b.total_price, b.status, b.created_at,
+             u.full_name as guest_name, u.email as guest_email, u.phone as guest_phone,
+             p.name as property_name, r.room_number
       FROM bookings b
+      LEFT JOIN users u ON b.customer_id = u.user_id
+      LEFT JOIN rooms r ON b.room_id = r.room_id
+      LEFT JOIN pensions p ON r.pension_id = p.pension_id
       ORDER BY b.created_at DESC
       LIMIT 100
     `);
 
-    const formattedBookings = bookings.map(booking => ({
+    const formattedBookings = bookings.map((booking: any) => ({
       id: booking.booking_id.toString(),
-      propertyName: 'Unknown Property', // Would need JOIN with rooms and pensions
-      guestName: 'Guest', // Would need JOIN with users
-      guestEmail: '',
-      guestPhone: '',
+      propertyName: booking.property_name || 'Unknown Property',
+      guestName: booking.guest_name || 'Guest',
+      guestEmail: booking.guest_email || 'N/A',
+      guestPhone: booking.guest_phone || 'N/A',
       checkIn: booking.check_in_date,
       checkOut: booking.check_out_date,
-      totalPrice: booking.total_price || 0,
-      status: booking.status || 'Pending',
-      paymentStatus: 'Pending' // Default since payment_status column doesn't exist
+      totalPrice: booking.total_price,
+      status: booking.status,
+      paymentStatus: booking.status === 'confirmed' ? 'paid' : 'pending',
+      ownerName: 'Property Owner',
+      roomNumber: booking.room_number,
+      specialRequests: '',
+      createdAt: booking.created_at
     }));
 
     res.json({
       success: true,
       data: formattedBookings
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get bookings error:', error);
     res.status(500).json({
       success: false,
@@ -276,7 +285,7 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Test endpoint without auth for debugging
-router.get('/test-debug', async (req, res) => {
+router.get('/test-debug', async (req: express.Request, res: express.Response) => {
   try {
     console.log('🔍 Debug: Testing admin routes without auth...');
     
@@ -306,7 +315,7 @@ router.get('/test-debug', async (req, res) => {
       data: metrics,
       debug: 'Admin routes working without authentication'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('🔍 Debug: Admin metrics error:', error);
     res.status(500).json({
       success: false,
@@ -317,7 +326,7 @@ router.get('/test-debug', async (req, res) => {
 });
 
 // Get all pensions for admin approval (matches frontend expectation)
-router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/pensions/all', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     console.log('🔍 Admin fetching all pensions for approval...');
     
@@ -328,7 +337,7 @@ router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) =>
       ORDER BY p.created_at DESC
     `);
 
-    const formattedPensions = pensions.map(property => {
+    const formattedPensions = pensions.map((property: any) => {
       // Debug the raw pension data
       console.log(`🔍 Raw pension data for ${property.name}:`, {
         pension_id: property.pension_id,
@@ -360,7 +369,7 @@ router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) =>
         } else {
           safeDate = new Date().toISOString();
         }
-      } catch (dateError) {
+      } catch (dateError: any) {
         console.error(`❌ Date conversion error for pension ${property.pension_id}:`, dateError);
         safeDate = new Date().toISOString();
       }
@@ -399,7 +408,7 @@ router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) =>
       success: true,
       data: formattedPensions
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get admin pensions error:', error);
     res.status(500).json({
       success: false,
@@ -409,7 +418,7 @@ router.get('/pensions/all', authenticateToken, requireAdmin, async (req, res) =>
 });
 
 // Approve pension
-router.put('/pensions/:pensionId/approve', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/pensions/:pensionId/approve', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     
@@ -425,7 +434,7 @@ router.put('/pensions/:pensionId/approve', authenticateToken, requireAdmin, asyn
       success: true,
       message: 'Pension approved successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Approve pension error:', error);
     res.status(500).json({
       success: false,
@@ -435,7 +444,7 @@ router.put('/pensions/:pensionId/approve', authenticateToken, requireAdmin, asyn
 });
 
 // Reject pension
-router.put('/pensions/:pensionId/reject', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/pensions/:pensionId/reject', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const { rejectionReason } = req.body;
@@ -452,7 +461,7 @@ router.put('/pensions/:pensionId/reject', authenticateToken, requireAdmin, async
       success: true,
       message: 'Pension rejected successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Reject pension error:', error);
     res.status(500).json({
       success: false,
@@ -462,7 +471,7 @@ router.put('/pensions/:pensionId/reject', authenticateToken, requireAdmin, async
 });
 
 // Debug endpoint - raw pension data without date processing
-router.get('/pensions-debug', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/pensions-debug', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     console.log('🔍 Debug: Fetching raw pension data...');
     
@@ -487,7 +496,7 @@ router.get('/pensions-debug', authenticateToken, requireAdmin, async (req, res) 
         } : null
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('🔍 Debug: Raw pensions error:', error);
     res.status(500).json({
       success: false,
@@ -498,7 +507,7 @@ router.get('/pensions-debug', authenticateToken, requireAdmin, async (req, res) 
 });
 
 // Get admin metrics
-router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/metrics', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     // Get counts
     const [ownersCount, propertiesCount, bookingsCount, pendingCount, pendingPensionsCount] = await Promise.all([
@@ -525,7 +534,7 @@ router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
       success: true,
       data: metrics
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get metrics error:', error);
     res.status(500).json({
       success: false,
@@ -535,9 +544,9 @@ router.get('/metrics', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Get system alerts
-router.get('/alerts', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/alerts', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
-    const alerts = [];
+    const alerts: any[] = [];
 
     // Get pending verifications
     const pendingOwners = await executeQuery(
@@ -577,7 +586,7 @@ router.get('/alerts', authenticateToken, requireAdmin, async (req, res) => {
       success: true,
       data: alerts
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get alerts error:', error);
     res.status(500).json({
       success: false,
@@ -586,4 +595,4 @@ router.get('/alerts', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

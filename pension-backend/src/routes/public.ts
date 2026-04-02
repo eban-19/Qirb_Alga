@@ -1,25 +1,59 @@
-const express = require('express');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import upload from '../middleware/upload';
+import * as path from 'path';
+import * as fs from 'fs';
+import notificationService from '../services/notificationService';
+import geocodingService from '../services/geocoding';
+
 const router = express.Router();
-const { executeQuery } = require('../config/database');
-const upload = require('../middleware/upload');
-const path = require('path');
-const fs = require('fs');
-const notificationService = require('../services/notificationService');
-const geocodingService = require('../services/geocoding');
+
+interface Package {
+  id: number | string;
+  name: string;
+  price: number;
+  description: string;
+  image?: string | null;
+  services: any[];
+  availableRooms: number;
+  isMostPopular: boolean;
+  package_id?: number;
+  availableRoomsCount?: number;
+  image_url?: string | null;
+  is_most_popular?: number | boolean;
+}
+
+interface Pension {
+  id: string;
+  name: string;
+  description: string;
+  ownerInfo: string;
+  roomDetails: string;
+  locationName: string;
+  city: string;
+  area: string;
+  latitude: number;
+  longitude: number;
+  availableRooms: number;
+  images: string[];
+  phone: string;
+  email: string;
+  packages: Package[];
+}
 
 // Debug middleware to log all requests to public routes
-router.use((req, res, next) => {
+router.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.log(`Public route: ${req.method} ${req.path}`);
   next();
 });
 
 // Get all public pensions
-router.get('/pensions', async (req, res, next) => {
+router.get('/pensions', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { page = 1, limit = 10, search } = req.query;
 
     let query = 'SELECT * FROM pensions';
-    const params = [];
+    const params: any[] = [];
 
     if (search) {
       query += ' WHERE (name LIKE ? OR description LIKE ? OR address LIKE ?)';
@@ -30,11 +64,11 @@ router.get('/pensions', async (req, res, next) => {
     const pensionsResult = await executeQuery(query, params);
 
     // Map each pension to include its real packages and counts
-    const items = await Promise.all(pensionsResult.map(async (p) => {
+    const items = await Promise.all(pensionsResult.map(async (p: any) => {
       const pensionId = p.pension_id;
       
       // Get real packages for this pension from packages table
-      let packages = [];
+      let packages: any[] = [];
       
       try {
         packages = await executeQuery(`
@@ -50,7 +84,7 @@ router.get('/pensions', async (req, res, next) => {
         `, [pensionId]);
         
         console.log('🔍 Public packages query result:', packages);
-        console.log('🔍 Available rooms per package:', packages.map(pkg => ({ 
+        console.log('🔍 Available rooms per package:', packages.map((pkg: any) => ({ 
           name: pkg.name, 
           package_id: pkg.package_id,
           count: pkg.availableRoomsCount 
@@ -66,7 +100,7 @@ router.get('/pensions', async (req, res, next) => {
           
           console.log(`🔍 Package "${pkg.name}" (ID: ${pkg.package_id}):`, {
             availableCount: pkg.availableRoomsCount,
-            individualRooms: individualRooms.map(r => ({
+            individualRooms: individualRooms.map((r: any) => ({
               id: r.room_id,
               type: r.room_type,
               package_id: r.package_id,
@@ -74,11 +108,11 @@ router.get('/pensions', async (req, res, next) => {
             }))
           });
         }
-      } catch (error) {
-        console.log('Packages table error:', error.message);
+      } catch (error: any) {
+        console.log('Packages table error:', (error as Error).message);
       }
 
-      const liveAvailableRooms = packages.reduce((sum, pkg) => sum + pkg.availableRoomsCount, 0);
+      const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
 
       // Only include pension if it has available rooms
       if (liveAvailableRooms === 0) {
@@ -92,8 +126,8 @@ router.get('/pensions', async (req, res, next) => {
         try {
           coordinates = await geocodingService.geocodeAddress(p.address);
           console.log(`🗺️ Geocoded "${p.name}" address to:`, coordinates);
-        } catch (error) {
-          console.log(`⚠️ Geocoding failed for "${p.name}":`, error.message);
+        } catch (error: any) {
+          console.log(`⚠️ Geocoding failed for "${p.name}":`, (error as Error).message);
           coordinates = { lat: 9.03, lng: 38.74 }; // Default fallback
         }
       }
@@ -113,7 +147,7 @@ router.get('/pensions', async (req, res, next) => {
         images: [p.image_url || '/src/assets/room-1.png'],
         phone: p.phone || '',
         email: p.email || '',
-        packages: packages.map(pkg => ({
+        packages: packages.map((pkg: any): Package => ({
           id: pkg.package_id || pkg.id,
           name: pkg.name,
           price: parseFloat(pkg.price),
@@ -124,24 +158,6 @@ router.get('/pensions', async (req, res, next) => {
           isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
         }))
       };
-      
-      console.log('🔍 Final package data with images:', packages.map(pkg => ({
-        name: pkg.name,
-        package_id: pkg.package_id,
-        image: pkg.image,
-        image_url: pkg.image_url,
-        finalImage: pkg.image_url || pkg.image || null,
-        availableRoomsCount: pkg.availableRoomsCount,
-        availableRooms: pkg.availableRoomsCount || 0,
-        image_urlType: typeof pkg.image_url,
-        image_urlIsNull: pkg.image_url === null,
-        image_urlUndefined: pkg.image_url === undefined
-      })));
-      
-      console.log('🔍 Final package data available rooms for list:', packages.map(pkg => ({
-        name: pkg.name,
-        availableRooms: pkg.availableRoomsCount || 0
-      })));
     }));
 
     // Filter out pensions with no available rooms
@@ -149,29 +165,29 @@ router.get('/pensions', async (req, res, next) => {
     console.log(`🔍 Total pensions: ${items.length}, Available pensions: ${availableItems.length}`);
 
     // Pagination
-    const startIndex = (page - 1) * limit;
-    const paginatedItems = availableItems.slice(startIndex, startIndex + parseInt(limit));
+    const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const paginatedItems = availableItems.slice(startIndex, startIndex + parseInt(limit as string));
 
     res.json({
       success: true,
       data: {
         items: paginatedItems,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
           total: availableItems.length,
-          totalPages: Math.ceil(availableItems.length / parseInt(limit))
+          totalPages: Math.ceil(availableItems.length / parseInt(limit as string))
         }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get public pensions error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
 // Get single public pension
-router.get('/pensions/:id', async (req, res, next) => {
+router.get('/pensions/:id', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -183,7 +199,7 @@ router.get('/pensions/:id', async (req, res, next) => {
     const p = pensionResult[0];
     
     // Get real packages (check both packages table and pensions.packages JSON)
-    let packages = [];
+    let packages: any[] = [];
     
     // First try to get from packages table
     try {
@@ -197,12 +213,12 @@ router.get('/pensions/:id', async (req, res, next) => {
         FROM packages pk
         WHERE pk.pension_id = ?
       `, [id]);
-    } catch (error) {
-      console.log('Packages table not found or error:', error.message);
+    } catch (error: any) {
+      console.log('Packages table not found or error:', (error as Error).message);
     }
     
     console.log('🔍 Single pension packages query result:', packages);
-    console.log('🔍 Available rooms per package:', packages.map(pkg => ({ 
+    console.log('🔍 Available rooms per package:', packages.map((pkg: any) => ({ 
       name: pkg.name, 
       package_id: pkg.package_id,
       count: pkg.availableRoomsCount 
@@ -218,7 +234,7 @@ router.get('/pensions/:id', async (req, res, next) => {
       
       console.log(`🔍 Single Pension Package "${pkg.name}" (ID: ${pkg.package_id}):`, {
         availableCount: pkg.availableRoomsCount,
-        individualRooms: individualRooms.map(r => ({
+        individualRooms: individualRooms.map((r: any) => ({
           id: r.room_id,
           type: r.room_type,
           package_id: r.package_id,
@@ -234,7 +250,7 @@ router.get('/pensions/:id', async (req, res, next) => {
         
         // Calculate actual available rooms for each package
         const packagesWithAvailability = await Promise.all(
-          jsonPackages.map(async (pkg) => {
+          jsonPackages.map(async (pkg: any) => {
             const availableRoomsCount = await executeQuery(`
               SELECT COUNT(*) as count
               FROM rooms r
@@ -256,7 +272,7 @@ router.get('/pensions/:id', async (req, res, next) => {
         );
         
         packages = packagesWithAvailability;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing pension packages JSON:', error);
       }
     }
@@ -264,7 +280,7 @@ router.get('/pensions/:id', async (req, res, next) => {
     console.log(`Pension ${id} packages found:`, packages.length);
     console.log('Pension packages data:', packages);
     
-    const liveAvailableRooms = packages.reduce((sum, pkg) => sum + pkg.availableRoomsCount, 0);
+    const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
 
     // Check if pension has available rooms
     if (liveAvailableRooms === 0) {
@@ -281,13 +297,13 @@ router.get('/pensions/:id', async (req, res, next) => {
       try {
         coordinates = await geocodingService.geocodeAddress(p.address);
         console.log(`🗺️ Single pension geocoded "${p.name}" to:`, coordinates);
-      } catch (error) {
-        console.log(`⚠️ Single pension geocoding failed:`, error.message);
+      } catch (error: any) {
+        console.log(`⚠️ Single pension geocoding failed:`, (error as Error).message);
         coordinates = { lat: 9.03, lng: 38.74 }; // Default fallback
       }
     }
 
-    const mappedPension = {
+    const mappedPension: Pension = {
       id: p.pension_id.toString(),
       name: p.name,
       description: p.description,
@@ -302,7 +318,7 @@ router.get('/pensions/:id', async (req, res, next) => {
       images: [p.image_url || '/src/assets/room-1.png'],
       phone: p.phone || '',
       email: p.email || '',
-      packages: packages.map(pkg => ({
+      packages: packages.map((pkg: any): Package => ({
         id: pkg.package_id || pkg.id,
         name: pkg.name,
         price: parseFloat(pkg.price),
@@ -313,61 +329,24 @@ router.get('/pensions/:id', async (req, res, next) => {
         isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
       }))
     };
-    
-    console.log('🔍 Single pension package images:', packages.map(pkg => ({
-      name: pkg.name,
-      package_id: pkg.package_id,
-      image: pkg.image,
-      image_url: pkg.image_url,
-      finalImage: pkg.image_url || pkg.image || null,
-      availableRoomsCount: pkg.availableRoomsCount,
-      availableRooms: pkg.availableRoomsCount || 0
-    })));
-    
-    console.log('🔍 Final package data available rooms:', packages.map(pkg => ({
-      name: pkg.name,
-      availableRooms: pkg.availableRoomsCount || 0
-    })));
 
     res.json({
       success: true,
       data: mappedPension
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get public pension error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
 // Test endpoint for debugging
-router.get('/test', (req, res) => {
+router.get('/test', (req: express.Request, res: express.Response) => {
   res.json({ success: true, message: 'Public routes working' });
 });
 
-// Temporary fix endpoint to update package images
-router.post('/fix-package-images/:pensionId', async (req, res) => {
-  try {
-    const { pensionId } = req.params;
-    const { imageUpdates } = req.body; // [{packageId: 11, imageUrl: '/uploads/luxury.jpg'}, ...]
-    
-    console.log('🔧 Fixing package images:', imageUpdates);
-    
-    for (const update of imageUpdates) {
-      await executeQuery(
-        'UPDATE packages SET image_url = ? WHERE package_id = ? AND pension_id = ?',
-        [update.imageUrl, update.packageId, pensionId]
-      );
-    }
-    
-    res.json({ success: true, message: 'Package images updated' });
-  } catch (error) {
-    console.error('Error fixing package images:', error);
-    res.status(500).json({ success: false, message: 'Error updating package images' });
-  }
-});
-
 // Create a new public booking
-router.post('/bookings', upload.single('idDocument'), async (req, res) => {
+router.post('/bookings', upload.single('idDocument'), async (req: any, res: express.Response) => {
   try {
     console.log('🔍 Raw booking request body:', req.body);
     console.log('🔍 Request file:', req.file);
@@ -411,16 +390,6 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
     });
 
     // Validate required fields
-    console.log('🔧 Validating fields:', {
-      pensionId: !!pensionId,
-      packageName: !!packageName,
-      checkIn: !!checkIn,
-      checkOut: !!checkOut,
-      fullName: !!fullName,
-      phone: !!phone,
-      quantity: !!quantity
-    });
-    
     if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || !phone || !quantity) {
       console.error('❌ Missing required fields:', {
         pensionId: !!pensionId,
@@ -434,8 +403,6 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required booking information' });
     }
 
-    console.log('🔧 Fields validation passed');
-
     if (!idDocumentUrl) {
       console.error('❌ Missing ID document');
       return res.status(400).json({ success: false, message: 'ID Document is required' });
@@ -448,15 +415,15 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
     }
 
     // 1. Find or Create Customer
-    let customerId;
+    let customerId: number | undefined;
     if (email) {
       try {
         const existingUser = await executeQuery('SELECT user_id FROM users WHERE email = ?', [email]);
         if (existingUser.length > 0) {
           customerId = existingUser[0].user_id;
         }
-      } catch (error) {
-        console.log('Error checking existing user:', error.message);
+      } catch (error: any) {
+        console.log('Error checking existing user:', (error as Error).message);
       }
     }
     
@@ -467,8 +434,8 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
           [fullName, email || null, phone]
         );
         customerId = newUser.insertId;
-      } catch (error) {
-        console.error('Error creating user:', error.message);
+      } catch (error: any) {
+        console.error('Error creating user:', (error as Error).message);
         return res.status(500).json({ success: false, message: 'Failed to create customer record' });
       }
     }
@@ -482,13 +449,13 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
         SELECT packages FROM pensions WHERE pension_id = ?
       `, [pensionId]);
       
-      let allPackages = [];
+      let allPackages: any[] = [];
       if (pensionResult.length > 0 && pensionResult[0].packages) {
         try {
           allPackages = typeof pensionResult[0].packages === 'string' 
             ? JSON.parse(pensionResult[0].packages) 
             : pensionResult[0].packages;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error parsing pension packages JSON:', error);
         }
       }
@@ -504,15 +471,8 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
       
       console.log('Available packages:', allPackages);
       
-      // Also check what room types exist
-      const roomTypes = await executeQuery(`
-        SELECT DISTINCT room_type FROM rooms WHERE pension_id = ?
-      `, [pensionId]);
-      
-      console.log('Available room types:', roomTypes);
-      
       // Find the requested package
-      const foundPackage = allPackages.find(p => 
+      const foundPackage = allPackages.find((p: any) => 
         p.name === packageName || 
         (p.package_name && p.package_name === packageName) ||
         p.name?.toLowerCase() === packageName?.toLowerCase()
@@ -522,7 +482,7 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
         console.log('Package not found with name:', packageName);
         return res.status(400).json({ 
           success: false, 
-          message: `Package '${packageName}' not found. Available packages: ${allPackages.map(p => p.name || p.package_name).filter(Boolean).join(', ')}` 
+          message: `Package '${packageName}' not found. Available packages: ${allPackages.map((p: any) => p.name || p.package_name).filter(Boolean).join(', ')}` 
         });
       }
       
@@ -598,21 +558,20 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
             type: 'new_booking'
           });
           
-          await notificationService.createAndSendNotification(
-            owner.owner_id,
-            notificationTitle,
-            notificationMessage,
-            'new_booking',
-            'New Booking Received'
-          );
+          await notificationService.createNotification({
+            user_id: owner.owner_id,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'new_booking'
+          });
           
           console.log('✅ New booking notification sent to owner:', owner.owner_id);
         } else {
           console.log('⚠️ No owner found for pension:', pensionId);
         }
-      } catch (notificationError) {
+      } catch (notificationError: any) {
         console.error('❌ Failed to send booking notification:', notificationError);
-        console.error('❌ Full error details:', notificationError.stack);
+        console.error('❌ Full error details:', (notificationError as Error).stack);
         // Don't fail the booking if notification fails
       }
 
@@ -660,19 +619,19 @@ router.post('/bookings', upload.single('idDocument'), async (req, res) => {
           }
         }
       });
-    } catch (error) {
-      console.error('Error in booking process:', error.message);
+    } catch (error: any) {
+      console.error('Error in booking process:', (error as Error).message);
       console.error('Full error:', error);
-      return res.status(500).json({ success: false, message: 'Failed to process booking: ' + error.message });
+      return res.status(500).json({ success: false, message: 'Failed to process booking: ' + (error as Error).message });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create booking error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
 // Get booking status
-router.get('/bookings/:id/status', async (req, res) => {
+router.get('/bookings/:id/status', async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
     console.log('Getting booking status for ID:', id);
@@ -705,10 +664,10 @@ router.get('/bookings/:id/status', async (req, res) => {
         package_name: booking.room_type // Use room_type as package name
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get booking status error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
-module.exports = router;
+export default router;

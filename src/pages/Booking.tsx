@@ -30,7 +30,6 @@ const Booking = () => {
     rooms: 1,
     fullName: "",
     phone: "",
-    email: "",
     specialRequests: "",
     paymentMethod: "pay_at_hotel"
   });
@@ -82,7 +81,7 @@ const Booking = () => {
       case 1:
         return formData.checkIn && formData.checkOut && formData.rooms > 0;
       case 2:
-        return formData.fullName && formData.phone && formData.email;
+        return formData.fullName && formData.phone;
       case 3:
         return formData.paymentMethod;
       default:
@@ -120,7 +119,6 @@ const Booking = () => {
       payload.append('checkOut', formData.checkOut);
       payload.append('fullName', formData.fullName);
       payload.append('phone', formData.phone);
-      payload.append('email', formData.email);
       payload.append('specialRequests', formData.specialRequests);
       payload.append('totalPrice', total.toString());
       payload.append('rooms', formData.rooms.toString());
@@ -339,11 +337,7 @@ const Booking = () => {
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input id="phone" name="phone" type="tel" placeholder="+251 9XX XXX XXX" required value={formData.phone} onChange={handleInputChange} className="h-12 w-full" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" name="email" type="email" placeholder="guest@email.com" required value={formData.email} onChange={handleInputChange} className="h-12 w-full" />
-                    </div>
-                    <div className="space-y-2">
+                    <div className="md:col-span-2 space-y-2">
                       <Label htmlFor="specialRequests">{t.booking.specialRequests}</Label>
                       <Textarea id="specialRequests" name="specialRequests" placeholder="Any special requests..." value={formData.specialRequests} onChange={handleInputChange} className="min-h-[100px] w-full" />
                     </div>

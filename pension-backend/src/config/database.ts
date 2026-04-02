@@ -3,31 +3,23 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-interface DatabaseConfig {
-  host: string;
-  user: string;
-  password: string;
-  database: string;
-  waitForConnections: boolean;
-  connectionLimit: number;
-  queueLimit: number;
-}
-
-const config: DatabaseConfig = {
+const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'pension_management',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  database: process.env.DB_NAME || 'pension_management_system',
+  waitForConnections: process.env.DB_WAIT_FOR_CONNECTIONS === 'true',
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
+  queueLimit: parseInt(process.env.DB_QUEUE_LIMIT || '0'),
+  charset: process.env.DB_CHARSET || 'utf8mb4',
+  timezone: process.env.DB_TIMEZONE || '+00:00'
 };
 
 // Create connection pool
-const pool = mysql.createPool(config);
+const pool = mysql.createPool(dbConfig);
 
-// Test connection
-const testConnection = async (): Promise<boolean> => {
+// Test database connection
+const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
     console.log('✅ Database connected successfully');
@@ -42,7 +34,7 @@ const testConnection = async (): Promise<boolean> => {
 // Execute query with error handling
 const executeQuery = async (query: string, params?: any[]): Promise<any> => {
   try {
-    const [rows] = await pool.execute(query, params);
+    const [rows] = await pool.query(query, params);
     return rows;
   } catch (error) {
     console.error('Query execution error:', error);
@@ -51,14 +43,14 @@ const executeQuery = async (query: string, params?: any[]): Promise<any> => {
 };
 
 // Transaction helper
-const executeTransaction = async (queries: Array<{query: string, params?: any[]}>): Promise<any> => {
+const executeTransaction = async (queries: { query: string; params?: any[] }[]) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     
     const results = [];
     for (const {query, params} of queries) {
-      const [result] = await connection.execute(query, params);
+      const [result] = await connection.query(query, params);
       results.push(result);
     }
     

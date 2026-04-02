@@ -1,13 +1,14 @@
-const express = require('express');
+import * as express from 'express';
+import notificationService from '../services/notificationService';
+import { authenticateToken } from '../middleware/auth';
+
 const router = express.Router();
-const notificationService = require('../services/notificationService');
-const { authenticateToken } = require('../middleware/auth');
 
 // Get user notifications
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt(req.query.limit as string) || 50;
     
     const notifications = await notificationService.getUserNotifications(userId, limit);
     
@@ -16,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
       data: notifications,
       unreadCount: await notificationService.getUnreadCount(userId)
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error fetching notifications:', error);
     res.status(500).json({
       success: false,
@@ -26,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get unread notification count
-router.get('/unread-count', authenticateToken, async (req, res) => {
+router.get('/unread-count', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
     
@@ -36,7 +37,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
       success: true,
       data: { unreadCount }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error fetching unread count:', error);
     res.status(500).json({
       success: false,
@@ -46,18 +47,18 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:notificationId/read', authenticateToken, async (req, res) => {
+router.put('/:notificationId/read', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
     const { notificationId } = req.params;
     
-    await notificationService.markAsRead(notificationId, userId);
+    await notificationService.markAsRead(parseInt(notificationId), userId);
     
     res.json({
       success: true,
       message: 'Notification marked as read'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error marking notification as read:', error);
     res.status(500).json({
       success: false,
@@ -67,17 +68,17 @@ router.put('/:notificationId/read', authenticateToken, async (req, res) => {
 });
 
 // Mark all notifications as read
-router.put('/mark-all-read', authenticateToken, async (req, res) => {
+router.put('/mark-all-read', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
     
-    // This would need to be implemented in the service
-    // For now, we'll return success
+    await notificationService.markAllAsRead(userId);
+    
     res.json({
       success: true,
       message: 'All notifications marked as read'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error marking all notifications as read:', error);
     res.status(500).json({
       success: false,
@@ -87,7 +88,7 @@ router.put('/mark-all-read', authenticateToken, async (req, res) => {
 });
 
 // Test notification endpoint (for development)
-router.post('/test', authenticateToken, async (req, res) => {
+router.post('/test', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
     const { title, message, type } = req.body;
@@ -99,13 +100,18 @@ router.post('/test', authenticateToken, async (req, res) => {
       });
     }
     
-    await notificationService.createAndSendNotification(userId, title, message, type);
+    await notificationService.createNotification({
+      user_id: userId,
+      title,
+      message,
+      type
+    });
     
     res.json({
       success: true,
       message: 'Test notification sent successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error sending test notification:', error);
     res.status(500).json({
       success: false,
@@ -114,4 +120,4 @@ router.post('/test', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

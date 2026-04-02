@@ -1,11 +1,11 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // Get packages for a specific pension (with real-time room counts)
-router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => {
+router.get('/pensions/:pensionId', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { pensionId } = req.params;
     
@@ -23,7 +23,7 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
     `, [pensionId]);
     
     // Parse JSON services
-    const formattedPackages = packages.map(pkg => ({
+    const formattedPackages = packages.map((pkg: any) => ({
       ...pkg,
       id: pkg.package_id,
       services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || [])
@@ -33,14 +33,14 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
       success: true,
       data: formattedPackages
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get pension packages error:', error);
     next(error);
   }
 });
 
 // Get package by ID
-router.get('/:id', authenticateToken, async (req, res, next) => {
+router.get('/:id', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
     const packages = await executeQuery('SELECT * FROM packages WHERE package_id = ?', [id]);
@@ -61,13 +61,13 @@ router.get('/:id', authenticateToken, async (req, res, next) => {
         services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || [])
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
 // Create new package
-router.post('/pensions/:pensionId', authenticateToken, async (req, res, next) => {
+router.post('/pensions/:pensionId', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { pensionId } = req.params;
     const { name, description, price, services, is_most_popular, image_url } = req.body;
@@ -81,7 +81,7 @@ router.post('/pensions/:pensionId', authenticateToken, async (req, res, next) =>
       success: true,
       data: {
         id: result.insertId,
-        pension_id: parseInt(pensionId),
+        pension_id: parseInt(pensionId as string),
         name,
         description,
         price,
@@ -90,13 +90,13 @@ router.post('/pensions/:pensionId', authenticateToken, async (req, res, next) =>
         availableRooms: 0
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
 // Update package
-router.put('/:id', authenticateToken, async (req, res, next) => {
+router.put('/:id', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
     const { name, description, price, services, is_most_popular, image_url } = req.body;
@@ -117,13 +117,13 @@ router.put('/:id', authenticateToken, async (req, res, next) => {
       success: true,
       message: 'Package updated successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
 // Delete package
-router.delete('/:id', authenticateToken, async (req, res, next) => {
+router.delete('/:id', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
     await executeQuery('DELETE FROM packages WHERE package_id = ?', [id]);
@@ -131,9 +131,9 @@ router.delete('/:id', authenticateToken, async (req, res, next) => {
       success: true,
       message: 'Package deleted successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
-module.exports = router;
+export default router;

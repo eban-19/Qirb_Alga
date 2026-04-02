@@ -1,13 +1,13 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+import * as express from 'express';
+import * as bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
+import { executeQuery, executeTransaction } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // Register new user
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: any, res: any) => {
   try {
     const { 
       email, 
@@ -97,108 +97,71 @@ router.post('/register', async (req, res) => {
           'SELECT * FROM ownerprofiles WHERE owner_id = ?',
           [result.insertId]
         );
-        console.log('🔍 Verification - found owner profile:', verifyProfile);
         
-      } catch (profileError) {
-        console.error('❌ Failed to create owner profile:', profileError);
-        console.error('❌ Error details:', profileError.message);
-        // Don't fail registration if profile creation fails
+        if (verifyProfile.length === 0) {
+          console.warn('⚠️ Owner profile verification failed');
+        } else {
+          console.log('✅ Owner profile verified:', verifyProfile[0]);
+        }
+      } catch (profileError: any) {
+        console.error('❌ Error creating owner profile:', profileError);
+        // Don't fail the whole registration if profile creation fails
+        // Just log the error and continue
       }
     }
 
-    // Create a pension for new owners using the actual form data
-    if ((role === 'owner' || role === 'Owner') && pensionData) {
+    // Create pension if data provided
+    if (pensionData && (role === 'owner' || role === 'Owner')) {
       try {
-        console.log('🔍 Creating pension for owner ID:', result.insertId, 'with data:', pensionData);
+        console.log('🏠 Creating pension for user ID:', result.insertId, 'with pension data:', pensionData);
         
-        const pensionResult = await executeQuery(`
-          INSERT INTO pensions (owner_id, name, phone, email, description, city, capacity, status, address)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
-        `, [
-          result.insertId, // owner_id
-          pensionData.name || `${fullName}'s Pension`, // name
-          pensionData.phone || phone || '', // phone
-          pensionData.email || email || '', // email
-          pensionData.description || `Professional hospitality service`, // description
-          pensionData.address || 'Addis Ababa', // city
-          pensionData.capacity || 0, // capacity
-          pensionData.address || '' // address
-        ]);
+        const pensionResult = await executeQuery(
+          `INSERT INTO pensions (name, address, description, phone, email, capacity, owner_id, status, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())`,
+          [
+            pensionData.name,
+            pensionData.address,
+            pensionData.description,
+            pensionData.phone,
+            pensionData.email,
+            pensionData.capacity,
+            result.insertId
+          ]
+        );
         
         console.log('✅ Pension created with ID:', pensionResult.insertId);
-        
-        // Verify the pension was created
-        const verifyPension = await executeQuery(
-          'SELECT pension_id, owner_id, name FROM pensions WHERE owner_id = ?',
-          [result.insertId]
-        );
-        console.log('🔍 Verification - found pensions:', verifyPension);
-        
-      } catch (pensionError) {
-        console.error('❌ Failed to create pension:', pensionError);
-        console.error('❌ Error details:', pensionError.message);
-        // Don't fail registration if pension creation fails
+      } catch (pensionError: any) {
+        console.error('❌ Error creating pension:', pensionError);
+        // Don't fail the whole registration if pension creation fails
+        // Just log the error and continue
       }
     }
 
-    // Auto-login for pension owners (role = 'owner')
-    if (role === 'owner' || role === 'admin') {
-      // Create JWT token
-      const token = jwt.sign(
-        { 
-          userId: newUser[0].user_id, 
-          email: newUser[0].email, 
-          role: newUser[0].role 
-        },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '7d' }
-      );
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully. Please wait for admin approval.',
+      data: {
+        user: newUser[0],
+        userId: result.insertId,
+        email,
+        fullName,
+        role,
+        status: 'pending'
+      }
+    });
 
-      res.status(201).json({
-        success: true,
-        message: role === 'owner' ? 'Pension owner registered successfully. Awaiting admin approval.' : 'Admin registered successfully',
-        data: {
-          user: {
-            id: newUser[0].user_id,
-            email: newUser[0].email,
-            full_name: newUser[0].full_name,
-            phone: newUser[0].phone,
-            role: newUser[0].role,
-            approved: newUser[0].approved,
-            created_at: newUser[0].created_at
-          },
-          token
-        }
-      });
-    } else {
-      res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        data: {
-          user: {
-            id: newUser[0].user_id,
-            email: newUser[0].email,
-            full_name: newUser[0].full_name,
-            phone: newUser[0].phone,
-            role: newUser[0].role,
-            approved: newUser[0].approved,
-            created_at: newUser[0].created_at
-          }
-        }
-      });
-    }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
       message: 'Registration failed',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: any, res: any) => {
   try {
     const { email, password } = req.body;
 
@@ -254,52 +217,49 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      {
-        userId: user.user_id,
-        email: user.email,
-        role: user.role
+      { 
+        userId: user.user_id, 
+        email: user.email, 
+        role: user.role,
+        fullName: user.full_name 
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
-    // Remove password from response
-    delete user.password_hash;
-
     res.json({
       success: true,
       message: 'Login successful',
       data: {
+        token,
         user: {
           id: user.user_id,
           email: user.email,
           full_name: user.full_name,
           phone: user.phone,
           role: user.role,
-          approved: user.approved,
-          created_at: user.created_at
-        },
-        token
+          approved: user.approved
+        }
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: 'Login failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Get user profile (protected route)
-router.get('/profile', authenticateToken, async (req, res) => {
+// Get current user profile
+router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
 
     const users = await executeQuery(
-      'SELECT user_id, full_name, email, phone, role, approved, created_at FROM users WHERE user_id = ?',
+      'SELECT user_id, email, full_name, phone, role, status, created_at FROM users WHERE user_id = ?',
       [userId]
     );
 
@@ -310,38 +270,119 @@ router.get('/profile', authenticateToken, async (req, res) => {
       });
     }
 
+    const user = users[0];
+
+    // Get owner profile if user is owner
+    let ownerProfile = null;
+    if (user.role === 'owner') {
+      const profiles = await executeQuery(
+        'SELECT * FROM ownerprofiles WHERE owner_id = ?',
+        [userId]
+      );
+      ownerProfile = profiles.length > 0 ? profiles[0] : null;
+    }
+
     res.json({
       success: true,
       data: {
-        user: users[0]
+        user: {
+          id: user.user_id,
+          email: user.email,
+          full_name: user.full_name,
+          phone: user.phone,
+          role: user.role,
+          status: user.status,
+          created_at: user.created_at
+        },
+        ownerProfile
       }
     });
 
-  } catch (error) {
-    console.error('Profile error:', error);
+  } catch (error: any) {
+    console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to fetch profile'
     });
   }
 });
 
-// Logout route
-router.post('/logout', async (req, res) => {
+// Update user profile
+router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
-    // In a real app, you might want to blacklist the token or perform other cleanup
-    // For now, just return success
+    const userId = req.user.userId;
+    const { fullName, phone } = req.body;
+
+    await executeQuery(
+      'UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?',
+      [fullName, phone, userId]
+    );
+
     res.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Profile updated successfully'
     });
-  } catch (error) {
-    console.error('Logout error:', error);
+
+  } catch (error: any) {
+    console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to update profile',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-module.exports = router;
+// Change password
+router.put('/change-password', authenticateToken as any, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    // Get current user
+    const users = await executeQuery(
+      'SELECT password_hash FROM users WHERE user_id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, users[0].password_hash);
+    if (!isValidPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await executeQuery(
+      'UPDATE users SET password_hash = ? WHERE user_id = ?',
+      [hashedNewPassword, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error: any) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+export default router;

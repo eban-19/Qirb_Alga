@@ -1,11 +1,22 @@
-const express = require('express');
-const { executeQuery, executeTransaction } = require('../config/database');
-const { authenticateToken, requireAdmin, requireOwnerApproval } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery, executeTransaction } from '../config/database';
+import { authenticateToken, requireAdmin, requireOwnerApproval } from '../middleware/auth';
 
 const router = express.Router();
 
+interface PensionData {
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+  email: string;
+  capacity: number;
+  owner_info: string;
+  room_details: string;
+}
+
 // Get all pensions (protected) - Simple route for frontend
-router.get('/', authenticateToken, requireOwnerApproval, async (req, res, next) => {
+router.get('/', authenticateToken as any, requireOwnerApproval as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const userId = req.user.userId;
     console.log('=== GET PENSIONS FOR USER ===');
@@ -25,14 +36,14 @@ router.get('/', authenticateToken, requireOwnerApproval, async (req, res, next) 
       success: true,
       data: pensions
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get pensions error:', error);
     next(error);
   }
 });
 
 // Get pension by ID (public)
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
 
@@ -60,22 +71,22 @@ router.get('/:id', async (req, res) => {
       'SELECT * FROM rooms WHERE pension_id = ? AND is_available = TRUE ORDER BY price_per_night',
       [id]
     );
-    const rooms = roomsResult.map(r => ({ ...r, id: r.room_id }));
+    const rooms = roomsResult.map((r: any) => ({ ...r, id: r.room_id }));
 
     // Get packages for this pension
-    let packages = [];
+    let packages: any[] = [];
     try {
       const packagesResult = await executeQuery(
         'SELECT * FROM packages WHERE pension_id = ? AND is_active = TRUE ORDER BY price',
         [id]
       );
-      packages = packagesResult.map(pkg => ({ ...pkg, id: pkg.package_id || pkg.id }));
-    } catch (e) {
+      packages = packagesResult.map((pkg: any) => ({ ...pkg, id: pkg.package_id || pkg.id }));
+    } catch (e: any) {
       console.warn('Packages table not found or query failed');
-      if (pension.packages) {
+      if ((pension as any).packages) {
         try {
-          packages = typeof pension.packages === 'string' ? JSON.parse(pension.packages) : pension.packages;
-        } catch (parseError) {
+          packages = typeof (pension as any).packages === 'string' ? JSON.parse((pension as any).packages) : (pension as any).packages;
+        } catch (parseError: any) {
           console.error('Error parsing packages JSON:', parseError);
         }
       }
@@ -90,7 +101,7 @@ router.get('/:id', async (req, res) => {
       ORDER BY r.created_at DESC
       LIMIT 5
     `, [id]);
-    const reviews = reviewsResult.map(rev => ({ ...rev, id: rev.review_id }));
+    const reviews = reviewsResult.map((rev: any) => ({ ...rev, id: rev.review_id }));
 
     res.json({
       success: true,
@@ -102,7 +113,7 @@ router.get('/:id', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get pension error:', error);
     res.status(500).json({
       success: false,
@@ -112,7 +123,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new pension (protected)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     console.log('=== CREATE PENSION DEBUG ===');
@@ -128,7 +139,7 @@ router.post('/', authenticateToken, async (req, res) => {
       capacity,
       owner_info,
       room_details
-    } = req.body;
+    }: PensionData = req.body;
 
     console.log('Extracted values:', {
       name,
@@ -172,7 +183,7 @@ router.post('/', authenticateToken, async (req, res) => {
       data: newPension[0]
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create pension error:', error);
     console.error('Request body:', req.body);
     console.error('User ID:', req.user?.userId);
@@ -185,7 +196,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update pension (protected)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
@@ -204,7 +215,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       capacity,
       owner_info,
       room_details
-    } = req.body;
+    }: PensionData = req.body;
 
     console.log('Extracted values:', {
       name,
@@ -259,7 +270,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       );
 
       console.log('Pension updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating pension:', error);
       return res.status(500).json({
         success: false,
@@ -282,7 +293,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update pension error:', error);
     res.status(500).json({
       success: false,
@@ -293,13 +304,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete pension (protected - admin only)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.delete('/:id', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { id } = req.params;
 
     // Check if pension exists
     const pension = await executeQuery(
-      'SELECT * FROM pensions WHERE id = ?',
+      'SELECT * FROM pensions WHERE pension_id = ?',
       [id]
     );
 
@@ -331,7 +342,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       message: 'Pension deleted successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete pension error:', error);
     res.status(500).json({
       success: false,
@@ -341,11 +352,11 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Get user's pensions (protected)
-router.get('/my/pensions', authenticateToken, async (req, res) => {
+router.get('/my/pensions', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const pensionsResult = await executeQuery(`
       SELECT p.*, COUNT(DISTINCT r.room_id) as room_count
@@ -354,7 +365,7 @@ router.get('/my/pensions', authenticateToken, async (req, res) => {
       WHERE p.owner_id = ?
       GROUP BY p.pension_id
       ORDER BY p.created_at DESC
-      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+      LIMIT ${parseInt(limit as string)} OFFSET ${offset}
     `, [userId]);
 
     const totalCount = await executeQuery(
@@ -366,13 +377,13 @@ router.get('/my/pensions', authenticateToken, async (req, res) => {
       success: true,
       data: pensionsResult,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
         total: totalCount[0].count,
-        pages: Math.ceil(totalCount[0].count / limit)
+        pages: Math.ceil(totalCount[0].count / parseInt(limit as string))
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get user pensions error:', error);
     res.status(500).json({
       success: false,
@@ -381,4 +392,4 @@ router.get('/my/pensions', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

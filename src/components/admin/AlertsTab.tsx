@@ -49,10 +49,10 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
   const investigatingAlerts = safeAlerts.filter(a => a?.status === 'investigating').length;
   const resolvedAlerts = safeAlerts.filter(a => a?.status === 'resolved').length;
 
-  const handleCreateAlert = () => {
-    // TODO: Implement alert creation modal
-    console.log("Create new alert");
-  };
+  // const handleCreateAlert = () => {
+  //   // TODO: Implement alert creation modal
+  //   console.log("Create new alert");
+  // };
 
   const handleArchiveAll = () => {
     if (confirm("Archive all resolved alerts?")) {
@@ -83,18 +83,18 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
     <div className="space-y-6">
       {/* Header with CTA */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white shadow-lg">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white shadow-lg sm:ml-4">
             <Bell className="w-6 h-6" />
           </div>
-          <div>
+          <div className="text-center sm:text-left">
             <h2 className="text-2xl font-bold text-slate-900">System Alerts</h2>
             <p className="text-slate-600">Monitor and manage system notifications</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          <Button 
+          {/* <Button 
             onClick={handleCreateAlert}
             size="lg"
             className="
@@ -134,12 +134,12 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
               <span>Create Alert</span>
               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
             </span>
-          </Button>
+          </Button> */}
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mx-4 sm:mx-6 md:mx-8">
         <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-red-100 hover:shadow-lg transition-shadow duration-300">
           <CardContent className="p-4 text-center">
             <Bell className="w-8 h-8 text-red-600 mx-auto mb-2" />
@@ -228,7 +228,7 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
                 onInvestigate={handleInvestigateAlert}
               />
             ))}
-            {filteredAlerts.length === 0 && (
+            {/* {filteredAlerts.length === 0 && (
               <div className="text-center py-12">
                 <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-slate-700 mb-2">No alerts found</h3>
@@ -238,7 +238,7 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
                   Create First Alert
                 </Button>
               </div>
-            )}
+            )} */}
           </div>
         </CardContent>
       </Card>

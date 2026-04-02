@@ -32,13 +32,13 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-  const handleCreateProperty = () => {
+  // const handleCreateProperty = () => {
 
-    setSelectedProperty(undefined);
+  //   setSelectedProperty(undefined);
 
-    setShowForm(true);
+  //   setShowForm(true);
 
-  };
+  // };
 
 
 
@@ -98,9 +98,9 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
       {/* Header with prominent CTA */}
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mx-4 sm:mx-6 md:mx-8">
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 sm:gap-4">
 
           <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl text-white shadow-lg">
 
@@ -108,7 +108,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
           </div>
 
-          <div>
+          <div className="text-center sm:text-left">
 
             <h2 className="text-2xl font-bold text-slate-900">Properties Management</h2>
 
@@ -120,7 +120,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
         
 
-        <Button 
+        {/* <Button 
 
           onClick={handleCreateProperty}
 
@@ -200,7 +200,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
           </span>
 
-        </Button>
+        </Button> */}
 
       </div>
 
@@ -208,35 +208,35 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
       {/* Stats Cards */}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mx-4 sm:mx-6 md:mx-8">
 
-        <div className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
+        <div className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-500 rounded-3xl p-3 sm:p-4 md:p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
 
           <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-          <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -top-2 -right-2 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
 
-          <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -bottom-2 -left-2 w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
 
           <div className="relative z-10 text-center">
 
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-4">
+            <div className="p-2 sm:p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-2 sm:mb-3 md:mb-4">
 
-              <Building className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
+              <Building className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
 
             </div>
 
-            <div className="text-4xl font-black mb-2 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-purple-200 transition-all duration-300">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 sm:mb-2 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-purple-200 transition-all duration-300">
 
               {safeProperties.length}
 
             </div>
 
-            <div className="text-purple-100 text-sm font-semibold group-hover:text-white transition-colors duration-300">Total Properties</div>
+            <div className="text-xs sm:text-sm text-purple-100 font-semibold group-hover:text-white transition-colors duration-300">Total Properties</div>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
+            <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2">
 
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
 
               <div className="text-xs text-green-300 font-semibold">Active listings</div>
 
@@ -248,33 +248,33 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-        <div className="group relative overflow-hidden bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
+        <div className="group relative overflow-hidden bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-500 rounded-3xl p-3 sm:p-4 md:p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
 
           <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-          <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -top-2 -right-2 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
 
-          <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -bottom-2 -left-2 w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
 
           <div className="relative z-10 text-center">
 
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-4">
+            <div className="p-2 sm:p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-2 sm:mb-3 md:mb-4">
 
-              <MapPin className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
+              <MapPin className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
 
             </div>
 
-            <div className="text-4xl font-black mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-blue-200 transition-all duration-300">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 sm:mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-blue-200 transition-all duration-300">
 
               {uniqueCities.size}
 
             </div>
 
-            <div className="text-blue-100 text-sm font-semibold group-hover:text-white transition-colors duration-300">Cities Covered</div>
+            <div className="text-xs sm:text-sm text-blue-100 font-semibold group-hover:text-white transition-colors duration-300">Cities Covered</div>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
+            <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2">
 
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
 
               <div className="text-xs text-green-300 font-semibold">Wide coverage</div>
 
@@ -286,33 +286,33 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-        <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-teal-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
+        <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-teal-500 rounded-3xl p-3 sm:p-4 md:p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
 
           <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-          <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -top-2 -right-2 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
 
-          <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -bottom-2 -left-2 w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
 
           <div className="relative z-10 text-center">
 
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-4">
+            <div className="p-2 sm:p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-2 sm:mb-3 md:mb-4">
 
-              <Package className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
+              <Package className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
 
             </div>
 
-            <div className="text-4xl font-black mb-2 bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-emerald-200 transition-all duration-300">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 sm:mb-2 bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-emerald-200 transition-all duration-300">
 
               {totalPackages}
 
             </div>
 
-            <div className="text-emerald-100 text-sm font-semibold group-hover:text-white transition-colors duration-300">Room Packages</div>
+            <div className="text-xs sm:text-sm text-emerald-100 font-semibold group-hover:text-white transition-colors duration-300">Room Packages</div>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
+            <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2">
 
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
 
               <div className="text-xs text-green-300 font-semibold">Available now</div>
 
@@ -324,33 +324,33 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-        <div className="group relative overflow-hidden bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
+        <div className="group relative overflow-hidden bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-500 rounded-3xl p-3 sm:p-4 md:p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
 
           <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-          <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -top-2 -right-2 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
 
-          <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="absolute -bottom-2 -left-2 w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
 
           <div className="relative z-10 text-center">
 
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-4">
+            <div className="p-2 sm:p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm border-2 border-white/30 group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 mx-auto mb-2 sm:mb-3 md:mb-4">
 
-              <Plus className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300 mx-auto" />
 
             </div>
 
-            <div className="text-4xl font-black mb-2 bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-orange-200 transition-all duration-300">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 sm:mb-2 bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent group-hover:from-white group-hover:to-orange-200 transition-all duration-300">
 
               {totalRooms}
 
             </div>
 
-            <div className="text-orange-100 text-sm font-semibold group-hover:text-white transition-colors duration-300">Available Rooms</div>
+            <div className="text-xs sm:text-sm text-orange-100 font-semibold group-hover:text-white transition-colors duration-300">Available Rooms</div>
 
-            <div className="mt-3 flex items-center justify-center gap-2">
+            <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2">
 
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
 
               <div className="text-xs text-green-300 font-semibold">Ready for booking</div>
 
@@ -382,7 +382,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
         <CardContent className="p-6">
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
 
             {safeProperties.map((property) => (
 

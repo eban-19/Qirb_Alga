@@ -60,7 +60,7 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
       
 
-      <CardContent className="p-6 relative z-10">
+      <CardContent className="p-4 sm:p-6 relative z-10">
 
         <div className="flex items-start justify-between">
 
@@ -160,7 +160,7 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
             </Button>
 
-            <Button 
+            {/* <Button 
 
               size="sm" 
 
@@ -174,7 +174,7 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
               <Edit className="w-4 h-4" />
 
-            </Button>
+            </Button> */}
 
             <Button 
 

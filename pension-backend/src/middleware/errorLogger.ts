@@ -1,7 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import * as express from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const errorLogger = (err, req, res, next) => {
+const errorLogger = (err: any, req: any, res: express.Response, next: express.NextFunction) => {
   const logMessage = `[${new Date().toISOString()}] ${req.method} ${req.url}
 Error: ${err.message}
 Stack: ${err.stack}
@@ -23,4 +24,4 @@ User: ${JSON.stringify(req.user)}
   });
 };
 
-module.exports = errorLogger;
+export default errorLogger;

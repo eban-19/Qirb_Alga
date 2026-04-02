@@ -1,10 +1,19 @@
-const https = require('https');
+import * as https from 'https';
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+  displayName: string;
+}
 
 /**
  * Simple geocoding service using OpenStreetMap Nominatim API (Free)
  * Converts address string to latitude/longitude coordinates
  */
 class GeocodingService {
+  private baseUrl: string;
+  private userAgent: string;
+
   constructor() {
     this.baseUrl = 'https://nominatim.openstreetmap.org/search';
     this.userAgent = 'PensionManagementSystem/1.0'; // Required by Nominatim
@@ -12,10 +21,10 @@ class GeocodingService {
 
   /**
    * Convert address to coordinates
-   * @param {string} address - The address to geocode
-   * @returns {Promise<{lat: number, lng: number, displayName: string}>}
+   * @param address - The address to geocode
+   * @returns Promise<Coordinates>
    */
-  async geocodeAddress(address) {
+  async geocodeAddress(address: string): Promise<Coordinates> {
     if (!address || address.trim() === '') {
       // Return default Addis Ababa coordinates if no address
       return {
@@ -49,7 +58,7 @@ class GeocodingService {
               
               if (results && results.length > 0) {
                 const result = results[0];
-                const coordinates = {
+                const coordinates: Coordinates = {
                   lat: parseFloat(result.lat),
                   lng: parseFloat(result.lon),
                   displayName: result.display_name || address
@@ -66,14 +75,14 @@ class GeocodingService {
                   displayName: address
                 });
               }
-            } catch (parseError) {
+            } catch (parseError: any) {
               console.error('❌ Error parsing geocoding response:', parseError);
               reject(parseError);
             }
           });
         });
         
-        request.on('error', (error) => {
+        request.on('error', (error: any) => {
           console.error('❌ Geocoding request error:', error);
           reject(error);
         });
@@ -89,7 +98,7 @@ class GeocodingService {
         });
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Geocoding service error:', error);
       // Return default coordinates on any error
       return {
@@ -102,11 +111,11 @@ class GeocodingService {
 
   /**
    * Batch geocode multiple addresses (with rate limiting)
-   * @param {string[]} addresses - Array of addresses to geocode
-   * @returns {Promise<Array>} Array of geocoded results
+   * @param addresses - Array of addresses to geocode
+   * @returns Promise<Array> Array of geocoded results
    */
-  async batchGeocode(addresses) {
-    const results = [];
+  async batchGeocode(addresses: string[]): Promise<Coordinates[]> {
+    const results: Coordinates[] = [];
     
     for (const address of addresses) {
       try {
@@ -116,7 +125,7 @@ class GeocodingService {
         // Rate limiting: wait 1 second between requests (Nominatim policy)
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Failed to geocode "${address}":`, error);
         results.push({
           lat: 9.03,
@@ -130,4 +139,5 @@ class GeocodingService {
   }
 }
 
-module.exports = new GeocodingService();
+const geocodingService = new GeocodingService();
+export default geocodingService;

@@ -1,10 +1,10 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
 
 const router = express.Router();
 
 // Get room types for a pension
-router.get('/pension/:pensionId/room-types', async (req, res) => {
+router.get('/pension/:pensionId/room-types', async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     
@@ -15,12 +15,12 @@ router.get('/pension/:pensionId/room-types', async (req, res) => {
     
     res.json({
       success: true,
-      data: roomTypes.map(type => type.room_type)
+      data: roomTypes.map((type: any) => type.room_type)
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching room types:', error);
     res.status(500).json({ success: false, message: 'Error fetching room types' });
   }
 });
 
-module.exports = router;
+export default router;

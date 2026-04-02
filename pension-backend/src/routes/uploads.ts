@@ -1,14 +1,23 @@
-const express = require('express');
+import * as express from 'express';
+import upload from '../middleware/upload';
+import { authenticateToken } from '../middleware/auth';
+import * as fs from 'fs';
+import * as path from 'path';
+
 const router = express.Router();
-const upload = require('../middleware/upload');
-const { authenticateToken } = require('../middleware/auth');
-const fs = require('fs');
-const path = require('path');
+
+interface UploadedFile {
+  filename: string;
+  path: string;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 
 /**
  * Helper function to upload file locally
  */
-const uploadToCloudinary = async (file) => {
+const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
   try {
     console.log(' Uploading file locally:', file.filename);
     
@@ -26,14 +35,14 @@ const uploadToCloudinary = async (file) => {
     
     // Return local file URL
     return `/uploads/${file.filename}`;
-  } catch (error) {
+  } catch (error: any) {
     console.error(' Error uploading file:', error);
     throw error;
   }
 };
 
 // Test route without authentication for debugging
-router.post('/test', upload.single('image'), async (req, res) => {
+router.post('/test', upload.single('image'), async (req: any, res: express.Response) => {
   try {
     console.log('Test upload route hit');
     
@@ -52,7 +61,7 @@ router.post('/test', upload.single('image'), async (req, res) => {
         size: req.file.size
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Test upload error details:', error);
     res.status(500).json({ 
       success: false, 
@@ -63,7 +72,7 @@ router.post('/test', upload.single('image'), async (req, res) => {
 });
 
 // Upload a single image
-router.post('/single', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/single', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
   try {
     console.log('Authenticated upload route hit');
     
@@ -82,7 +91,7 @@ router.post('/single', authenticateToken, upload.single('image'), async (req, re
         size: req.file.size
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error details:', error);
     res.status(500).json({ 
       success: false, 
@@ -92,4 +101,4 @@ router.post('/single', authenticateToken, upload.single('image'), async (req, re
   }
 });
 
-module.exports = router;
+export default router;

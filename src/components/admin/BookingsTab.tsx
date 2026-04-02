@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, Edit, Trash2, Plus, Calendar, DollarSign, Users, CheckCircle } from "lucide-react";
-import { BookingForm } from "./BookingForm";
+import { Search, Calendar, DollarSign, Users, CheckCircle } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -32,67 +31,43 @@ interface BookingsTabProps {
 export function BookingsTab({ bookings, properties, onBookingAction }: BookingsTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [showForm, setShowForm] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | undefined>();
+  const [filterProperty, setFilterProperty] = useState("all");
 
   // Safe handling with fallbacks
   const safeBookings = bookings || [];
   const safeProperties = properties || [];
 
-  // Filter bookings based on search and status
+  // Filter bookings based on search, status, and property
   const filteredBookings = safeBookings.filter(booking => {
     const matchesSearch = (booking.propertyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (booking.guestName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (booking.guestEmail || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || booking.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesProperty = filterProperty === "all" || booking.propertyName === filterProperty;
+    return matchesSearch && matchesStatus && matchesProperty;
   });
 
-  // Calculate statistics with safe handling
-  const totalRevenue = safeBookings.reduce((sum, b) => sum + (b?.totalPrice || 0), 0);
+  // Statistics
+  const totalBookings = safeBookings.length;
   const pendingBookings = safeBookings.filter(b => b?.status === 'pending').length;
   const confirmedBookings = safeBookings.filter(b => b?.status === 'confirmed').length;
   const completedBookings = safeBookings.filter(b => b?.status === 'completed').length;
-
-  const handleCreateBooking = () => {
-    setSelectedBooking(undefined);
-    setShowForm(true);
-  };
-
-  const handleEditBooking = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setShowForm(true);
-  };
-
-  const handleSaveBooking = (booking: Booking) => {
-    if (booking.id) {
-      onBookingAction("update", booking.id, booking);
-    } else {
-      onBookingAction("create", "", booking);
-    }
-  };
-
-  const handleDeleteBooking = (bookingId: string) => {
-    if (confirm("Are you sure you want to delete this booking?")) {
-      onBookingAction("delete", bookingId);
-    }
-  };
 
   return (
     <div className="space-y-6">
       {/* Header with prominent CTA */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl text-white shadow-lg">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl text-white shadow-lg sm:ml-4">
             <Calendar className="w-6 h-6" />
           </div>
-          <div>
+          <div className="text-center sm:text-left">
             <h2 className="text-2xl font-bold text-slate-900">Bookings Management</h2>
             <p className="text-slate-600">Manage guest bookings and reservations</p>
           </div>
         </div>
         
-        <Button 
+        {/* <Button 
           onClick={handleCreateBooking}
           size="lg"
           className="
@@ -132,11 +107,11 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
             <span>Add New Booking</span>
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           </span>
-        </Button>
+        </Button> */}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mx-4 sm:mx-6 md:mx-8">
         <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 hover:shadow-lg transition-shadow duration-300">
           <CardContent className="p-4 text-center">
             <Calendar className="w-8 h-8 text-green-600 mx-auto mb-2" />
@@ -161,7 +136,7 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
         <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-shadow duration-300">
           <CardContent className="p-4 text-center">
             <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-purple-900">{totalRevenue.toLocaleString()} ETB</div>
+            <div className="text-2xl font-bold text-purple-900">0 ETB</div>
             <div className="text-sm text-purple-700">Total Revenue</div>
           </CardContent>
         </Card>
@@ -180,6 +155,19 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
                 className="pl-12 h-12 text-base border-2 border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-200"
               />
             </div>
+            <Select value={filterProperty} onValueChange={setFilterProperty}>
+              <SelectTrigger className="w-full lg:w-64 h-12 text-base border-2 border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-200">
+                <SelectValue placeholder="Filter by property" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">🏢 All Properties</SelectItem>
+                {safeProperties.map((property) => (
+                  <SelectItem key={property} value={property}>
+                    🏠 {property}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-full lg:w-64 h-12 text-base border-2 border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-200">
                 <SelectValue placeholder="Filter by status" />
@@ -201,94 +189,52 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
         <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b-2 border-slate-200">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-green-700" />
-            Bookings Directory ({filteredBookings.length})
+            Bookings Directory 
+            {filterProperty !== "all" && (
+              <span className="text-sm font-normal text-green-600">
+                - {filterProperty}
+              </span>
+            )}
+            {filterStatus !== "all" && (
+              <span className="text-sm font-normal text-green-600">
+                - {filterStatus}
+              </span>
+            )}
+            <span className="ml-auto text-sm font-normal text-green-700">
+              ({filteredBookings.length} bookings)
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-4">
-            {filteredBookings.map((booking) => (
-              <Card key={booking.id} className="border-2 border-slate-200 hover:border-green-300 hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="font-bold text-lg text-slate-900">{booking.propertyName || 'Unknown Property'}</h3>
-                        <Badge className={
-                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800 border-2 border-green-300' :
-                          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300' :
-                          booking.status === 'cancelled' ? 'bg-red-100 text-red-800 border-2 border-red-300' :
-                          'bg-blue-100 text-blue-800 border-2 border-blue-300'
-                        }>
-                          {booking.status || 'Unknown'}
-                        </Badge>
-                        <Badge variant="outline" className="border-2 border-slate-300">
-                          {booking.paymentStatus || 'Unknown'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700">Guest</p>
-                          <p className="text-slate-900">{booking.guestName || 'N/A'}</p>
-                          <p className="text-sm text-slate-600">{booking.guestEmail || 'N/A'}</p>
-                          <p className="text-sm text-slate-600">{booking.guestPhone || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700">Booking Details</p>
-                          <p className="text-slate-900">Check-in: {booking.checkIn || 'N/A'}</p>
-                          <p className="text-slate-900">Check-out: {booking.checkOut || 'N/A'}</p>
-                          <p className="font-bold text-green-700">
-                            {(booking.totalPrice || 0).toLocaleString()} ETB
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {booking.specialRequests && (
-                        <div className="mb-3">
-                          <p className="text-sm font-semibold text-slate-700">Special Requests</p>
-                          <p className="text-sm text-slate-600 italic">{booking.specialRequests}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button size="sm" variant="outline" onClick={() => console.log('View booking:', booking.id)} className="hover:bg-green-50 hover:border-green-300">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleEditBooking(booking)} className="hover:bg-blue-50 hover:border-blue-300">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDeleteBooking(booking.id)} className="hover:bg-red-50 hover:border-red-300">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="text-center py-8">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border-2 border-green-200">
+              <Calendar className="w-16 h-16 text-green-600 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-green-800 mb-2">
+                Total Bookings
+              </h3>
+              <p className="text-4xl font-black text-green-700 mb-4">
+                {filteredBookings.length}
+              </p>
+              <p className="text-sm text-green-600">
+                {filterProperty === "all" && filterStatus === "all" 
+                  ? "All bookings across all properties" 
+                  : filterProperty === "all" && filterStatus !== "all"
+                  ? `${filterStatus} bookings across all properties`
+                  : filterProperty !== "all" && filterStatus === "all"
+                  ? `All bookings for ${filterProperty}`
+                  : `${filterStatus} bookings for ${filterProperty}`
+                }
+              </p>
+            </div>
+            
             {filteredBookings.length === 0 && (
-              <div className="text-center py-12">
-                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No bookings found</h3>
-                <p className="text-slate-500 mb-4">Try adjusting your search or filter criteria</p>
-                <Button onClick={handleCreateBooking} variant="outline" className="hover:bg-green-50 hover:border-green-300">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Booking
-                </Button>
+              <div className="mt-6">
+                <p className="text-slate-500 mb-4">No bookings found for the current criteria</p>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
-
-      {/* Booking Form Modal */}
-      <BookingForm
-        booking={selectedBooking}
-        properties={safeProperties}
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        onSave={handleSaveBooking}
-      />
     </div>
   );
 }

@@ -76,11 +76,11 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
         
 
-        <div className="relative z-10 p-5">
+        <div className="relative z-10 p-4 sm:p-5">
 
           {/* Compact Header */}
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 mb-4">
 
             {/* Compact Avatar */}
 
@@ -104,7 +104,7 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
             {/* Compact Owner Info */}
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-center sm:text-left">
 
               <h3 className="font-black text-lg text-slate-900 mb-1 group-hover:text-blue-700 transition-colors duration-300 truncate">
 
@@ -222,9 +222,9 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
           {/* Compact Action Buttons */}
 
-          <div className="flex items-center justify-between gap-2 pt-3 border-t-2 border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t-2 border-slate-200">
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
 
               {/* View Button */}
 
@@ -246,7 +246,7 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
               {/* Edit Button */}
 
-              <Button 
+              {/* <Button 
 
                 size="sm" 
 
@@ -258,7 +258,7 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
                 <Edit className="w-3 h-3" />
 
-              </Button>
+              </Button> */}
 
             </div>
 

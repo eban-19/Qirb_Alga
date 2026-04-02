@@ -106,13 +106,13 @@ export function OwnersTab({
 
 
 
-  const handleCreateOwner = () => {
+  // const handleCreateOwner = () => {
 
-    setSelectedOwner(undefined);
+  //   setSelectedOwner(undefined);
 
-    setShowForm(true);
+  //   setShowForm(true);
 
-  };
+  // };
 
 
 
@@ -164,7 +164,7 @@ export function OwnersTab({
 
         <div className="flex items-center gap-3">
 
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl text-white shadow-lg">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl text-white shadow-lg sm:ml-4">
 
             <Users className="w-6 h-6" />
 
@@ -182,7 +182,7 @@ export function OwnersTab({
 
         
 
-        <Button 
+        {/* <Button 
 
           onClick={handleCreateOwner}
 
@@ -262,7 +262,7 @@ export function OwnersTab({
 
           </span>
 
-        </Button>
+        </Button> */}
 
       </div>
 
@@ -274,7 +274,7 @@ export function OwnersTab({
 
         <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-blue-100 to-indigo-100 rounded-3xl opacity-50"></div>
 
-        <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/50 shadow-2xl">
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border-2 border-white/50 shadow-2xl">
 
           <div className="flex flex-col lg:flex-row gap-6">
 
@@ -338,9 +338,9 @@ export function OwnersTab({
 
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl opacity-10"></div>
 
-        <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/50 shadow-2xl">
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border-2 border-white/50 shadow-2xl">
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
 
             {/* Pending Verification */}
 
@@ -524,11 +524,11 @@ export function OwnersTab({
 
               <div className="absolute inset-0 bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 rounded-2xl opacity-10"></div>
 
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 border-2 border-slate-200">
+              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border-2 border-slate-200">
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 sm:gap-6">
 
                     <div className="relative">
 
@@ -542,25 +542,25 @@ export function OwnersTab({
 
                     </div>
 
-                    <div>
+                    <div className="text-center sm:text-left">
 
-                      <h3 className="text-3xl font-black text-slate-900 mb-1">Owners Directory</h3>
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-1">Owners Directory</h3>
 
-                      <p className="text-slate-600 text-lg">Manage and verify property owners efficiently</p>
+                      <p className="text-sm sm:text-base text-slate-600">Manage and verify property owners efficiently</p>
 
                     </div>
 
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-center sm:text-right">
 
-                    <div className="text-4xl font-black text-slate-900 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
 
                       {filteredOwners.length}
 
                     </div>
 
-                    <div className="text-slate-600 font-semibold">Total Results</div>
+                    <div className="text-sm sm:text-base text-slate-600 font-semibold">Total Results</div>
 
                   </div>
 
@@ -574,7 +574,7 @@ export function OwnersTab({
 
             {/* Enhanced Grid Layout */}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
               {filteredOwners.map((owner) => (
 
@@ -643,24 +643,6 @@ export function OwnersTab({
                   <h3 className="text-3xl font-black text-slate-900 mb-3">No Owners Found</h3>
 
                   <p className="text-slate-600 text-lg mb-8">Try adjusting your search or filter criteria to find the owners you're looking for.</p>
-
-                  <Button 
-
-                    onClick={handleCreateOwner} 
-
-                    className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-10 py-4 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"
-
-                  >
-
-                    <span className="relative z-10 flex items-center gap-3">
-
-                      <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
-
-                      <span>Add First Owner</span>
-
-                    </span>
-
-                  </Button>
 
                 </div>
 

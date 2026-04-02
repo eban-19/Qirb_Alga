@@ -1532,23 +1532,7 @@ export const Dashboard: React.FC = () => {
                   New Booking
                 </Button>
               )}
-              {activeTab === "staff" && (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="gap-2 hover:bg-emerald-50 hover:text-emerald-600"
-                    onClick={() => setShowStaffBulkUploadModal(true)}
-                  >
-                    <Upload className="h-4 w-4" />
-                    Bulk Upload
-                  </Button>
-                  <Button className="gap-2 bg-primary hover:bg-primary/90">
-                    <Users className="h-4 w-4" />
-                    Add Staff Member
-                  </Button>
-                </div>
-              )}
-              {activeTab === "rooms" && (
+                            {activeTab === "rooms" && (
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 

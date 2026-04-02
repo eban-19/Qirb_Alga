@@ -1,11 +1,18 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
+interface ExpenseData {
+  category: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+}
+
 // GET all expenses for the owner's pension
-router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => {
+router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
@@ -33,10 +40,10 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
       expenses.push(...expensesById);
     }
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const totalExpenses = expenses.reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0);
 
     res.json({ success: true, data: { items: expenses, totalExpenses } });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get expenses error:', error);
     console.error('Error details:', error.message);
     // Don't fail the entire load if expenses fail
@@ -51,10 +58,10 @@ router.get('/pensions/:pensionId', authenticateToken, async (req, res, next) => 
 });
 
 // POST - Add a new expense
-router.post('/pensions/:pensionId', authenticateToken, async (req, res, next) => {
+router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const { pensionId } = req.params;
-    const { category, description, amount, expense_date } = req.body;
+    const { category, description, amount, expense_date }: ExpenseData = req.body;
     const userId = req.user.userId;
 
     if (!category || !amount || !expense_date) {
@@ -80,14 +87,14 @@ router.post('/pensions/:pensionId', authenticateToken, async (req, res, next) =>
       message: 'Expense added',
       data: { expense_id: result.insertId }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Add expense error:', error);
     next(error);
   }
 });
 
 // DELETE - Remove an expense
-router.delete('/:expenseId', authenticateToken, async (req, res, next) => {
+router.delete('/:expenseId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const { expenseId } = req.params;
     const userId = req.user.userId;
@@ -105,10 +112,10 @@ router.delete('/:expenseId', authenticateToken, async (req, res, next) => {
 
     await executeQuery('DELETE FROM expenses WHERE expense_id = ?', [expenseId]);
     res.json({ success: true, message: 'Expense deleted' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete expense error:', error);
     next(error);
   }
 });
 
-module.exports = router;
+export default router;

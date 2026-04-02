@@ -112,56 +112,58 @@ const RegisterProperty = () => {
         return;
       }
 
-      // Upload document if provided
+      // Upload document first, then register with document URL (original working approach)
       let documentUrl = null;
+      
       if (formData.idDocument && formData.idDocument instanceof File) {
-        console.log('📄 Uploading document:', formData.idDocument.name);
-        
-        const formDataUpload = new FormData();
-        formDataUpload.append('image', formData.idDocument);
+        console.log('📄 Uploading document before registration:', formData.idDocument.name);
         
         try {
+          // Upload document first using test endpoint (no auth needed)
+          const formDataUpload = new FormData();
+          formDataUpload.append('image', formData.idDocument);
+          
           const uploadResponse = await fetch('http://localhost:3005/api/uploads/test', {
             method: 'POST',
             body: formDataUpload,
           });
           
           const uploadResult = await uploadResponse.json();
+          console.log('🔍 Upload result:', uploadResult);
           
           if (uploadResult.success) {
             documentUrl = uploadResult.data.url;
             console.log('✅ Document uploaded successfully:', documentUrl);
           } else {
             console.error('❌ Document upload failed:', uploadResult.message);
-            setError('Document upload failed. Please try again.');
-            setIsSubmitting(false);
-            return;
           }
         } catch (uploadError) {
           console.error('❌ Document upload error:', uploadError);
-          setError('Document upload failed. Please try again.');
-          setIsSubmitting(false);
-          return;
         }
       }
 
-      // Register user with auto-login for pension owners
+      // Register user with document URL (original working approach)
       const userData = {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-        role: formData.role === 'owner' ? 'Owner' : 'Admin', // Map to backend roles
+        role: 'owner', // Send lowercase 'owner' to match backend expectation
         password: formData.password || 'defaultPassword123', // Use form password or default
         businessName: formData.businessName,
         businessEmail: formData.businessEmail,
         businessPhone: formData.businessPhone,
         licenseNumber: formData.licenseNumber,
-        documentUrl: documentUrl // Send the uploaded document URL
+        documentUrl: documentUrl // Pass uploaded document URL directly
       };
 
       const response = await register(userData);
 
       if (response.success) {
+        // Store the token in localStorage for subsequent API calls
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+        }
+
         // Business submitted for approval, go to success page
         console.log('✅ Business registration submitted for approval');
         setStep(5); // Go to success step

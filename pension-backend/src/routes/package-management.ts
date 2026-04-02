@@ -1,16 +1,33 @@
-const express = require('express');
-const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
-const upload = require('../middleware/upload');
-const fs = require('fs');
-const path = require('path');
+import * as express from 'express';
+import { executeQuery } from '../config/database';
+import { authenticateToken } from '../middleware/auth';
+import upload from '../middleware/upload';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = express.Router();
+
+interface PackageData {
+  name: string;
+  description: string;
+  price: number;
+  services: any[];
+  isMostPopular: boolean;
+  image?: string;
+}
+
+interface UploadedFile {
+  filename: string;
+  path: string;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 
 /**
  * Helper function to upload to Cloudinary and delete local file
  */
-const uploadToCloudinary = async (file) => {
+const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
   try {
     console.log('🔍 Upload attempt for file:', file.filename);
     console.log('🔍 Cloudinary config check:');
@@ -25,6 +42,9 @@ const uploadToCloudinary = async (file) => {
       return `/uploads/${file.filename}`;
     }
 
+    // Dynamic import for cloudinary (only when needed)
+    const cloudinary = require('cloudinary').v2;
+    
     console.log('🚀 Uploading to Cloudinary...');
     const result = await cloudinary.uploader.upload(file.path, {
       folder: 'pension-management-system',
@@ -35,7 +55,7 @@ const uploadToCloudinary = async (file) => {
     
     console.log('✅ Cloudinary upload successful:', result.secure_url);
     return result.secure_url;
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Cloudinary upload failed, using local fallback:', error);
     console.error('❌ Error details:', error.message);
     console.error('❌ Stack trace:', error.stack);
@@ -45,7 +65,7 @@ const uploadToCloudinary = async (file) => {
 };
 
 // Get packages for a specific pension
-router.get('/pensions/:pensionId/packages', authenticateToken, async (req, res) => {
+router.get('/pensions/:pensionId/packages', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
@@ -73,7 +93,7 @@ router.get('/pensions/:pensionId/packages', authenticateToken, async (req, res) 
       ORDER BY p.created_at DESC
     `, [pensionId]);
     
-    console.log('🔍 Packages loaded from database:', packages.map(p => ({
+    console.log('🔍 Packages loaded from database:', packages.map((p: any) => ({
       package_id: p.package_id,
       name: p.name,
       is_most_popular: p.is_most_popular,
@@ -84,18 +104,18 @@ router.get('/pensions/:pensionId/packages', authenticateToken, async (req, res) 
       success: true,
       data: packages
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching packages:', error);
     res.status(500).json({ success: false, message: 'Error fetching packages' });
   }
 });
 
 // Create new package for a pension
-router.post('/pensions/:pensionId/packages', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/pensions/:pensionId/packages', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
-    const packageData = req.body;
+    const packageData: PackageData = req.body;
 
     // Upload image locally if provided
     let imageUrl = '';
@@ -142,18 +162,18 @@ router.post('/pensions/:pensionId/packages', authenticateToken, upload.single('i
       message: 'Package created successfully',
       data: { id: result.insertId, ...packageData }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating package:', error);
     res.status(500).json({ success: false, message: 'Error creating package' });
   }
 });
 
 // Update existing package
-router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload.single('image'), async (req, res) => {
+router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
   try {
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
-    const packageData = req.body;
+    const packageData: PackageData = req.body;
 
     console.log('🔍 Package update request:', {
       pensionId,
@@ -217,8 +237,8 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
     }
 
     // Build dynamic update query - only update fields that are provided
-    const updateFields = [];
-    const updateValues = [];
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
     
     if (packageData.name !== undefined) {
       updateFields.push('name = ?');
@@ -276,14 +296,14 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken, upload
       message: 'Package updated successfully',
       data: { id: packageId, ...packageData }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating package:', error);
     res.status(500).json({ success: false, message: 'Error updating package' });
   }
 });
 
 // Delete package
-router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken, async (req, res) => {
+router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
@@ -300,7 +320,7 @@ router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken, asy
     
     // Get package details before deletion
     const packageToDelete = await executeQuery(
-      'SELECT * FROM packages WHERE id = ? AND pension_id = ?',
+      'SELECT * FROM packages WHERE package_id = ? AND pension_id = ?',
       [packageId, pensionId]
     );
     
@@ -310,7 +330,7 @@ router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken, asy
     
     // Delete package from packages table
     await executeQuery(
-      'DELETE FROM packages WHERE id = ? AND pension_id = ?',
+      'DELETE FROM packages WHERE package_id = ? AND pension_id = ?',
       [packageId, pensionId]
     );
 
@@ -318,10 +338,10 @@ router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken, asy
       success: true,
       message: 'Package deleted successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting package:', error);
     res.status(500).json({ success: false, message: 'Error deleting package' });
   }
 });
 
-module.exports = router;
+export default router;
