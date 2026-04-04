@@ -9,8 +9,61 @@ export function useRooms() {
       try {
         // Try to get real data from backend
         const response = await apiService.getPublicPensions();
-        return response.data?.items || [];
+        console.log('🔍 useRooms - Full API response:', response);
+        console.log('🔍 useRooms - Response data:', response.data);
+        console.log('🔍 useRooms - Response items:', response.data?.items);
+        
+        const pensions = response.data?.items || [];
+        
+        console.log('🔍 useRooms - Raw backend data:', pensions.map(p => ({
+          id: p.pension_id,
+          name: p.name,
+          image_url: p.image_url,
+          hasImageUrl: !!p.image_url,
+          allKeys: Object.keys(p)
+        })));
+        
+        // Map backend data to frontend Room interface
+        const mappedRooms = pensions.map((pension: any) => {
+          // Check all possible field name variations
+          const imageUrl = pension.image_url || pension.imageUrl || pension.image || pension.ImageUrl;
+          const hasImage = !!imageUrl;
+          const finalImages = hasImage ? [imageUrl] : ['/src/assets/room-1.png'];
+          
+          console.log('🔍 useRooms - Mapping pension:', {
+            name: pension.name,
+            allImageFields: {
+              image_url: pension.image_url,
+              imageUrl: pension.imageUrl,
+              image: pension.image,
+              ImageUrl: pension.ImageUrl
+            },
+            selectedImageUrl: imageUrl,
+            hasImage,
+            finalImages
+          });
+          
+          return {
+            ...pension,
+            // Map image_url to images array for RoomCard compatibility
+            images: finalImages,
+            // Ensure packages have proper structure
+            packages: pension.packages || [],
+            // Map other fields as needed
+            latitude: parseFloat(pension.latitude) || 0,
+            longitude: parseFloat(pension.longitude) || 0,
+          };
+        });
+        
+        console.log('🔍 useRooms - Final mapped rooms:', mappedRooms.map(r => ({
+          name: r.name,
+          images: r.images,
+          firstImage: r.images[0]
+        })));
+        
+        return mappedRooms;
       } catch (error) {
+        console.log('🔍 useRooms - Error, falling back to mock data:', error);
         // Fallback to mock data
         return await getRooms();
       }

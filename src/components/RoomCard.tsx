@@ -2,7 +2,7 @@ import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
-import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
+import { getGoogleMapsNavigationUrl, getFullImageUrl, type Room } from "@/lib/rooms";
 
 interface RoomCardProps {
   room: Room;
@@ -12,6 +12,15 @@ interface RoomCardProps {
 
 const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
   const { t, tr } = useLanguage();
+  
+  // Convert pension image URL using the same function as package images
+  const fullImageUrl = getFullImageUrl(room.images[0]);
+  console.log('🔍 RoomCard image rendering:', {
+    roomName: room.name,
+    originalImage: room.images[0],
+    fullImageUrl,
+    type: typeof room.images[0]
+  });
   
   // Calculate starting price based on available rooms if possible, else default to minimum 
   const availablePkgs = room.packages.filter(p => p.availableRooms > 0);
@@ -25,10 +34,14 @@ const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
     <article className={`bg-card rounded-xl overflow-hidden border card-hover group flex flex-col cursor-pointer transition-all ${isDeal ? 'border-orange-200 dark:border-orange-900/50 shadow-md ring-1 ring-orange-500/20' : 'border-border'}`} onClick={() => onViewProfile(room)}>
       <div className="relative h-56 overflow-hidden shrink-0">
         <img
-          src={room.images[0]}
+          src={fullImageUrl}
           alt={room.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            console.error('❌ RoomCard image failed to load:', fullImageUrl, e);
+            e.target.src = '/src/assets/room-1.png'; // Fallback
+          }}
         />
         {isDeal && (
           <div className="absolute top-3 left-3 bg-orange-500 text-white px-2.5 py-1 rounded-md font-bold text-xs shadow-md flex items-center gap-1.5 z-10">

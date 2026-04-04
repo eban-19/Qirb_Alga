@@ -281,37 +281,123 @@ const roomSeedData: Room[] = [
     longitude: 38.7614,
     availableRooms: 6,
     images: [room6, heroBg],
-    videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
-    packages: [
-      { 
-        name: "Basic", 
-        price: 1800, 
-        description: "Practical shared-facility room.", 
-        image: room4, 
-        services: ["Standard WiFi", "Shared Bathroom", "Basic Cleaning"],
-        availableRooms: 3
-      },
-      { 
-        name: "Standard", 
-        price: 3000, 
-        description: "Standard private room.", 
-        image: package106Standard, 
-        videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
-        services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"],
-        availableRooms: 2
-      },
-      { 
-        name: "Premium", 
-        price: 4700, 
-        description: "Large shared-apartment room with all perks.", 
-        image: package106Premium, 
         videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
-        services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Laundry Service"],
-        availableRooms: 1
+        packages: [
+          { 
+            name: "Basic", 
+            price: 2500, 
+            description: "Standard lodge room.", 
+            image: room3, 
+            services: ["Standard WiFi", "Shared Bathroom", "Fresh Towels"],
+            availableRooms: 0
+          },
+          { 
+            name: "Standard", 
+            price: 3600, 
+            description: "Comfort room with private bathroom.", 
+            image: package105Standard, 
+            videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+            services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included", "Free Parking"],
+            availableRooms: 2
+          },
+          { 
+            name: "Premium", 
+            price: 5600, 
+            description: "Large room with balcony.", 
+            image: package105Premium, 
+            videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
+            services: ["Premium WiFi", "Private Balcony", "All Meals Included", "Laundry Service", "Airport Transfer"],
+            availableRooms: 1
+          },
+        ],
       },
-    ],
-  },
-];
+      {
+        id: "106",
+        name: "City Center Rooms",
+        description: "Convenient city-center rooms for students, workers, and visitors.",
+        ownerInfo: "Operated by City Center Housing Services.",
+        roomDetails: "Flexible stay duration and practical shared facilities.",
+        locationName: "Addis Ababa, Arat Kilo",
+        city: "Addis Ababa",
+        area: "Arat Kilo",
+        latitude: 9.0371,
+        longitude: 38.7614,
+        availableRooms: 6,
+        images: [room6, heroBg],
+        videoUrl: "https://player.vimeo.com/external/517090025.sd.mp4?s=ded8051e2bc00bded0fe00ca899d501dbf66a2e4&profile_id=165&oauth2_token_id=57447761",
+        packages: [
+          { 
+            name: "Basic", 
+            price: 1800, 
+            description: "Practical shared-facility room.", 
+            image: room4, 
+            services: ["Standard WiFi", "Shared Bathroom", "Basic Cleaning"],
+            availableRooms: 3
+          },
+          { 
+            name: "Standard", 
+            price: 3000, 
+            description: "Standard private room.", 
+            image: package106Standard, 
+            videoUrl: "https://player.vimeo.com/external/494250269.sd.mp4?s=f5eb19e71dfa705139fb7429188d6be62b66238b&profile_id=165&oauth2_token_id=57447761",
+            services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"],
+            availableRooms: 2
+          },
+          { 
+            name: "Premium", 
+            price: 4700, 
+            description: "Large shared-apartment room with all perks.", 
+            image: package106Premium, 
+            videoUrl: "https://player.vimeo.com/external/328940142.sd.mp4?s=1ea5efcc41a1a5b4816c148f322301c38cc01aa6&profile_id=164&oauth2_token_id=57447761",
+            services: ["Premium WiFi", "En-suite Bathroom", "All Meals Included", "Laundry Service"],
+            availableRooms: 1
+          },
+        ],
+      },
+    ];
+
+// Helper function to construct full URLs for images
+export const getFullImageUrl = (imagePath: string | undefined | null): string => {
+  console.log('🔍 getFullImageUrl input:', {
+    imagePath,
+    type: typeof imagePath,
+    isNull: imagePath === null,
+    isUndefined: imagePath === undefined,
+    isEmpty: imagePath === ''
+  });
+  
+  if (!imagePath) {
+    const fallback = '/src/assets/room-1.png';
+    console.log('🔍 Using fallback:', fallback);
+    return fallback;
+  }
+  
+  // If it's already a full URL (starts with http), return as is
+  if (imagePath.startsWith('http')) {
+    console.log('🔍 Already full URL:', imagePath);
+    return imagePath;
+  }
+  
+  // If it's a frontend asset path (/src/assets/), return as-is (served by frontend)
+  if (imagePath.startsWith('/src/assets/')) {
+    console.log('🔍 Frontend asset path, keeping as-is:', imagePath);
+    return imagePath;
+  }
+  
+  // If it's an uploaded file path (/uploads/), prepend the backend URL with cache-busting
+  if (imagePath.startsWith('/uploads/')) {
+    const timestamp = Date.now(); // Cache-busting parameter
+    const fullUrl = `http://localhost:3005${imagePath}?t=${timestamp}`;
+    console.log('🔍 Backend uploaded file, constructed full URL with cache-busting:', fullUrl);
+    return fullUrl;
+  }
+  
+  // Default: assume it's a backend file with cache-busting
+  const timestamp = Date.now();
+  const fullUrl = `http://localhost:3005${imagePath}?t=${timestamp}`;
+  console.log('🔍 Default backend file, constructed full URL with cache-busting:', fullUrl);
+  return fullUrl;
+};
 
 // Placeholder API layer: replace internals with real backend calls later.
 export async function getRooms(): Promise<Room[]> {

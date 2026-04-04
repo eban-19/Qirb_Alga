@@ -1,9 +1,10 @@
 import { MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
+import { getFullImageUrl } from "@/lib/rooms";
 
 interface PropertyCardProps {
-  image: string;
+  image_url: string;
   name: string;
   address: string;
   distance: string;
@@ -13,7 +14,7 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({
-  image,
+  image_url,
   name,
   address,
   distance,
@@ -24,14 +25,26 @@ const PropertyCard = ({
   const isLow = roomsLeft <= 2;
   const { t } = useLanguage();
 
+  // Convert pension image URL using the same function as package images
+  const fullImageUrl = getFullImageUrl(image_url);
+  console.log('🔍 PropertyCard image rendering:', {
+    originalImage: image_url,
+    fullImageUrl,
+    type: typeof image_url
+  });
+
   return (
     <div className="bg-card rounded-xl overflow-hidden border border-border card-hover cursor-pointer group">
       <div className="relative h-48 overflow-hidden">
         <img
-          src={image}
+          src={fullImageUrl}
           alt={name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            console.error('❌ PropertyCard image failed to load:', fullImageUrl, e);
+            e.target.src = '/src/assets/room-1.png'; // Fallback to default image
+          }}
         />
         <Badge
           className={`absolute top-3 right-3 ${

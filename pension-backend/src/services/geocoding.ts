@@ -37,10 +37,57 @@ class GeocodingService {
     try {
       console.log(`🔍 Geocoding address: "${address}"`);
       
-      // Known coordinates for major Ethiopian locations
+      // Step 1: Try OpenStreetMap API with multiple address variations for highest precision
+      const addressVariations = [
+        // Original address with country context
+        address + ', Ethiopia',
+        // Add city context for better matching
+        address + ', Addis Ababa, Ethiopia' + (address.toLowerCase().includes('addis') ? '' : ', Addis Ababa'),
+        // Reverse order for different matching
+        'Ethiopia, ' + address,
+        // Remove common words that might confuse API
+        address.replace(/Building|Hotel|Pension|Guest House|Lodge/gi, '').trim() + ', Ethiopia',
+        // Specific Ethiopian city context
+        address.includes('Addis') ? address : address + ', Ethiopia'
+      ];
+
+      // Remove duplicates and try each variation
+      const uniqueVariations = [...new Set(addressVariations)];
+      
+      for (const variation of uniqueVariations) {
+        try {
+          console.log(`🔍 Trying address variation: "${variation}"`);
+          const query = encodeURIComponent(variation);
+          const url = `${this.baseUrl}?q=${query}&format=json&limit=1&addressdetails=1`;
+          
+          const result = await this.makeGeocodingRequest(url, variation);
+          if (result) {
+            // Detect precision level
+            const precision = this.detectPrecision(result);
+            console.log(`✅ Found ${precision} coordinates for "${variation}":`, result);
+            return result;
+          }
+        } catch (error) {
+          console.log(`⚠️ Variation failed: "${variation}" - trying next...`);
+          continue;
+        }
+      }
+
+      console.log(`⚠️ All API variations failed for address: "${address}" - using fallback locations`);
+      
+      // Step 2: Fallback to known locations only if API completely fails
       const knownLocations: { [key: string]: Coordinates } = {
-        'adama': { lat: 8.5405, lng: 39.2748, displayName: 'Adama, Ethiopia' },
-        'nazret': { lat: 8.5405, lng: 39.2748, displayName: 'Nazret (Adama), Ethiopia' },
+        // Building-level (highest precision)
+        'abd building': { lat: 9.0200, lng: 38.7960, displayName: 'ABD Building, Addis Ababa, Ethiopia' },
+        'sheraton': { lat: 9.0239, lng: 38.7615, displayName: 'Sheraton Addis, Ethiopia' },
+        'hilton': { lat: 9.0200, lng: 38.7620, displayName: 'Hilton Addis, Ethiopia' },
+        
+        // Street-level (medium precision)
+        'bole road': { lat: 9.0200, lng: 38.7960, displayName: 'Bole Road, Addis Ababa, Ethiopia' },
+        'congo street': { lat: 9.0180, lng: 38.7950, displayName: 'Congo Street, Addis Ababa, Ethiopia' },
+        'bambis road': { lat: 9.0190, lng: 38.7965, displayName: 'Bambis Road, Addis Ababa, Ethiopia' },
+        
+        // Area-level (lower precision)
         'bole': { lat: 9.0200, lng: 38.7960, displayName: 'Bole, Addis Ababa, Ethiopia' },
         'gerji': { lat: 9.0320, lng: 38.7850, displayName: 'Gerji, Addis Ababa, Ethiopia' },
         'mercato': { lat: 9.0340, lng: 38.7420, displayName: 'Mercato, Addis Ababa, Ethiopia' },
@@ -49,42 +96,72 @@ class GeocodingService {
         'sarbet': { lat: 9.0130, lng: 38.7580, displayName: 'Sarbet, Addis Ababa, Ethiopia' },
         'arat kilo': { lat: 9.0370, lng: 38.7450, displayName: 'Arat Kilo, Addis Ababa, Ethiopia' },
         'mexico': { lat: 9.0037, lng: 38.7600, displayName: 'Mexico, Addis Ababa, Ethiopia' },
+        
+        // City-level (medium precision)
+        'nekemte': { lat: 9.4833, lng: 37.0333, displayName: 'Nekemte, Ethiopia' },
         'jimma': { lat: 7.6694, lng: 36.8344, displayName: 'Jimma, Ethiopia' },
-        'oromia': { lat: 8.5405, lng: 39.2748, displayName: 'Oromia, Ethiopia' }
+        'adama': { lat: 8.5405, lng: 39.2748, displayName: 'Adama, Ethiopia' },
+        'nazret': { lat: 8.5405, lng: 39.2748, displayName: 'Nazret (Adama), Ethiopia' },
+        'dire dawa': { lat: 9.5944, lng: 41.8661, displayName: 'Dire Dawa, Ethiopia' },
+        'bahirdar': { lat: 11.5765, lng: 37.3639, displayName: 'Bahirdar, Ethiopia' },
+        'gondar': { lat: 12.6030, lng: 37.4478, displayName: 'Gondar, Ethiopia' },
+        'mekelle': { lat: 13.4967, lng: 39.4753, displayName: 'Mekelle, Ethiopia' },
+        'hawassa': { lat: 7.0595, lng: 38.4675, displayName: 'Hawassa, Ethiopia' },
+        
+        // Region-level (lowest precision - last resort)
+        'oromia': { lat: 8.5405, lng: 39.2748, displayName: 'Oromia, Ethiopia' },
+        'tigray': { lat: 13.4967, lng: 39.4753, displayName: 'Tigray, Ethiopia' },
+        'amhara': { lat: 11.5765, lng: 37.3639, displayName: 'Amhara, Ethiopia' },
+        'snnpr': { lat: 7.0595, lng: 38.4675, displayName: 'SNNPR, Ethiopia' }
       };
 
-      // Check for known locations first
+      // Check for known locations (prioritize specific over general)
       const lowerAddress = address.toLowerCase();
+      
+      // Check building-level first
       for (const [location, coords] of Object.entries(knownLocations)) {
-        if (lowerAddress.includes(location)) {
-          console.log(`✅ Found known location "${location}" in address: "${address}"`);
+        if (lowerAddress.includes(location) && 
+            (location.includes('building') || location.includes('sheraton') || location.includes('hilton'))) {
+          console.log(`✅ Using building-level fallback location "${location}" for address: "${address}"`);
           return coords;
         }
       }
-
-      // Try different address formats for better geocoding
-      const addressVariations = [
-        address,
-        address + ', Ethiopia',
-        address + ', Addis Ababa, Ethiopia'
-      ];
-
-      for (const addressVariation of addressVariations) {
-        try {
-          const query = encodeURIComponent(addressVariation);
-          const url = `${this.baseUrl}?q=${query}&format=json&limit=1&addressdetails=1`;
-          
-          const result = await this.makeGeocodingRequest(url, addressVariation);
-          if (result) {
-            return result;
-          }
-        } catch (error) {
-          // Try next variation
-          continue;
+      
+      // Check street-level
+      for (const [location, coords] of Object.entries(knownLocations)) {
+        if (lowerAddress.includes(location) && location.includes('street')) {
+          console.log(`✅ Using street-level fallback location "${location}" for address: "${address}"`);
+          return coords;
         }
       }
-
-      console.log(`⚠️ No results found for address: "${address}"`);
+      
+      // Check area-level
+      for (const [location, coords] of Object.entries(knownLocations)) {
+        if (lowerAddress.includes(location) && 
+            !location.includes('building') && !location.includes('street') && !location.includes('region')) {
+          console.log(`✅ Using area-level fallback location "${location}" for address: "${address}"`);
+          return coords;
+        }
+      }
+      
+      // Check city-level
+      for (const [location, coords] of Object.entries(knownLocations)) {
+        if (lowerAddress.includes(location) && 
+            ['nekemte', 'jimma', 'adama', 'dire dawa', 'bahirdar', 'gondar', 'mekelle', 'hawassa'].includes(location)) {
+          console.log(`✅ Using city-level fallback location "${location}" for address: "${address}"`);
+          return coords;
+        }
+      }
+      
+      // Check region-level (last resort)
+      for (const [location, coords] of Object.entries(knownLocations)) {
+        if (lowerAddress.includes(location)) {
+          console.log(`✅ Using region-level fallback location "${location}" for address: "${address}"`);
+          return coords;
+        }
+      }
+      
+      console.log(`⚠️ No known location found for address: "${address}"`);
       // Return default coordinates if all variations fail
       return {
         lat: 9.03,
@@ -100,6 +177,19 @@ class GeocodingService {
         lng: 38.74,
         displayName: address
       };
+    }
+  }
+
+  private detectPrecision(result: Coordinates): string {
+    // Simple precision detection based on coordinate specificity
+    if (result.displayName.includes('Building') || result.displayName.includes('Hotel') || result.displayName.includes('Sheraton')) {
+      return '🎯 High precision: Building-level';
+    } else if (result.displayName.includes('Street') || result.displayName.includes('Road')) {
+      return '📍 Medium precision: Street-level';
+    } else if (result.displayName.includes('Addis Ababa') || result.displayName.includes(',')) {
+      return '🗺️ Medium precision: Area-level';
+    } else {
+      return '🌍 Low precision: Region-level';
     }
   }
 

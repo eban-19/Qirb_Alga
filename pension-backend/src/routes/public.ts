@@ -170,6 +170,7 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         longitude: coordinates.lng,
         availableRooms: liveAvailableRooms,
         images: [p.image_url || '/src/assets/room-1.png'],
+        image_url: p.image_url, // Add this field for frontend compatibility
         phone: p.phone || '',
         email: p.email || '',
         packages: packages.map((pkg: any): Package => ({

@@ -76,8 +76,40 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static files with proper CORS and path resolution
+const uploadsPath = path.join(__dirname, '../uploads');
+console.log('🔍 Uploads directory path:', uploadsPath);
+console.log('🔍 Uploads directory exists:', fs.existsSync(uploadsPath));
+
+// Serve static files with CORS headers
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  console.log('🔍 Upload request:', {
+    method: req.method,
+    url: req.url,
+    fullPath: path.join(uploadsPath, req.url),
+    exists: fs.existsSync(path.join(uploadsPath, req.url))
+  });
+  
+  // Use express.static to serve the file
+  express.static(uploadsPath, {
+    setHeaders: (res, path, stat) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+    }
+  })(req, res, next);
+});
 
 // API Routes (same as working .js version)
 app.use('/api/auth', authRoutes);
