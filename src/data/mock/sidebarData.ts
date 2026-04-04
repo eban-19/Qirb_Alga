@@ -37,6 +37,12 @@ export const sidebarLinks = [
     href: "/guests"
   },
   {
+    id: "pension-profile",
+    label: "Pension Profile",
+    icon: "Building",
+    href: "/pension-profile"
+  },
+  {
     id: "staff",
     label: "Staff & HR",
     icon: "Users",
@@ -61,19 +67,9 @@ export const sidebarLinks = [
     href: "/settings",
     sublinks: [
       {
-        id: "pension-profile",
-        label: "Pension Profile",
+        id: "business-profile",
+        label: "Business Profile",
         icon: "Building"
-      },
-      {
-        id: "legal",
-        label: "Legal",
-        icon: "ShieldCheck"
-      },
-      {
-        id: "billing",
-        label: "Billing",
-        icon: "CreditCard"
       },
       {
         id: "security",

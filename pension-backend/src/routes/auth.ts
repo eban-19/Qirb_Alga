@@ -274,12 +274,15 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
 
     // Get owner profile if user is owner
     let ownerProfile = null;
+    console.log('🔍 Get profile - User role:', user.role, 'User ID:', userId);
     if (user.role === 'owner') {
       const profiles = await executeQuery(
         'SELECT * FROM ownerprofiles WHERE owner_id = ?',
         [userId]
       );
+      console.log('🔍 Get profile - Owner profiles query result:', profiles);
       ownerProfile = profiles.length > 0 ? profiles[0] : null;
+      console.log('🔍 Get profile - Owner profile set to:', ownerProfile);
     }
 
     res.json({
@@ -309,18 +312,121 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
 
 // Update user profile
 router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
+  console.log('🔍 PUT /auth/profile - Request body:', req.body);
+  console.log('🔍 PUT /auth/profile - User role:', req.user.role);
+  console.log('🔍 PUT /auth/profile - User ID:', req.user.userId);
+  
   try {
     const userId = req.user.userId;
-    const { fullName, phone } = req.body;
+    const { fullName, phone, businessName, businessEmail, businessPhone, licenseNumber, licenseDocument } = req.body;
 
-    await executeQuery(
-      'UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?',
-      [fullName, phone, userId]
-    );
+    // Update basic user profile
+    if (fullName || phone) {
+      await executeQuery(
+        'UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?',
+        [fullName || req.body.fullName, phone || req.body.phone, userId]
+      );
+    }
+
+    // Update business profile if user is owner and business data provided
+    let statusChanged = false;
+    if ((businessName || businessEmail || businessPhone || licenseNumber || licenseDocument) && req.user.role.toLowerCase() === 'owner') {
+      // Check if owner profile exists
+      const existingProfile = await executeQuery(
+        'SELECT * FROM ownerprofiles WHERE owner_id = ?',
+        [userId]
+      );
+
+      // Check if any critical business fields are being changed
+      const criticalFieldsChanged = [];
+      if (existingProfile.length > 0) {
+        const current = existingProfile[0];
+        console.log('🔍 Update profile - Current profile:', current);
+        console.log('🔍 Update profile - New data:', { businessName, businessEmail, businessPhone, licenseNumber, licenseDocument });
+        
+        if (businessName && businessName !== current.business_name) criticalFieldsChanged.push('business_name');
+        if (businessEmail && businessEmail !== current.business_email) criticalFieldsChanged.push('business_email');
+        if (businessPhone && businessPhone !== current.business_phone) criticalFieldsChanged.push('business_phone');
+        if (licenseNumber && licenseNumber !== current.license_number) criticalFieldsChanged.push('license_number');
+        if (licenseDocument && licenseDocument !== current.id_document_url) criticalFieldsChanged.push('id_document_url');
+        
+        console.log('🔍 Update profile - Critical fields changed:', criticalFieldsChanged);
+      }
+
+      // If critical fields changed, set status to Pending
+      if (criticalFieldsChanged.length > 0) {
+        statusChanged = true;
+        console.log('🔍 Critical business fields changed:', criticalFieldsChanged, 'Setting status to Pending');
+        
+        // Also update users table to set approved = 0 (pending)
+        await executeQuery(
+          'UPDATE users SET approved = 0 WHERE user_id = ?',
+          [userId]
+        );
+      }
+
+      if (existingProfile.length > 0) {
+        // Update existing owner profile - only update non-empty fields
+        const updateFields = [];
+        const updateParams = [];
+        
+        if (businessName !== undefined && businessName !== '') {
+          updateFields.push('business_name = ?');
+          updateParams.push(businessName);
+        }
+        if (businessEmail !== undefined && businessEmail !== '') {
+          updateFields.push('business_email = ?');
+          updateParams.push(businessEmail);
+        }
+        if (businessPhone !== undefined && businessPhone !== '') {
+          updateFields.push('business_phone = ?');
+          updateParams.push(businessPhone);
+        }
+        // Only update license number if explicitly provided (not empty)
+        if (licenseNumber !== undefined && licenseNumber !== '') {
+          updateFields.push('license_number = ?');
+          updateParams.push(licenseNumber);
+        }
+        // Only update document if explicitly provided (not empty)
+        if (licenseDocument !== undefined && licenseDocument !== '') {
+          updateFields.push('id_document_url = ?');
+          updateParams.push(licenseDocument);
+        }
+        
+        updateFields.push('approval_status = ?');
+        updateParams.push(statusChanged ? 'Pending' : 'Approved');
+        updateParams.push(userId); // Add userId for WHERE clause
+        
+        const updateQuery = `UPDATE ownerprofiles SET ${updateFields.join(', ')} WHERE owner_id = ?`;
+        await executeQuery(updateQuery, updateParams);
+      } else {
+        // Create new owner profile
+        await executeQuery(`
+          INSERT INTO ownerprofiles 
+          SET owner_id = ?,
+              business_name = ?,
+              business_email = ?,
+              business_phone = ?,
+              license_number = ?,
+              id_document_url = ?,
+              expiry_date = ?,
+              approval_status = ?
+        `, [
+          userId,
+          businessName,
+          businessEmail,
+          businessPhone,
+          licenseNumber,
+          licenseDocument,
+          statusChanged ? 'Pending' : 'Approved'
+        ]);
+      }
+    }
 
     res.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully' + (statusChanged ? ' and is pending admin review' : ''),
+      statusChanged: statusChanged
     });
 
   } catch (error: any) {

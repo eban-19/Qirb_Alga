@@ -37,76 +37,119 @@ class GeocodingService {
     try {
       console.log(`🔍 Geocoding address: "${address}"`);
       
-      const query = encodeURIComponent(address + ', Ethiopia'); // Add Ethiopia for better results
-      const url = `${this.baseUrl}?q=${query}&format=json&limit=1&addressdetails=1`;
-      
-      return new Promise((resolve, reject) => {
-        const request = https.get(url, {
-          headers: {
-            'User-Agent': this.userAgent
+      // Known coordinates for major Ethiopian locations
+      const knownLocations: { [key: string]: Coordinates } = {
+        'adama': { lat: 8.5405, lng: 39.2748, displayName: 'Adama, Ethiopia' },
+        'nazret': { lat: 8.5405, lng: 39.2748, displayName: 'Nazret (Adama), Ethiopia' },
+        'bole': { lat: 9.0200, lng: 38.7960, displayName: 'Bole, Addis Ababa, Ethiopia' },
+        'gerji': { lat: 9.0320, lng: 38.7850, displayName: 'Gerji, Addis Ababa, Ethiopia' },
+        'mercato': { lat: 9.0340, lng: 38.7420, displayName: 'Mercato, Addis Ababa, Ethiopia' },
+        'piassa': { lat: 9.0350, lng: 38.7430, displayName: 'Piassa, Addis Ababa, Ethiopia' },
+        'kazanchis': { lat: 9.0140, lng: 38.7560, displayName: 'Kazanchis, Addis Ababa, Ethiopia' },
+        'sarbet': { lat: 9.0130, lng: 38.7580, displayName: 'Sarbet, Addis Ababa, Ethiopia' },
+        'arat kilo': { lat: 9.0370, lng: 38.7450, displayName: 'Arat Kilo, Addis Ababa, Ethiopia' },
+        'mexico': { lat: 9.0037, lng: 38.7600, displayName: 'Mexico, Addis Ababa, Ethiopia' },
+        'jimma': { lat: 7.6694, lng: 36.8344, displayName: 'Jimma, Ethiopia' },
+        'oromia': { lat: 8.5405, lng: 39.2748, displayName: 'Oromia, Ethiopia' }
+      };
+
+      // Check for known locations first
+      const lowerAddress = address.toLowerCase();
+      for (const [location, coords] of Object.entries(knownLocations)) {
+        if (lowerAddress.includes(location)) {
+          console.log(`✅ Found known location "${location}" in address: "${address}"`);
+          return coords;
+        }
+      }
+
+      // Try different address formats for better geocoding
+      const addressVariations = [
+        address,
+        address + ', Ethiopia',
+        address + ', Addis Ababa, Ethiopia'
+      ];
+
+      for (const addressVariation of addressVariations) {
+        try {
+          const query = encodeURIComponent(addressVariation);
+          const url = `${this.baseUrl}?q=${query}&format=json&limit=1&addressdetails=1`;
+          
+          const result = await this.makeGeocodingRequest(url, addressVariation);
+          if (result) {
+            return result;
           }
-        }, (response) => {
-          let data = '';
-          
-          response.on('data', (chunk) => {
-            data += chunk;
-          });
-          
-          response.on('end', () => {
-            try {
-              const results = JSON.parse(data);
-              
-              if (results && results.length > 0) {
-                const result = results[0];
-                const coordinates: Coordinates = {
-                  lat: parseFloat(result.lat),
-                  lng: parseFloat(result.lon),
-                  displayName: result.display_name || address
-                };
-                
-                console.log(`✅ Geocoded "${address}" to:`, coordinates);
-                resolve(coordinates);
-              } else {
-                console.log(`⚠️ No results found for address: "${address}"`);
-                // Return default coordinates if geocoding fails
-                resolve({
-                  lat: 9.03,
-                  lng: 38.74,
-                  displayName: address
-                });
-              }
-            } catch (parseError: any) {
-              console.error('❌ Error parsing geocoding response:', parseError);
-              reject(parseError);
-            }
-          });
-        });
-        
-        request.on('error', (error: any) => {
-          console.error('❌ Geocoding request error:', error);
-          reject(error);
-        });
-        
-        request.setTimeout(5000, () => {
-          request.destroy();
-          console.log('⏰ Geocoding request timeout');
-          resolve({
-            lat: 9.03,
-            lng: 38.74,
-            displayName: address
-          });
-        });
-      });
+        } catch (error) {
+          // Try next variation
+          continue;
+        }
+      }
+
+      console.log(`⚠️ No results found for address: "${address}"`);
+      // Return default coordinates if all variations fail
+      return {
+        lat: 9.03,
+        lng: 38.74,
+        displayName: address
+      };
       
     } catch (error: any) {
-      console.error('❌ Geocoding service error:', error);
-      // Return default coordinates on any error
+      console.error('❌ Geocoding error:', error.message);
+      // Return default coordinates on error
       return {
         lat: 9.03,
         lng: 38.74,
         displayName: address
       };
     }
+  }
+
+  private async makeGeocodingRequest(url: string, originalAddress: string): Promise<Coordinates> {
+    return new Promise((resolve, reject) => {
+      const request = https.get(url, {
+        headers: {
+          'User-Agent': this.userAgent
+        }
+      }, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            const results = JSON.parse(data);
+            
+            if (results && results.length > 0) {
+              const result = results[0];
+              const coordinates: Coordinates = {
+                lat: parseFloat(result.lat),
+                lng: parseFloat(result.lon),
+                displayName: result.display_name || originalAddress
+              };
+              
+              console.log(`✅ Geocoded "${originalAddress}" to:`, coordinates);
+              resolve(coordinates);
+            } else {
+              reject(new Error('No results found'));
+            }
+          } catch (parseError: any) {
+            console.error('❌ Error parsing geocoding response:', parseError);
+            reject(parseError);
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.error('❌ Geocoding request error:', error);
+        reject(error);
+      });
+
+      request.setTimeout(10000, () => {
+        request.destroy();
+        reject(new Error('Geocoding request timeout'));
+      });
+    });
   }
 
   /**

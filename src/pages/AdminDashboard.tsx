@@ -511,6 +511,8 @@ export default function AdminDashboard() {
 
 
       setOwners(ownersRes.data || []);
+      console.log('🔍 Admin Dashboard - Owners data loaded:', ownersRes.data);
+      console.log('🔍 Admin Dashboard - Pending owners:', ownersRes.data?.filter(o => o.status === 'pending' || o.documentStatus === 'pending'));
 
 
 
@@ -1100,7 +1102,7 @@ export default function AdminDashboard() {
 
           if (response.success) {
 
-            setOwners(prev => prev.map(o => o.id === ownerId ? { ...o, status: "verified" as const } : o));
+            setOwners(prev => prev.map(o => o.id === ownerId ? { ...o, status: "verified" as const, documentStatus: "approved" as const } : o));
 
             console.log("✅ Owner approved successfully:", ownerId);
 
@@ -1132,7 +1134,7 @@ export default function AdminDashboard() {
 
           if (response.success) {
 
-            setOwners(prev => prev.map(o => o.id === ownerId ? { ...o, status: "rejected" as const } : o));
+            setOwners(prev => prev.map(o => o.id === ownerId ? { ...o, status: "rejected" as const, documentStatus: "rejected" as const } : o));
 
             console.log("✅ Owner rejected successfully:", ownerId);
 
@@ -1524,40 +1526,9 @@ export default function AdminDashboard() {
 
 
 
-            <div>
-
-
-
+            <div className="flex items-center justify-between">
               <h1 className="text-lg md:text-2xl font-bold">Pension Platform Admin</h1>
-
-
-
-              <p className="text-blue-200 text-sm md:text-base hidden sm:block">Manage Ethiopian Pension Properties Network</p>
-
-
-
-              {lastUpdate && (
-
-
-
-                <p className="text-xs text-blue-300 mt-1">
-
-
-
-                  Last update: {new Date(lastUpdate).toLocaleTimeString()}
-
-
-
-                </p>
-
-
-
-              )}
-
-
-
             </div>
-
 
 
           </div>
@@ -1988,7 +1959,7 @@ export default function AdminDashboard() {
 
 
 
-                    {owners.filter(o => o.status === 'pending').length}
+                    {owners.filter(o => o.status === 'pending' || o.documentStatus === 'pending').length}
 
 
 

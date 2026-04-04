@@ -52,16 +52,34 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
   try {
     const { page = 1, limit = 10, search } = req.query;
 
-    let query = 'SELECT * FROM pensions';
-    const params: any[] = [];
+    // Debug: Check all pensions and their statuses
+    const allPensionsQuery = `
+      SELECT p.pension_id, p.name, p.status, op.approval_status, op.owner_id
+      FROM pensions p
+      LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
+      ORDER BY p.created_at DESC
+    `;
+    const allPensionsResult = await executeQuery(allPensionsQuery);
+    console.log('🔍 All pensions debug:', allPensionsResult);
+
+    let query = `
+      SELECT p.*, op.business_name, op.approval_status 
+      FROM pensions p
+      LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
+      WHERE LOWER(p.status) = ? AND LOWER(op.approval_status) = ?
+    `;
+    const params: any[] = ['active', 'approved'];
 
     if (search) {
-      query += ' WHERE (name LIKE ? OR description LIKE ? OR address LIKE ?)';
+      query += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.address LIKE ?)';
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     query += ' ORDER BY created_at DESC';
+    console.log('🔍 Public pensions query:', query);
+    console.log('🔍 Public pensions params:', params);
     const pensionsResult = await executeQuery(query, params);
+    console.log('🔍 Public pensions result:', pensionsResult);
 
     // Map each pension to include its real packages and counts
     const items = await Promise.all(pensionsResult.map(async (p: any) => {
@@ -121,8 +139,13 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
       }
 
       // Get coordinates (use existing or geocode from address)
-      let coordinates = { lat: p.latitude, lng: p.longitude };
-      if (!p.latitude || !p.longitude) {
+      let coordinates = { 
+        lat: parseFloat(p.latitude) || null, 
+        lng: parseFloat(p.longitude) || null 
+      };
+      
+      // If coordinates are invalid (null, NaN, or 0), geocode from address
+      if (!coordinates.lat || !coordinates.lng || isNaN(coordinates.lat) || isNaN(coordinates.lng)) {
         try {
           coordinates = await geocodingService.geocodeAddress(p.address);
           console.log(`🗺️ Geocoded "${p.name}" address to:`, coordinates);
@@ -130,6 +153,8 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
           console.log(`⚠️ Geocoding failed for "${p.name}":`, (error as Error).message);
           coordinates = { lat: 9.03, lng: 38.74 }; // Default fallback
         }
+      } else {
+        console.log(`✅ Using existing coordinates for "${p.name}":`, coordinates);
       }
 
       return {
@@ -191,7 +216,12 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
   try {
     const { id } = req.params;
 
-    const pensionResult = await executeQuery('SELECT * FROM pensions WHERE pension_id = ?', [id]);
+    const pensionResult = await executeQuery(`
+      SELECT p.*, op.business_name, op.approval_status 
+      FROM pensions p
+      LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
+      WHERE p.pension_id = ? AND p.status = ? AND op.approval_status = ?
+    `, [id, 'active', 'Approved']);
     if (pensionResult.length === 0) {
       return res.status(404).json({ success: false, message: 'Pension not found' });
     }

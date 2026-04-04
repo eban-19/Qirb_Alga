@@ -1,6 +1,7 @@
 import * as express from 'express';
 import { executeQuery, executeTransaction } from '../config/database';
 import { authenticateToken, requireAdmin, requireOwnerApproval } from '../middleware/auth';
+import geocodingService from '../services/geocoding';
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ interface PensionData {
   capacity: number;
   owner_info: string;
   room_details: string;
+  image_url?: string;
 }
 
 // Get all pensions (protected) - Simple route for frontend
@@ -138,7 +140,8 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       email,
       capacity,
       owner_info,
-      room_details
+      room_details,
+      image_url
     }: PensionData = req.body;
 
     console.log('Extracted values:', {
@@ -149,7 +152,8 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       email,
       capacity,
       owner_info,
-      room_details
+      room_details,
+      image_url
     });
 
     // Validate required fields
@@ -160,11 +164,25 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       });
     }
 
-    console.log('About to execute INSERT query...');
+    // Geocode address to get coordinates
+    console.log(`🗺️ Geocoding address for new pension: "${address}"`);
+    let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
+    
+    if (address) {
+      try {
+        coordinates = await geocodingService.geocodeAddress(address);
+        console.log(`✅ Geocoded "${name}" to coordinates:`, coordinates);
+      } catch (error: any) {
+        console.log(`⚠️ Geocoding failed for "${name}":`, (error as Error).message);
+        console.log('📍 Using default Addis Ababa coordinates as fallback');
+      }
+    }
+
+    console.log('About to execute INSERT query with coordinates...');
     const result = await executeQuery(
-      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, owner_id, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
-      [name, description, owner_info, room_details, address, phone, email, capacity || 0, userId]
+      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, latitude, longitude, owner_id, status, image_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
+      [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, userId, image_url || null]
     );
 
     console.log('INSERT result:', result);
@@ -214,7 +232,8 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       email,
       capacity,
       owner_info,
-      room_details
+      room_details,
+      image_url
     }: PensionData = req.body;
 
     console.log('Extracted values:', {
@@ -225,7 +244,8 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       email,
       capacity,
       owner_info,
-      room_details
+      room_details,
+      image_url
     });
 
     // Validate required fields
@@ -260,13 +280,27 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
 
     console.log('Ownership check passed. Updating pension...');
     
-    // Update pension - only use columns that exist
+    // Geocode address to get updated coordinates
+    console.log(`🗺️ Geocoding updated address for pension: "${address}"`);
+    let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
+    
+    if (address) {
+      try {
+        coordinates = await geocodingService.geocodeAddress(address);
+        console.log(`✅ Re-geocoded "${name}" to coordinates:`, coordinates);
+      } catch (error: any) {
+        console.log(`⚠️ Re-geocoding failed for "${name}":`, (error as Error).message);
+        console.log('📍 Using default Addis Ababa coordinates as fallback');
+      }
+    }
+    
+    // Update pension with coordinates
     try {
       await executeQuery(
         `UPDATE pensions 
-         SET name = ?, description = ?, owner_info = ?, room_details = ?, address = ?, phone = ?, email = ?, capacity = ?
+         SET name = ?, description = ?, owner_info = ?, room_details = ?, address = ?, phone = ?, email = ?, capacity = ?, latitude = ?, longitude = ?, image_url = ?
          WHERE pension_id = ?`,
-        [name, description, owner_info, room_details, address, phone, email, capacity || 0, id]
+        [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, image_url || null, id]
       );
 
       console.log('Pension updated successfully');
@@ -388,6 +422,52 @@ router.get('/my/pensions', authenticateToken as any, async (req: any, res: expre
     res.status(500).json({
       success: false,
       message: 'Failed to fetch pensions'
+    });
+  }
+});
+
+// Update existing pensions with missing coordinates (admin only)
+router.post('/update-coordinates', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    console.log('=== UPDATING MISSING COORDINATES ===');
+    
+    // Get all pensions without coordinates
+    const pensionsWithoutCoords = await executeQuery(`
+      SELECT pension_id, name, address 
+      FROM pensions 
+      WHERE latitude IS NULL OR longitude IS NULL OR latitude = '' OR longitude = ''
+    `);
+    
+    console.log(`Found ${pensionsWithoutCoords.length} pensions without coordinates`);
+    
+    for (const pension of pensionsWithoutCoords) {
+      try {
+        console.log(`🗺️ Geocoding address for pension "${pension.name}": "${pension.address}"`);
+        const coordinates = await geocodingService.geocodeAddress(pension.address);
+        
+        await executeQuery(`
+          UPDATE pensions 
+          SET latitude = ?, longitude = ? 
+          WHERE pension_id = ?
+        `, [coordinates.lat, coordinates.lng, pension.pension_id]);
+        
+        console.log(`✅ Updated coordinates for "${pension.name}":`, coordinates);
+        
+      } catch (error: any) {
+        console.log(`⚠️ Failed to geocode "${pension.name}":`, error.message);
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: `Updated coordinates for ${pensionsWithoutCoords.length} pensions`
+    });
+    
+  } catch (error: any) {
+    console.error('Error updating coordinates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
     });
   }
 });

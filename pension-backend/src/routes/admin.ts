@@ -375,7 +375,8 @@ router.get('/pensions/all', authenticateToken as any, requireAdmin as any, async
       }
 
       return {
-        id: property.pension_id.toString(),
+        pension_id: property.pension_id,
+        id: property.pension_id.toString(), // Frontend fallback
         name: property.name,
         description: property.description,
         address: property.address,

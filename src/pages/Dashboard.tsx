@@ -59,6 +59,7 @@ import {
   ShieldCheck,
   FileText,
   CheckCircle,
+  AlertCircle,
   RefreshCcw,
   MessageSquare,
   Eye,
@@ -67,7 +68,7 @@ import {
   MapPin,
   Hash,
   Package,
-  Image,
+  Image as ImageIcon,
   Info,
   Check,
   Plus,
@@ -94,8 +95,12 @@ export const Dashboard: React.FC = () => {
     address: '',
     phone: '',
     email: '',
-    capacity: ''
+    capacity: '',
+    owner_info: '',
+    room_details: '',
+    image_url: ''
   });
+  const [pensionImageFile, setPensionImageFile] = useState<File | null>(null);
   const [pensions, setPensions] = useState<any[]>([]);
   const [selectedPensionId, setSelectedPensionId] = useState<string>('');
   const [userPension, setUserPension] = useState<any>(null);
@@ -274,10 +279,45 @@ export const Dashboard: React.FC = () => {
   // Handle pension creation
   const handleCreatePension = async () => {
     try {
-      const response = await apiService.createPension(newPension);
+      let imageUrl = '';
+      
+      // Upload image if selected
+      if (pensionImageFile) {
+        const formData = new FormData();
+        formData.append('image', pensionImageFile);
+        
+        try {
+          const token = localStorage.getItem('token');
+          const uploadResponse = await fetch('http://localhost:3005/api/uploads/single', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            imageUrl = uploadResult.data?.url || '';
+          } else {
+            console.error('Image upload failed');
+          }
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+        }
+      }
+      
+      // Create pension with image URL
+      const pensionData = {
+        ...newPension,
+        image_url: imageUrl
+      };
+      
+      const response = await apiService.createPension(pensionData);
       if (response.success) {
         setShowCreatePension(false);
-        setNewPension({ name: '', description: '', address: '', phone: '', email: '', capacity: '' });
+        setNewPension({ name: '', description: '', address: '', phone: '', email: '', capacity: '', owner_info: '', room_details: '', image_url: '' });
+        setPensionImageFile(null);
         loadRealData(); // Refresh data
       }
     } catch (error) {
@@ -532,6 +572,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadRealData();
+    loadBusinessProfile();
   }, [activeTab, isAuthenticated, user, pensions.length, selectedPensionId]);
 
   // Type for property settings
@@ -549,6 +590,7 @@ export const Dashboard: React.FC = () => {
     checkInTime: string;
     checkOutTime: string;
     cancellationPolicy: string;
+    imageUrl?: string;
   }
 
   // Settings states
@@ -598,8 +640,10 @@ export const Dashboard: React.FC = () => {
     amenities: [],
     checkInTime: "12:00",
     checkOutTime: "10:00",
-    cancellationPolicy: "Flexible"
+    cancellationPolicy: "Flexible",
+    imageUrl: ""
   });
+  const [pensionProfileImageFile, setPensionProfileImageFile] = useState<File | null>(null);
 
   // Calculate available rooms dynamically based on actual room data
   const calculateAvailableRooms = (packageId: string) => {
@@ -648,7 +692,8 @@ export const Dashboard: React.FC = () => {
         amenities: [],
         checkInTime: "12:00",
         checkOutTime: "10:00",
-        cancellationPolicy: "Flexible"
+        cancellationPolicy: "Flexible",
+        imageUrl: currentPension.image_url || ""
       });
       
       // Fetch actual room statistics
@@ -668,7 +713,8 @@ export const Dashboard: React.FC = () => {
         amenities: [],
         checkInTime: "12:00",
         checkOutTime: "10:00",
-        cancellationPolicy: "Flexible"
+        cancellationPolicy: "Flexible",
+        imageUrl: ""
       });
     }
   }, [pensions, user, selectedPensionId]);
@@ -863,6 +909,17 @@ export const Dashboard: React.FC = () => {
     safetyCertificate: "Valid until 2024-06-30"
   });
 
+  const [businessProfile, setBusinessProfile] = useState({
+    businessName: "",
+    businessEmail: "",
+    businessPhone: "",
+    licenseNumber: "",
+    licenseDocument: null
+  });
+
+  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<string>('');
+
   // Settings handlers
   const handleSavePropertySettings = async () => {
     try {
@@ -892,6 +949,34 @@ export const Dashboard: React.FC = () => {
         // Update existing pension
         const pensionId = foundPension.pension_id || foundPension.id;
         
+        let imageUrl = propertySettings.imageUrl || '';
+        
+        // Upload new image if selected
+        if (pensionProfileImageFile) {
+          const formData = new FormData();
+          formData.append('image', pensionProfileImageFile);
+          
+          try {
+            const token = localStorage.getItem('token');
+            const uploadResponse = await fetch('http://localhost:3005/api/uploads/single', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+              body: formData,
+            });
+            
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              imageUrl = uploadResult.data?.url || '';
+            } else {
+              console.error('Image upload failed');
+            }
+          } catch (uploadError) {
+            console.error('Error uploading image:', uploadError);
+          }
+        }
+        
         await apiService.updatePension(pensionId, {
           name: propertySettings.name,
           address: propertySettings.address,
@@ -900,7 +985,8 @@ export const Dashboard: React.FC = () => {
           description: propertySettings.description,
           owner_info: propertySettings.ownerInfo,
           room_details: propertySettings.roomDetails,
-          capacity: propertySettings.capacity
+          capacity: propertySettings.capacity,
+          image_url: imageUrl
         });
         
       } else if (pensions.length === 0) {
@@ -910,7 +996,9 @@ export const Dashboard: React.FC = () => {
           name: propertySettings.name || "New Pension",
           address: propertySettings.address || "New Address",
           description: propertySettings.description || "New pension description",
-          capacity: 5
+          capacity: 5,
+          owner_info: "Experienced property manager dedicated to providing comfortable and safe accommodation.",
+          room_details: "Well-maintained rooms with modern amenities, clean facilities, and comfortable furnishings for a pleasant stay."
         });
         
         alert('New pension created successfully!');
@@ -923,7 +1011,9 @@ export const Dashboard: React.FC = () => {
           name: propertySettings.name || "Owner's Pension",
           address: propertySettings.address || "Owner's Address",
           description: propertySettings.description || "Owner's pension description",
-          capacity: 5
+          capacity: 5,
+          owner_info: "Professional property owner with years of hospitality experience, committed to excellent guest service.",
+          room_details: "Comfortable and clean rooms equipped with essential amenities, ensuring a relaxing and enjoyable stay for all guests."
         });
         
         alert('Owner pension created successfully!');
@@ -931,6 +1021,9 @@ export const Dashboard: React.FC = () => {
       
       // Refresh data
       loadRealData();
+      
+      // Reset image file state
+      setPensionProfileImageFile(null);
       
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 3000);
@@ -943,10 +1036,149 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleSaveSecuritySettings = () => {
-    setShowSaveSuccess(true);
-    setTimeout(() => setShowSaveSuccess(false), 3000);
-    setSecuritySettings({ ...securitySettings, currentPassword: "", newPassword: "", confirmPassword: "" });
+  const handleSaveBusinessProfile = async () => {
+    try {
+      setIsUpdating(true);
+      
+      let documentUrl = businessProfile.licenseDocument || '';
+      
+      // Upload new license document if selected
+      if (businessLicenseFile) {
+        const formData = new FormData();
+        formData.append('image', businessLicenseFile);
+        
+        try {
+          const token = localStorage.getItem('token');
+          const uploadResponse = await fetch('http://localhost:3005/api/uploads/single', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            documentUrl = uploadResult.data?.url || '';
+          } else {
+            const errorData = await uploadResponse.json();
+            console.error('Document upload failed:', errorData);
+            alert(`Document upload failed: ${errorData.message || 'Unknown error'}`);
+            return;
+          }
+        } catch (uploadError) {
+          console.error('Error uploading document:', uploadError);
+          alert(`Error uploading document: ${uploadError.message || 'Network error'}`);
+          return;
+        }
+      }
+      
+      // Update business profile in backend
+      const response = await apiService.updateUserProfile(user?.id || user?.user_id, {
+        businessName: businessProfile.businessName,
+        businessEmail: businessProfile.businessEmail,
+        businessPhone: businessProfile.businessPhone,
+        licenseNumber: businessProfile.licenseNumber,
+        licenseDocument: documentUrl
+      });
+      
+      // Reset file state
+      setBusinessLicenseFile(null);
+      
+      // Show appropriate message based on status change
+      if (response.statusChanged) {
+        console.log('🔍 Business profile updated - status changed to pending');
+        alert('Business profile updated successfully! Your changes are pending admin review.');
+      } else {
+        console.log('🔍 Business profile updated - no status change');
+        setShowSaveSuccess(true);
+        setTimeout(() => setShowSaveSuccess(false), 3000);
+      }
+      
+      // Reload data to get updated status
+      loadBusinessProfile();
+      
+    } catch (error) {
+      console.error('Error in handleSaveBusinessProfile:', error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const loadBusinessProfile = async () => {
+    try {
+      const response = await apiService.getProfile();
+      console.log('🔍 Loading business profile - API response:', response);
+      if (response.success && response.data) {
+        const userData = response.data.user;
+        const ownerData = response.data.ownerProfile;
+        console.log('🔍 Loading business profile - Owner data:', ownerData);
+        
+        // Update business profile state
+        setBusinessProfile({
+          businessName: ownerData?.business_name || '',
+          businessEmail: ownerData?.business_email || '',
+          businessPhone: ownerData?.business_phone || '',
+          licenseNumber: ownerData?.license_number || '',
+          licenseDocument: ownerData?.id_document_url || ''
+        });
+        
+        // Update approval status
+        const status = ownerData?.approval_status || 'Pending';
+        setApprovalStatus(status);
+        console.log('🔍 Loading business profile - Approval status set to:', status);
+        
+        // Update compliance settings
+        setComplianceSettings({
+          ...complianceSettings,
+          licenseNumber: ownerData?.license_number || '',
+          expiryDate: ownerData?.expiry_date || complianceSettings.expiryDate
+        });
+      }
+    } catch (error) {
+      console.error('Error loading business profile:', error);
+    }
+  };
+
+  const handleSaveSecuritySettings = async () => {
+    try {
+      setIsUpdating(true);
+      
+      if (!securitySettings.currentPassword || !securitySettings.newPassword) {
+        alert('Please enter both current and new passwords');
+        return;
+      }
+      
+      // Call the change password API
+      const response = await fetch('http://localhost:3005/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          currentPassword: securitySettings.currentPassword,
+          newPassword: securitySettings.newPassword
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setShowSaveSuccess(true);
+        setTimeout(() => setShowSaveSuccess(false), 3000);
+        setSecuritySettings({ ...securitySettings, currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        alert(result.message || 'Failed to update password');
+      }
+      
+    } catch (error) {
+      console.error('Error updating security settings:', error);
+      alert('Failed to update password');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleSaveComplianceSettings = () => {
@@ -1301,7 +1533,7 @@ export const Dashboard: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <span className="truncate text-sm font-medium">{pension.name}</span>
                             <div className="text-xs text-slate-500">
-                              {pension.location || 'Main Location'}
+                              {pension.address || 'Main Location'}
                             </div>
                           </div>
                           {pension.status === 'active' || pension.status === 'Approved' ? (
@@ -1329,10 +1561,7 @@ export const Dashboard: React.FC = () => {
                     <button
                       onClick={() => {
                         setSettingsExpanded(!settingsExpanded);
-                        if (!settingsExpanded) {
-                          setActiveTab("settings-pension-profile");
-                        }
-                        if (window.innerWidth < 1024) setMobileSidebarOpen(false);
+                        // Don't close sidebar for settings dropdown - keep it open for sub-navigation
                       }}
                       className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${isActive
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
@@ -1354,7 +1583,7 @@ export const Dashboard: React.FC = () => {
                               key={sub.id}
                               onClick={() => {
                                 setActiveTab(`settings-${sub.id}`);
-                                if (window.innerWidth < 1024) setMobileSidebarOpen(false);
+                                setMobileSidebarOpen(false);
                               }}
                               className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-[13px] font-bold transition-all duration-200 ${isSubActive
                                 ? "text-primary bg-primary/10"
@@ -1378,7 +1607,8 @@ export const Dashboard: React.FC = () => {
                   onClick={() => {
                     setActiveTab(link.id);
                     setSettingsExpanded(false);
-                    if (window.innerWidth < 1024) setMobileSidebarOpen(false);
+                    // Close sidebar for regular navigation items
+                    setMobileSidebarOpen(false);
                   }}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${isActive
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
@@ -1398,9 +1628,8 @@ export const Dashboard: React.FC = () => {
               className="w-full justify-start gap-3 text-slate-600 hover:bg-white hover:text-primary transition-colors font-medium text-sm"
               onClick={() => {
                 navigate("/");
-                if (window.innerWidth < 1024) {
-                  setMobileSidebarOpen(false);
-                }
+                // Close sidebar when navigating back to home
+                setMobileSidebarOpen(false);
               }}
             >
               <Home className="h-4 w-4" />
@@ -1510,6 +1739,7 @@ export const Dashboard: React.FC = () => {
                    activeTab === "bookings" ? "Bookings Management" :
                    activeTab === "rooms" ? "Rooms Management" :
                    activeTab === "guests" ? "Guests Management" :
+                   activeTab === "pension-profile" ? "Pension Profile Management" :
                    activeTab === "transactions" ? "Transactions" :
                    activeTab === "reports" ? "Reports & Analytics" :
                    activeTab.startsWith("settings-") ? "Settings" :
@@ -1520,6 +1750,7 @@ export const Dashboard: React.FC = () => {
                    activeTab === "bookings" ? "Manage all room bookings and reservations." :
                    activeTab === "rooms" ? "Manage all rooms and their availability." :
                    activeTab === "guests" ? "Manage guest information and booking history." :
+                   activeTab === "pension-profile" ? "Manage your pension details, packages, and property information." :
                    activeTab === "transactions" ? "View all financial transactions." :
                    activeTab === "reports" ? "Generate detailed reports and insights." :
                    activeTab.startsWith("settings-") ? "Manage your account settings." :
@@ -1569,6 +1800,12 @@ export const Dashboard: React.FC = () => {
                 <Button className="gap-2 bg-primary hover:bg-primary/90">
                   <Users className="h-4 w-4" />
                   Add Guest
+                </Button>
+              )}
+              {activeTab === "pension-profile" && (
+                <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
+                  <Building className="h-4 w-4" />
+                  Manage Packages
                 </Button>
               )}
               {activeTab === "transactions" && (
@@ -1640,11 +1877,11 @@ export const Dashboard: React.FC = () => {
                 {/* Create Pension Modal */}
                 {showCreatePension && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-full max-w-md mx-4">
-                      <CardHeader>
-                        <CardTitle>Create New Pension</CardTitle>
+                    <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Create New Pension</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-3 pt-3">
                         <div>
                           <Label htmlFor="name">Pension Name *</Label>
                           <Input
@@ -1662,6 +1899,27 @@ export const Dashboard: React.FC = () => {
                             onChange={(e) => setNewPension({...newPension, address: e.target.value})}
                             placeholder="Enter address"
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor="image">Pension Image</Label>
+                          <Input
+                            id="image"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setPensionImageFile(file);
+                                setNewPension({...newPension, image_url: file.name});
+                              }
+                            }}
+                            className="cursor-pointer"
+                          />
+                          {pensionImageFile && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Selected: {pensionImageFile.name}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <Label htmlFor="description">Description</Label>
@@ -1701,7 +1959,27 @@ export const Dashboard: React.FC = () => {
                             placeholder="Enter capacity"
                           />
                         </div>
-                        <div className="flex gap-2 pt-4">
+                        <div>
+                          <Label htmlFor="owner_info">Owner Information</Label>
+                          <textarea
+                            id="owner_info"
+                            value={newPension.owner_info}
+                            onChange={(e) => setNewPension({...newPension, owner_info: e.target.value})}
+                            placeholder="Tell customers about yourself, your experience, and what makes your pension special"
+                            className="w-full h-16 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-none"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="room_details">Room Details</Label>
+                          <textarea
+                            id="room_details"
+                            value={newPension.room_details}
+                            onChange={(e) => setNewPension({...newPension, room_details: e.target.value})}
+                            placeholder="Describe your rooms, amenities, facilities, and what guests can expect"
+                            className="w-full h-16 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-none"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-2">
                           <Button 
                             onClick={handleCreatePension}
                             disabled={!newPension.name || !newPension.address}
@@ -1711,7 +1989,11 @@ export const Dashboard: React.FC = () => {
                           </Button>
                           <Button 
                             variant="outline" 
-                            onClick={() => setShowCreatePension(false)}
+                            onClick={() => {
+                              setShowCreatePension(false);
+                              setNewPension({ name: '', description: '', address: '', phone: '', email: '', capacity: '', owner_info: '', room_details: '', image_url: '' });
+                              setPensionImageFile(null);
+                            }}
                             className="flex-1"
                           >
                             Cancel
@@ -1836,6 +2118,263 @@ export const Dashboard: React.FC = () => {
                 viewMode={viewModes.guests}
                 onToggleView={() => toggleViewMode('guests')}
               />
+            )}
+
+            {/* Pension Profile Section */}
+            {activeTab === "pension-profile" && (
+              <div className="space-y-6">
+                {/* Success Message */}
+                {showSaveSuccess && (
+                  <div className="group p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-3 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
+                      <CheckCircle className="h-5 w-5" />
+                    </div>
+                    <span className="font-semibold text-sm relative">Pension profile updated successfully!</span>
+                  </div>
+                )}
+
+                <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01] relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"></div>
+                  <CardHeader className="pb-4 relative">
+                    <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300 shadow-lg group-hover:shadow-purple-500/25">
+                        <Building className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
+                      </div>
+                      <span className="group-hover:text-purple-600 transition-colors duration-300">Pension Profile</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-4 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <Building className="h-4 w-4 text-purple-600" />
+                          Pension Name
+                        </Label>
+                        <Input
+                          value={propertySettings.name}
+                          onChange={(e) => setPropertySettings({ ...propertySettings, name: e.target.value })}
+                          placeholder="e.g., Sunshine Pension"
+                          className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-purple-600" />
+                          Location
+                        </Label>
+                        <Input
+                          value={propertySettings.address}
+                          onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
+                          placeholder="e.g., Bole, Addis Ababa, Ethiopia"
+                          className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-purple-600" />
+                          Contact Phone
+                        </Label>
+                        <Input
+                          value={propertySettings.phone}
+                          onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
+                          placeholder="+251 911 234 567"
+                          className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-purple-600" />
+                          Contact Email
+                        </Label>
+                        <Input
+                          value={propertySettings.email}
+                          onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
+                          placeholder="info@sunshinepension.com"
+                          className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-purple-600" />
+                        Pension Image
+                      </Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setPensionProfileImageFile(file);
+                            setPropertySettings({ ...propertySettings, imageUrl: file.name });
+                          }
+                        }}
+                        className="cursor-pointer border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                      />
+                      {(pensionProfileImageFile || propertySettings.imageUrl) && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          {propertySettings.imageUrl && !pensionProfileImageFile && (
+                            <span>Current image: {propertySettings.imageUrl}</span>
+                          )}
+                          {pensionProfileImageFile && (
+                            <span>New: {pensionProfileImageFile.name}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        About Description
+                      </Label>
+                      <textarea
+                        value={propertySettings.description}
+                        onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
+                        placeholder="Describe your pension for customers..."
+                        rows={4}
+                        className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <Users className="h-4 w-4 text-purple-600" />
+                        Owner Information
+                      </Label>
+                      <textarea
+                        value={propertySettings.ownerInfo}
+                        onChange={(e) => setPropertySettings({ ...propertySettings, ownerInfo: e.target.value })}
+                        placeholder="Describe the owner/management company..."
+                        rows={2}
+                        className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <BedDouble className="h-4 w-4 text-purple-600" />
+                        Room Details
+                      </Label>
+                      <textarea
+                        value={propertySettings.roomDetails}
+                        onChange={(e) => setPropertySettings({ ...propertySettings, roomDetails: e.target.value })}
+                        placeholder="Describe your room types and features..."
+                        rows={2}
+                        className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <Package className="h-4 w-4 text-purple-600" />
+                        Package Tiers
+                      </Label>
+                      <div className="space-y-4">
+                        {packages.map((pkg: any) => (
+                          <div key={pkg.id || pkg.package_id} className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200 hover:border-purple-300 transition-all duration-300">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h4 className="font-bold text-purple-700">{pkg.name}</h4>
+                                {pkg.isMostPopular && (
+                                  <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
+                                )}
+                                {pkg.imageType === '3D' && (
+                                  <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">3D Tour</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
+                              {pkg.services && pkg.services.length > 0 && (
+                                <div className="mb-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {pkg.services.map((service: string, index: number) => (
+                                      <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                        {service}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
+                                {pkg.availableRooms !== undefined && (
+                                  <p className="text-xs text-slate-500">
+                                    {calculateAvailableRooms(pkg.id || pkg.package_id)} room{calculateAvailableRooms(pkg.id || pkg.package_id) !== 1 ? 's' : ''} available
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleToggleMostPopular(pkg.id || pkg.package_id)}
+                                className={`p-2 rounded-lg transition-all duration-200 ${
+                                  pkg.isMostPopular 
+                                    ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                                title={pkg.isMostPopular ? 'Remove Most Popular' : 'Set as Most Popular'}
+                              >
+                                <Star className={`h-4 w-4 ${pkg.isMostPopular ? 'fill-current' : ''}`} />
+                              </button>
+                              <button
+                                onClick={() => handleEditPackage(pkg)}
+                                className="p-2 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-all duration-200"
+                                title="Edit Package"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePackage(pkg.id)}
+                                disabled={packages.length <= 1}
+                                className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Delete Package"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setEditingPackage(null);
+                            setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
+                            setShowAddPackageModal(true);
+                          }}
+                          className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
+                        >
+                          <Plus className="h-5 w-5" />
+                          <span className="font-semibold">Add New Package</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-6 border-t">
+                      <Button
+                        className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white shadow-xl hover:shadow-purple-500/25 rounded-xl font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => {
+                          handleSavePropertySettings();
+                        }}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Building className="h-4 w-4 mr-2" />
+                            Update Pension Profile
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Transactions Section */}
@@ -2181,46 +2720,10 @@ export const Dashboard: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex flex-col gap-1">
                     <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-                      {activeTab === "settings-legal" ? "Legal Settings" :
-                       activeTab === "settings-billing" ? "Billing Settings" :
-                       activeTab === "settings-pension" ? "Pension Profile" :
+                      {activeTab === "settings-business-profile" ? "Business Profile Settings" :
                        "Security Settings"}
                     </h2>
                     <p className="text-slate-500 text-sm">Configure your property and account preferences.</p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-legal' ? 'bg-amber-600 text-white hover:bg-amber-600 shadow-sm' : 'text-slate-500'}`}
-                      onClick={() => setActiveTab('settings-legal')}
-                    >
-                      Legal
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-billing' ? 'bg-blue-600 text-white hover:bg-blue-600 shadow-sm' : 'text-slate-500'}`}
-                      onClick={() => setActiveTab('settings-billing')}
-                    >
-                      Billing
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-pension' ? 'bg-purple-600 text-white hover:bg-purple-600 shadow-sm' : 'text-slate-500'}`}
-                      onClick={() => setActiveTab('settings-pension')}
-                    >
-                      Pension Profile
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-security' ? 'bg-slate-900 text-white hover:bg-slate-900 shadow-sm' : 'text-slate-500'}`}
-                      onClick={() => setActiveTab('settings-security')}
-                    >
-                      Security
-                    </Button>
                   </div>
                 </div>
 
@@ -2236,522 +2739,101 @@ export const Dashboard: React.FC = () => {
                 )}
 
                 <Tabs value={activeTab} className="w-full">
-                  {/* Legal Settings */}
-                  <TabsContent value="settings-legal" className="mt-0">
+                  {/* Business Profile Settings */}
+                  <TabsContent value="settings-business-profile" className="mt-0">
                     <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
-                      <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400" />
-                      <CardHeader className="pb-4">
-                        <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition-colors duration-300 hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-amber-500/25">
-                            <FileText className="h-6 w-6 hover:rotate-12 transition-transform duration-500" />
-                          </div>
-                          <span className="hover:text-amber-600 transition-colors duration-300">Legal & Compliance</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6 pt-4">
-                        <div className="grid gap-6 md:grid-cols-2">
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <FileText className="h-6 w-6 text-emerald-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Business License</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-emerald-500 text-[10px] shadow-emerald-500/25 shadow-sm">Active</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">{complianceSettings.licenseNumber}</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <CalendarCheck className="h-3.5 w-3.5" />
-                                  Expires: {complianceSettings.expiryDate}
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-105" onClick={handleSaveComplianceSettings}>
-                                  <RefreshCcw className="h-4 w-4 mr-2" />
-                                  Renew Status
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <Shield className="h-6 w-6 text-blue-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Insurance</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-blue-500 text-[10px] shadow-blue-500/25 shadow-sm">Valid</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{complianceSettings.insurancePolicy}</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <CalendarCheck className="h-3.5 w-3.5" />
-                                  Valid until 2024-12-31
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105">
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  View Policy
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <ShieldCheck className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Tax Clearance</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-purple-500 text-[10px] shadow-purple-500/25 shadow-sm">Current</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors duration-300">{complianceSettings.lastTaxClearance}</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <CalendarCheck className="h-3.5 w-3.5" />
-                                  Last filed: 2024-03-15
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-purple-600 hover:bg-purple-700 shadow-lg hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105">
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download Certificate
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <CheckCircle className="h-6 w-6 text-amber-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Safety Certificate</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-amber-500 text-[10px] shadow-amber-500/25 shadow-sm">Valid</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors duration-300">{complianceSettings.safetyCertificate}</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <CalendarCheck className="h-3.5 w-3.5" />
-                                  Valid until 2024-06-30
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-amber-600 hover:bg-amber-700 shadow-lg hover:shadow-amber-500/25 transition-all duration-300 hover:scale-105">
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Certificate
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Billing Settings */}
-                  <TabsContent value="settings-billing" className="mt-0">
-                    <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
                       <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400" />
                       <CardHeader className="pb-4">
-                        <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors duration-300 hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-blue-500/25">
-                            <CreditCard className="h-6 w-6 hover:rotate-12 transition-transform duration-500" />
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors duration-300 hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-blue-500/25">
+                              <Building className="h-6 w-6 hover:rotate-12 transition-transform duration-500" />
+                            </div>
+                            <span className="hover:text-blue-600 transition-colors duration-300">Business Profile</span>
+                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              approvalStatus === 'Approved' 
+                                ? 'bg-emerald-100 text-emerald-700' 
+                                : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {approvalStatus === 'Approved' ? '✓ Approved' : '⏳ Pending Review'}
+                            </span>
                           </div>
-                          <span className="hover:text-blue-600 transition-colors duration-300">Billing & Payments</span>
-                        </CardTitle>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-6 pt-4">
-                        <div className="grid gap-6 md:grid-cols-2">
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <DollarSign className="h-6 w-6 text-blue-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Current Plan</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-blue-500 text-[10px] shadow-blue-500/25 shadow-sm">Premium</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">ETB 2,999/month</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <CalendarCheck className="h-3.5 w-3.5" />
-                                  Billed monthly
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105">
-                                  <Target className="h-4 w-4 mr-2" />
-                                  Upgrade Plan
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <CreditCard className="h-6 w-6 text-emerald-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Payment Method</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-emerald-500 text-[10px] shadow-emerald-500/25 shadow-sm">Active</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">••••• •••• •••• •••• ••••</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <ShieldCheck className="h-3.5 w-3.5" />
-                                  Visa ending in 4242
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-105">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Update Payment Method
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <FileText className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Billing History</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-purple-500 text-[10px] shadow-purple-500/25 shadow-sm">12 Invoices</Badge>
-                                <div>
-                                  <p className="text-xs">Due: Dec 15, 2024</p>
-                                </div>
-                            </div>
-                            <div className="pt-2">
-                              <Button 
-                                onClick={() => {
-                                  handleSavePropertySettings();
-                                }}  
-                                disabled={isUpdating || !pensions.length}
-                                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-purple-600 hover:border-purple-700 shadow-lg hover:shadow-purple-600/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {isUpdating ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Updating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Building className="h-4 w-4 mr-2" />
-                                    Update Pension Profile
-                                  </>
-                                )}
-                              </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="group border border-slate-200 bg-gradient-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                            <CardContent className="p-6 relative z-10">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300">
-                                    <TrendingUp className="h-6 w-6 text-amber-600 group-hover:rotate-12 transition-transform duration-500" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-slate-500 uppercase">Usage Stats</p>
-                                  </div>
-                                </div>
-                                <Badge className="bg-amber-500 text-[10px] shadow-amber-500/25 shadow-sm">This Month</Badge>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors duration-300">ETB 2,999</h4>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                  <BarChart3 className="h-3.5 w-3.5" />
-                                  85% of plan used
-                                </div>
-                              </div>
-                              <div className="pt-2">
-                                <Button className="w-full h-11 bg-amber-600 hover:bg-amber-700 shadow-lg hover:shadow-amber-500/25 transition-all duration-300 hover:scale-105">
-                                  <BarChart3 className="h-4 w-4 mr-2" />
-                                  View Detailed Usage
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        <div className="mt-6 p-4 rounded-xl bg-slate-50 group hover:bg-slate-100 transition-all duration-300 hover:shadow-md hover:scale-[1.01]">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse group-hover:scale-150 transition-transform duration-300"></div>
-                              <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide group-hover:text-blue-800 transition-colors duration-300">Auto-Renewal</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <p className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors duration-300">Next billing date: Dec 31, 2024</p>
-                              <Button className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg hover:scale-105 transition-all duration-300 hover:shadow-blue-500/25 shadow-sm">
-                                Manage Auto-Renewal
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Pension Profile */}
-                  <TabsContent value="settings-pension-profile" className="mt-0">
-                    <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01] relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"></div>
-                      <CardHeader className="pb-4 relative">
-                        <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 transition-transform duration-300 shadow-lg group-hover:shadow-purple-500/25">
-                            <Building className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
-                          </div>
-                          <span className="group-hover:text-purple-600 transition-colors duration-300">Pension Profile</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6 pt-4 relative">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Building className="h-4 w-4 text-purple-600" />
-                              Pension Name
-                            </Label>
+                            <Label className="text-sm font-bold text-slate-700">Business Name</Label>
                             <Input
-                              value={propertySettings.name}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, name: e.target.value })}
-                              placeholder="e.g., Sunshine Pension"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                              value={businessProfile.businessName}
+                              onChange={(e) => setBusinessProfile({ ...businessProfile, businessName: e.target.value })}
+                              placeholder="Enter your business name"
+                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                             />
                           </div>
+                          
                           <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-purple-600" />
-                              Location
-                            </Label>
+                            <Label className="text-sm font-bold text-slate-700">Business Email</Label>
                             <Input
-                              value={propertySettings.address}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
-                              placeholder="e.g., Bole, Addis Ababa, Ethiopia"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                              type="email"
+                              value={businessProfile.businessEmail}
+                              onChange={(e) => setBusinessProfile({ ...businessProfile, businessEmail: e.target.value })}
+                              placeholder="business@example.com"
+                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                             />
                           </div>
+                          
                           <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-purple-600" />
-                              Contact Phone
-                            </Label>
+                            <Label className="text-sm font-bold text-slate-700">Business Phone</Label>
                             <Input
-                              value={propertySettings.phone}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
+                              value={businessProfile.businessPhone}
+                              onChange={(e) => setBusinessProfile({ ...businessProfile, businessPhone: e.target.value })}
                               placeholder="+251 911 234 567"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-purple-600" />
-                              Contact Email
-                            </Label>
-                            <Input
-                              value={propertySettings.email}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
-                              placeholder="info@sunshinepension.com"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                            />
+                      </div>
+                      
+                      {/* Business Profile Approval Status */}
+                      <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className={`h-5 w-5 ${businessProfile.approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`} />
+                            <span className="text-sm font-medium">
+                              Business Profile Status: <span className={`font-bold ${businessProfile.approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`}>{businessProfile.approvalStatus || 'Pending'}</span>
+                            </span>
                           </div>
+                          {businessProfile.approvalStatus === 'Pending' && (
+                            <span className="text-xs text-slate-500">Waiting for admin approval</span>
+                          )}
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-purple-600" />
-                            About Description
-                          </Label>
-                          <textarea
-                            value={propertySettings.description}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
-                            placeholder="Describe your pension for customers..."
-                            rows={4}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Users className="h-4 w-4 text-purple-600" />
-                            Owner Information
-                          </Label>
-                          <textarea
-                            value={propertySettings.ownerInfo}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, ownerInfo: e.target.value })}
-                            placeholder="Describe the owner/management company..."
-                            rows={2}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <BedDouble className="h-4 w-4 text-purple-600" />
-                            Room Details
-                          </Label>
-                          <textarea
-                            value={propertySettings.roomDetails}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, roomDetails: e.target.value })}
-                            placeholder="Describe your room types and features..."
-                            rows={2}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Package className="h-4 w-4 text-purple-600" />
-                            Package Tiers
-                          </Label>
-                          <div className="space-y-4">
-                            {packages.map((pkg: any) => (
-                              <div key={pkg.id || pkg.package_id} className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200 hover:border-purple-300 transition-all duration-300">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h4 className="font-bold text-purple-700">{pkg.name}</h4>
-                                    {pkg.isMostPopular && (
-                                      <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
-                                    )}
-                                    {pkg.imageType === '3D' && (
-                                      <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">3D Tour</span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
-                                  {pkg.services && pkg.services.length > 0 && (
-                                    <div className="mb-2">
-                                      <div className="flex flex-wrap gap-1">
-                                        {pkg.services.map((service: string, index: number) => (
-                                          <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                            {service}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center justify-between">
-                                    <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
-                                    {pkg.availableRooms !== undefined && (
-                                      <p className="text-xs text-slate-500">
-                                        {calculateAvailableRooms(pkg.id || pkg.package_id)} room{calculateAvailableRooms(pkg.id || pkg.package_id) !== 1 ? 's' : ''} available
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleToggleMostPopular(pkg.id || pkg.package_id)}
-                                    className={`p-2 rounded-lg transition-all duration-200 ${
-                                      pkg.isMostPopular 
-                                        ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                    title={pkg.isMostPopular ? 'Remove Most Popular' : 'Set as Most Popular'}
-                                  >
-                                    <Star className={`h-4 w-4 ${pkg.isMostPopular ? 'fill-current' : ''}`} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleEditPackage(pkg)}
-                                    className="p-2 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-all duration-200"
-                                    title="Edit Package"
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeletePackage(pkg.id)}
-                                    disabled={packages.length <= 1}
-                                    className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Delete Package"
-                                  >
-                                    <TrashIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                            <button
-                              onClick={() => {
-                                setEditingPackage(null);
-                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
-                                setShowAddPackageModal(true);
-                              }}
-                              className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
-                            >
-                              <Plus className="h-5 w-5" />
-                              <span className="font-semibold">Add New Package</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-end pt-6 border-t">
-                          <Button
-                            className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white shadow-xl hover:shadow-purple-500/25 rounded-xl font-bold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={() => {
-                              handleSavePropertySettings();
-                            }}
-                            disabled={isUpdating}
-                          >
-                            {isUpdating ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Updating...
-                              </>
-                            ) : (
-                              <>
-                                <Building className="h-4 w-4 mr-2" />
-                                Update Pension Profile
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                      </div>
+                      
+                      {/* Update Button */}
+                      <div className="mt-6 flex justify-end">
+                        <Button 
+                          onClick={handleSaveBusinessProfile}
+                          disabled={isUpdating}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
+                        >
+                          {isUpdating ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4" />
+                              Update Business Profile
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
                   {/* Security Settings */}
                   <TabsContent value="settings-security" className="mt-0">
@@ -2825,210 +2907,6 @@ export const Dashboard: React.FC = () => {
                           >
                             <ShieldCheck className="h-4 w-4 mr-2" />
                             Update Security Settings
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Pension Profile */}
-                  <TabsContent value="settings-pension" className="mt-0">
-                    <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01] relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="h-2 w-full bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500" />
-                      <CardHeader className="pb-4 relative">
-                        <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 shadow-lg group-hover:shadow-purple-500/25">
-                            <Building className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
-                          </div>
-                          <span className="group-hover:text-purple-600 transition-colors duration-300">Public Pension Profile</span>
-                        </CardTitle>
-                        <p className="text-slate-600">Manage how your pension appears to customers on the public site</p>
-                      </CardHeader>
-                      <CardContent className="space-y-6 pt-4 relative">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Building className="h-4 w-4 text-purple-600" />
-                              Pension Name
-                            </Label>
-                            <Input
-                              value={propertySettings.name}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, name: e.target.value })}
-                              placeholder="e.g., Sunshine Pension"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-purple-600" />
-                              Location
-                            </Label>
-                            <Input
-                              value={propertySettings.address}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
-                              placeholder="e.g., Bole, Addis Ababa, Ethiopia"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-purple-600" />
-                              Contact Phone
-                            </Label>
-                            <Input
-                              value={propertySettings.phone}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
-                              placeholder="+251 911 234 567"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-purple-600" />
-                              Contact Email
-                            </Label>
-                            <Input
-                              value={propertySettings.email}
-                              onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
-                              placeholder="info@sunshinepension.com"
-                              className="h-11 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-purple-600" />
-                            About Description
-                          </Label>
-                          <textarea
-                            value={propertySettings.description}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
-                            placeholder="Describe your pension for customers..."
-                            rows={4}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Users className="h-4 w-4 text-purple-600" />
-                            Owner Information
-                          </Label>
-                          <textarea
-                            value={propertySettings.ownerInfo}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, ownerInfo: e.target.value })}
-                            placeholder="Describe the owner/management company..."
-                            rows={2}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <BedDouble className="h-4 w-4 text-purple-600" />
-                            Room Details
-                          </Label>
-                          <textarea
-                            value={propertySettings.roomDetails}
-                            onChange={(e) => setPropertySettings({ ...propertySettings, roomDetails: e.target.value })}
-                            placeholder="Describe your room types and features..."
-                            rows={2}
-                            className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Package className="h-4 w-4 text-purple-600" />
-                            Package Tiers
-                          </Label>
-                          <div className="space-y-4">
-                            {packages.map((pkg: any) => (
-                              <div key={pkg.id || pkg.package_id} className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200 hover:border-purple-300 transition-all duration-300">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h4 className="font-bold text-purple-700">{pkg.name}</h4>
-                                    {pkg.isMostPopular && (
-                                      <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
-                                    )}
-                                    {pkg.imageType === '3D' && (
-                                      <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">3D Tour</span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
-                                  {pkg.services && pkg.services.length > 0 && (
-                                    <div className="mb-2">
-                                      <div className="flex flex-wrap gap-1">
-                                        {pkg.services.map((service: string, index: number) => (
-                                          <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                            {service}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center justify-between">
-                                    <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
-                                    {pkg.availableRooms !== undefined && (
-                                      <p className="text-xs text-slate-500">
-                                        {calculateAvailableRooms(pkg.id || pkg.package_id)} room{calculateAvailableRooms(pkg.id || pkg.package_id) !== 1 ? 's' : ''} available
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleToggleMostPopular(pkg.id || pkg.package_id)}
-                                    className={`p-2 rounded-lg transition-all duration-200 ${
-                                      pkg.isMostPopular 
-                                        ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                    title={pkg.isMostPopular ? 'Remove Most Popular' : 'Set as Most Popular'}
-                                  >
-                                    <Star className={`h-4 w-4 ${pkg.isMostPopular ? 'fill-current' : ''}`} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleEditPackage(pkg)}
-                                    className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all duration-200"
-                                    title="Edit Package"
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeletePackage(pkg.id)}
-                                    disabled={packages.length <= 1}
-                                    className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Delete Package"
-                                  >
-                                    <TrashIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                            <button
-                              onClick={() => {
-                                setEditingPackage(null);
-                                setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
-                                setShowAddPackageModal(true);
-                              }}
-                              className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
-                            >
-                              <Plus className="h-5 w-5" />
-                              <span className="font-semibold">Add New Package</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-end pt-6 border-t">
-                          <Button
-                            className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white shadow-xl hover:shadow-purple-500/25 rounded-xl font-bold transition-all duration-300 hover:scale-105"
-                            onClick={handleSavePropertySettings}
-                          >
-                            <Building className="h-4 w-4 mr-2" />
-                            Update Public Profile
                           </Button>
                         </div>
                       </CardContent>

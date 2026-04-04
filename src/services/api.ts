@@ -60,6 +60,13 @@ class ApiService {
     return this.request('/auth/profile');
   }
 
+  async updateUserProfile(userId: string | number, profileData: any): Promise<ApiResponse<any>> {
+    return this.request('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ userId, ...profileData }),
+    });
+  }
+
   // Logout method
   async logout(): Promise<void> {
     try {

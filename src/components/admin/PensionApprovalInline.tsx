@@ -205,7 +205,7 @@ const PensionApprovalInline: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredPensions.map((pension) => (
-                  <TableRow key={pension.id || pension.pension_id}>
+                  <TableRow key={pension.pension_id || pension.id}>
                     <TableCell className="font-medium">{pension.name}</TableCell>
                     <TableCell>{pension.owner_name}</TableCell>
                     <TableCell>{getStatusBadge(pension.status)}</TableCell>
@@ -224,19 +224,19 @@ const PensionApprovalInline: React.FC = () => {
                           <>
                             <Button
                               size="sm"
-                              onClick={() => handleApprove(pension.pension_id)}
-                              disabled={actionLoading === `approve-${pension.pension_id}`}
+                              onClick={() => handleApprove(pension.pension_id || pension.id)}
+                              disabled={actionLoading === `approve-${pension.pension_id || pension.id}`}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              {actionLoading === `approve-${pension.pension_id}` ? 'Approving...' : 'Approve'}
+                              {actionLoading === `approve-${pension.pension_id || pension.id}` ? 'Approving...' : 'Approve'}
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => setSelectedPension(pension)}
-                              disabled={actionLoading === `reject-${pension.pension_id}`}
+                              disabled={actionLoading === `reject-${pension.pension_id || pension.id}`}
                             >
-                              {actionLoading === `reject-${pension.pension_id}` ? 'Rejecting...' : 'Reject'}
+                              {actionLoading === `reject-${pension.pension_id || pension.id}` ? 'Rejecting...' : 'Reject'}
                             </Button>
                           </>
                         )}
