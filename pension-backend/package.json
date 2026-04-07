@@ -2,12 +2,12 @@
   "name": "pension-backend",
   "version": "1.0.0",
   "description": "Pension Management System Backend",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "type": "commonjs",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "ts-node src/server.ts",
     "build": "tsc",
-    "start": "node src/server.js",
+    "start": "ts-node src/server.ts",
     "dev:ts": "ts-node src/server.ts",
     "migrate": "migrations/migrate.bat",
     "migrate:unix": "bash migrations/migrate.sh",
@@ -33,6 +33,7 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "mysql2": "^3.20.0",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^8.0.4",
     "socket.io": "^4.8.3",
     "ws": "^8.20.0"

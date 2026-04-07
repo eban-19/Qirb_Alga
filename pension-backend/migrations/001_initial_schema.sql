@@ -185,21 +185,208 @@ CREATE TABLE IF NOT EXISTS roomavailabilitylogs (
     FOREIGN KEY (changed_by) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_pensions_owner_id ON pensions(owner_id);
-CREATE INDEX IF NOT EXISTS idx_pensions_status ON pensions(status);
-CREATE INDEX IF NOT EXISTS idx_rooms_pension_id ON rooms(pension_id);
-CREATE INDEX IF NOT EXISTS idx_rooms_owner_id ON rooms(owner_id);
-CREATE INDEX IF NOT EXISTS idx_rooms_package_id ON rooms(package_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_room_id ON bookings(room_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_customer_id ON bookings(customer_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
-CREATE INDEX IF NOT EXISTS idx_emailnotifications_user_id ON emailnotifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_emailnotifications_status ON emailnotifications(status);
-CREATE INDEX IF NOT EXISTS idx_ownerprofiles_owner_id ON ownerprofiles(owner_id);
-CREATE INDEX IF NOT EXISTS idx_roomavailabilitylogs_room_id ON roomavailabilitylogs(room_id);
-CREATE INDEX IF NOT EXISTS idx_roomavailabilitylogs_changed_by ON roomavailabilitylogs(changed_by);
+-- Create indexes for performance (use IF NOT EXISTS for MySQL 8.0+ compatible)
+-- Note: For older MySQL versions, these may cause warnings but won't fail
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_email') > 0,
+    'SELECT "Index idx_users_email already exists" as message;',
+    'CREATE INDEX idx_users_email ON users(email);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_role') > 0,
+    'SELECT "Index idx_users_role already exists" as message;',
+    'CREATE INDEX idx_users_role ON users(role);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'pensions' 
+     AND INDEX_NAME = 'idx_pensions_owner_id') > 0,
+    'SELECT "Index idx_pensions_owner_id already exists" as message;',
+    'CREATE INDEX idx_pensions_owner_id ON pensions(owner_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'pensions' 
+     AND INDEX_NAME = 'idx_pensions_status') > 0,
+    'SELECT "Index idx_pensions_status already exists" as message;',
+    'CREATE INDEX idx_pensions_status ON pensions(status);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'rooms' 
+     AND INDEX_NAME = 'idx_rooms_pension_id') > 0,
+    'SELECT "Index idx_rooms_pension_id already exists" as message;',
+    'CREATE INDEX idx_rooms_pension_id ON rooms(pension_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'rooms' 
+     AND INDEX_NAME = 'idx_rooms_owner_id') > 0,
+    'SELECT "Index idx_rooms_owner_id already exists" as message;',
+    'CREATE INDEX idx_rooms_owner_id ON rooms(owner_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'rooms' 
+     AND INDEX_NAME = 'idx_rooms_package_id') > 0,
+    'SELECT "Index idx_rooms_package_id already exists" as message;',
+    'CREATE INDEX idx_rooms_package_id ON rooms(package_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'bookings' 
+     AND INDEX_NAME = 'idx_bookings_room_id') > 0,
+    'SELECT "Index idx_bookings_room_id already exists" as message;',
+    'CREATE INDEX idx_bookings_room_id ON bookings(room_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'bookings' 
+     AND INDEX_NAME = 'idx_bookings_customer_id') > 0,
+    'SELECT "Index idx_bookings_customer_id already exists" as message;',
+    'CREATE INDEX idx_bookings_customer_id ON bookings(customer_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'bookings' 
+     AND INDEX_NAME = 'idx_bookings_status') > 0,
+    'SELECT "Index idx_bookings_status already exists" as message;',
+    'CREATE INDEX idx_bookings_status ON bookings(status);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'notifications' 
+     AND INDEX_NAME = 'idx_notifications_user_id') > 0,
+    'SELECT "Index idx_notifications_user_id already exists" as message;',
+    'CREATE INDEX idx_notifications_user_id ON notifications(user_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'notifications' 
+     AND INDEX_NAME = 'idx_notifications_is_read') > 0,
+    'SELECT "Index idx_notifications_is_read already exists" as message;',
+    'CREATE INDEX idx_notifications_is_read ON notifications(is_read);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'emailnotifications' 
+     AND INDEX_NAME = 'idx_emailnotifications_user_id') > 0,
+    'SELECT "Index idx_emailnotifications_user_id already exists" as message;',
+    'CREATE INDEX idx_emailnotifications_user_id ON emailnotifications(user_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'emailnotifications' 
+     AND INDEX_NAME = 'idx_emailnotifications_status') > 0,
+    'SELECT "Index idx_emailnotifications_status already exists" as message;',
+    'CREATE INDEX idx_emailnotifications_status ON emailnotifications(status);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'ownerprofiles' 
+     AND INDEX_NAME = 'idx_ownerprofiles_owner_id') > 0,
+    'SELECT "Index idx_ownerprofiles_owner_id already exists" as message;',
+    'CREATE INDEX idx_ownerprofiles_owner_id ON ownerprofiles(owner_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'roomavailabilitylogs' 
+     AND INDEX_NAME = 'idx_roomavailabilitylogs_room_id') > 0,
+    'SELECT "Index idx_roomavailabilitylogs_room_id already exists" as message;',
+    'CREATE INDEX idx_roomavailabilitylogs_room_id ON roomavailabilitylogs(room_id);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'roomavailabilitylogs' 
+     AND INDEX_NAME = 'idx_roomavailabilitylogs_changed_by') > 0,
+    'SELECT "Index idx_roomavailabilitylogs_changed_by already exists" as message;',
+    'CREATE INDEX idx_roomavailabilitylogs_changed_by ON roomavailabilitylogs(changed_by);'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

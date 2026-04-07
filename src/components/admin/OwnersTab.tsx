@@ -602,7 +602,7 @@ export function OwnersTab({
 
                           } else {
 
-                            onOwnerAction(action, owner.id);
+                            onOwnerAction(owner.id, action, owner);
 
                           }
 

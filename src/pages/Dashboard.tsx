@@ -1049,21 +1049,25 @@ export const Dashboard: React.FC = () => {
         
         try {
           const token = localStorage.getItem('token');
-          const uploadResponse = await fetch('http://localhost:3005/api/uploads/single', {
+          const response = await fetch(`${this.baseURL}/uploads/single`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+              ...(token && { Authorization: `Bearer ${token}` }),
             },
             body: formData,
           });
           
-          if (uploadResponse.ok) {
-            const uploadResult = await uploadResponse.json();
-            documentUrl = uploadResult.data?.url || '';
+          const result = await response.json();
+          console.log('Document upload response:', result);
+          
+          if (result.success) {
+            documentUrl = result.data?.url || '';
+            console.log('Document uploaded successfully:', documentUrl);
           } else {
-            const errorData = await uploadResponse.json();
+            const errorData = result;
             console.error('Document upload failed:', errorData);
-            alert(`Document upload failed: ${errorData.message || 'Unknown error'}`);
+            alert(`Document upload failed: ${errorData.message || errorData.error || 'Unknown error'}`);
             return;
           }
         } catch (uploadError) {
@@ -1692,6 +1696,7 @@ export const Dashboard: React.FC = () => {
                   <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
                     {activeTab === "staff" ? "Staff & HR Management" : 
                      activeTab === "overview" ? "Dashboard Overview" : 
+                     activeTab === "availability" ? "Availability Management" :
                      activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </h1>
                 </div>
@@ -1740,6 +1745,7 @@ export const Dashboard: React.FC = () => {
                    activeTab === "rooms" ? "Rooms Management" :
                    activeTab === "guests" ? "Guests Management" :
                    activeTab === "pension-profile" ? "Pension Profile Management" :
+                   activeTab === "availability" ? "Availability Management" :
                    activeTab === "transactions" ? "Transactions" :
                    activeTab === "reports" ? "Reports & Analytics" :
                    activeTab.startsWith("settings-") ? "Settings" :

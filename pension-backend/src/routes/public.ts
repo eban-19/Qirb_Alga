@@ -447,9 +447,9 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
 
     // 1. Find or Create Customer
     let customerId: number | undefined;
-    if (email) {
+    if (phone) {
       try {
-        const existingUser = await executeQuery('SELECT user_id FROM users WHERE email = ?', [email]);
+        const existingUser = await executeQuery('SELECT user_id FROM users WHERE phone = ?', [phone]);
         if (existingUser.length > 0) {
           customerId = existingUser[0].user_id;
         }
@@ -460,13 +460,16 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     
     if (!customerId) {
       try {
+        // Create customer without email - only name, phone, and role
         const newUser = await executeQuery(
-          `INSERT INTO users (full_name, email, phone, role, status) VALUES (?, ?, ?, 'Customer', 'Approved')`,
-          [fullName, email || null, phone]
+          `INSERT INTO users (full_name, phone, role, status, password_hash) VALUES (?, ?, 'Customer', 'Approved', '')`,
+          [fullName, phone]
         );
         customerId = newUser.insertId;
       } catch (error: any) {
         console.error('Error creating user:', (error as Error).message);
+        console.error('Full error details:', error);
+        console.error('Error stack:', (error as Error).stack);
         return res.status(500).json({ success: false, message: 'Failed to create customer record' });
       }
     }

@@ -26,7 +26,7 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
     
     const pensions = await executeQuery(`
       SELECT p.pension_id as id, p.name, p.address, p.description, p.phone, p.email, p.capacity, p.image_url, p.owner_id,
-             op.business_name
+             op.business_name, op.business_email, op.business_phone, op.license_number, op.approval_status
       FROM pensions p
       LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
       WHERE p.owner_id = ?
@@ -179,6 +179,8 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
     }
 
     console.log('About to execute INSERT query with coordinates...');
+    
+    // Always create pensions with 'pending' status for admin approval workflow
     const result = await executeQuery(
       `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, latitude, longitude, owner_id, status, image_url, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,

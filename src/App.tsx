@@ -12,7 +12,7 @@ import Booking from "./pages/Booking.tsx";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
 import Login from "./pages/Login.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
-import AdminDashboard from "./pages/AdminDashboard.tsx";
+import AdminDashboard from "./pages/AdminDashboardNew.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
 
 const queryClient = new QueryClient();
@@ -34,8 +34,13 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
               
-              {/* Admin Dashboard Route */}
+              {/* Admin Dashboard Routes */}
               <Route path="/dashboard/admin" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/owners" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/properties" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/approvals" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/bookings" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/alerts" element={<AdminDashboard />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

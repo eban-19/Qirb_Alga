@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-import { Star, Eye, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
+import { Star, Eye, CheckCircle, XCircle, Edit, Trash2, X } from "lucide-react";
 
 
 
@@ -160,11 +160,11 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
               <div className="flex items-center gap-1">
 
-                {owner.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                {owner.status === 'verified' && <CheckCircle className="w-3 h-3 pointer-events-auto" />}
 
                 {owner.status === 'pending' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
 
-                {owner.status === 'rejected' && <XCircle className="w-3 h-3" />}
+                {owner.status === 'rejected' && <XCircle className="w-3 h-3 pointer-events-auto" />}
 
                 {owner.status === 'suspended' && <div className="w-2 h-2 bg-white rounded-full"></div>}
 
@@ -204,7 +204,7 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
                   <div className="flex items-center gap-1">
 
-                    <Star className="w-3 h-3 text-white fill-current" />
+                    <Star className="w-3 h-3 text-white fill-current pointer-events-auto" />
 
                     <span>{owner.rating}</span>
 
@@ -282,7 +282,7 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
                 >
 
-                  <CheckCircle className="w-3 h-3" />
+                  <CheckCircle className="w-3 h-3 pointer-events-auto" />
 
                 </Button>
 
@@ -300,41 +300,26 @@ export function OwnerCard({ owner, onAction }: OwnerCardProps) {
 
                 >
 
-                  <XCircle className="w-3 h-3" />
+                  <XCircle className="w-3 h-3 pointer-events-auto" />
 
                 </Button>
 
               </div>
 
             )}
-
             
-
             {/* Delete Button */}
-
             <Button 
-
               size="sm" 
-
               onClick={() => onAction('delete', owner.id)}
-
-              className="bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-semibold px-3 py-1.5 rounded-lg border border-red-900 hover:border-red-950 transform hover:scale-105 transition-all duration-300 shadow-md"
-
+              className="bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-semibold p-2 rounded-lg border border-red-900 hover:border-red-950 transform hover:scale-105 transition-all duration-300 shadow-md"
             >
-
-              <Trash2 className="w-3 h-3" />
-
+              <span className="text-white font-bold">X</span>
             </Button>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-
   );
-
 }
 

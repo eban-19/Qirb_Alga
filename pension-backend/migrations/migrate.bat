@@ -17,26 +17,38 @@ if exist "%SCRIPT_DIR%\migrations" (
     exit /b 1
 )
 
-echo 🗄️  Pension Management System - Database Migration
+REM Load environment variables from .env file
+if exist "%SCRIPT_DIR%..\.env" (
+    echo � Loading environment variables from .env file...
+    for /f "tokens=1,2 delims==" %%a in ('type "%SCRIPT_DIR%..\.env" ^| findstr /v "^#" ^| findstr /v "^$"') do (
+        set %%a=%%b
+    )
+) else (
+    echo ⚠️  .env file not found, using default values
+)
+
+REM Database configuration with defaults
+if "%DB_HOST%"=="" set DB_HOST=localhost
+if "%DB_USER%"=="" set DB_USER=root
+if "%DB_NAME%"=="" set DB_NAME=pension_management_system
+if "%DB_PASS%"=="" set DB_PASS=
+
+echo �🗄️  Pension Management System - Database Migration
 echo ==================================================
 echo 📍 Script location: %SCRIPT_DIR%
 echo 📂 Migrations directory: %MIGRATIONS_DIR%
-echo.
-
-REM Database configuration
-set DB_USER=root
-set DB_PASS=your_mysql_password_here
-set DB_NAME=pension_management_system
-
 echo 🔧 Database: %DB_NAME%
-echo 👤 User: %DB_USER%
+echo � User: %DB_USER%
+echo 🌐 Host: %DB_HOST%
 echo.
+
 echo 📋 Checking database connection...
-mysql -u %DB_USER% -p%DB_PASS% -e "USE %DB_NAME%;" 2>nul
+mysql -u %DB_USER% -p%DB_PASS% -h %DB_HOST% -e "USE %DB_NAME%;" 2>nul
 if errorlevel 1 (
     echo ❌ Database '%DB_NAME%' does not exist or connection failed
     echo 💡 Please create database first:
     echo    mysql -u %DB_USER% -p -e "CREATE DATABASE %DB_NAME%;"
+    echo    Or run: reset_database.bat
     pause
     exit /b 1
 )
@@ -62,7 +74,7 @@ echo.
 REM Run each migration
 for /f "tokens=*" %%f in (migration_list.txt) do (
     echo 📄 Running migration: %%f
-    mysql -u %DB_USER% -p%DB_PASS% %DB_NAME% < %MIGRIONS_DIR%\%%f
+    mysql -u %DB_USER% -p%DB_PASS% -h %DB_HOST% %DB_NAME% < %MIGRATIONS_DIR%\%%f
     
     if errorlevel 1 (
         echo ❌ Migration failed: %%f

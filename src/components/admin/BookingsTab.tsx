@@ -161,11 +161,15 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">🏢 All Properties</SelectItem>
-                {safeProperties.map((property) => (
-                  <SelectItem key={property} value={property}>
-                    🏠 {property}
-                  </SelectItem>
-                ))}
+                {safeProperties.map((property) => {
+                  const propertyName = typeof property === 'string' ? property : (property.name || String(property));
+                  const propertyKey = typeof property === 'string' ? property : (property.id || property.name || String(property));
+                  return (
+                    <SelectItem key={propertyKey} value={propertyName}>
+                      {propertyName}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>

@@ -319,4 +319,86 @@ router.delete('/:bookingId', authenticateToken as any, async (req: any, res: any
   }
 });
 
+// Complete booking early
+router.post('/:bookingId/complete-early', authenticateToken as any, async (req: any, res: any) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.userId;
+    const { notes } = req.body;
+
+    // Check if booking exists and belongs to user's pension
+    const booking = await executeQuery(`
+      SELECT b.*, p.owner_id
+      FROM bookings b
+      LEFT JOIN rooms r ON b.room_id = r.room_id
+      LEFT JOIN pensions p ON r.pension_id = p.pension_id
+      WHERE b.booking_id = ? AND p.owner_id = ?
+    `, [bookingId, userId]);
+
+    if (booking.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    const bookingData = booking[0];
+
+    // Check if booking is already completed
+    if (bookingData.status === 'Completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is already completed'
+      });
+    }
+
+    // Update booking status to completed
+    await executeQuery(`
+      UPDATE bookings 
+      SET status = 'Completed', 
+          actual_check_out = NOW(),
+          notes = ?
+      WHERE booking_id = ?
+    `, [notes || '', bookingId]);
+
+    // Update room availability to available
+    await executeQuery(`
+      UPDATE rooms 
+      SET availability_status = 'Available',
+          last_status_update = NOW()
+      WHERE room_id = ?
+    `, [bookingData.room_id]);
+
+    // Log the availability change
+    await executeQuery(`
+      INSERT INTO availability_history (room_id, old_status, new_status, reason, booking_id)
+      VALUES (?, 'Occupied', 'Available', 'Early check-out completed', ?)
+    `, [bookingData.room_id, bookingId]);
+
+    // Send notification to pension owner
+    await notificationService.createNotification({
+      user_id: bookingData.owner_id,
+      title: 'Early Check-out Completed',
+      message: `Guest has checked out early from ${bookingData.room_type}`,
+      type: 'checkout'
+    });
+
+    res.json({
+      success: true,
+      message: 'Booking completed early successfully',
+      data: {
+        bookingId: parseInt(bookingId),
+        completedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Complete booking early error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to complete booking early'
+    });
+  }
+});
+
 export default router;

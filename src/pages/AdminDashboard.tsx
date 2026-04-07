@@ -1,55 +1,17 @@
 import { useState, useEffect } from "react";
-
-
-
-import { useNavigate } from "react-router-dom";
-
-
-
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-
-
-
 import { Button } from "@/components/ui/button";
-
-
-
 import { Badge } from "@/components/ui/badge";
-
-
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-
-
 import { Switch } from "@/components/ui/switch";
-
-
-
-import { Shield, Building, Users, DollarSign, TrendingUp, Wifi, WifiOff, X, CheckCircle, XCircle, Clock, Star, Eye, Home, BarChart3, UserCheck, Calendar, Bell, Settings } from "lucide-react";
-
-
-
+import { Shield, Building, Users, DollarSign, TrendingUp, Wifi, WifiOff, X, CheckCircle, XCircle, Clock, Star, Eye, Home, BarChart3, UserCheck, Calendar, Bell, Settings, AlertTriangle } from "lucide-react";
 import { useWebSocket } from "@/hooks/useWebSocket";
-
-
-
 import apiService from "@/services/api";
-
-
-
-
-
-
+import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 
 // Import admin components
-
-
-
 import { MetricCard } from "@/components/admin/MetricCard";
-
-
-
 import { OwnerCard } from "@/components/admin/OwnerCard";
 
 
@@ -315,100 +277,47 @@ interface PlatformMetrics {
 
 
 
-
-
-
 export default function AdminDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get active tab from current route
+  const getActiveTabFromPath = () => {
+    const path = location.pathname;
+    if (path.includes('/owners')) return 'owners';
+    if (path.includes('/properties')) return 'properties';
+    if (path.includes('/approvals')) return 'approvals';
+    if (path.includes('/bookings')) return 'bookings';
+    if (path.includes('/alerts')) return 'alerts';
+    return 'overview';
+  };
 
-
-
-  const [activeTab, setActiveTab] = useState("overview");
-
-
-
+  const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
   const [searchTerm, setSearchTerm] = useState("");
-
-
-
   const [filterStatus, setFilterStatus] = useState("all");
-
-
-
   const [owners, setOwners] = useState([]);
-
-
-
   const [properties, setProperties] = useState([]);
-
-
-
   const [bookings, setBookings] = useState([]);
-
-
-
   const [pensions, setPensions] = useState([]);
-
-
-
   const [metrics, setMetrics] = useState({
-
-
-
     totalOwners: 0,
-
-
-
     totalProperties: 0,
-
-
-
     totalBookings: 0,
-
-
-
     monthlyRevenue: 0,
-
-
-
     occupancyRate: 0,
-
-
-
     pendingVerifications: 0,
-
-
-
     activeProperties: 0,
-
-
-
     averageRating: 0
-
-
-
   });
-
-
-
   const [alerts, setAlerts] = useState([]);
-
-
-
   const [loading, setLoading] = useState(true);
-
-
-
   const [selectedOwner, setSelectedOwner] = useState(null);
-
-
-
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
 
-
-
-  const navigate = useNavigate();
-
-
+  // Update active tab when route changes
+  useEffect(() => {
+    setActiveTab(getActiveTabFromPath());
+  }, [location.pathname]);
 
 
 

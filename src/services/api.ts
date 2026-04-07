@@ -28,6 +28,13 @@ class ApiService {
         headers,
       });
 
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const text = await response.text();
+        throw new Error(`Server returned HTML error page instead of JSON. Response: ${text.substring(0, 200)}...`);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
