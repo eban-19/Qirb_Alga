@@ -1438,19 +1438,6 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <h1 className="text-lg md:text-2xl font-bold">Pension Platform Admin</h1>
             </div>
-
-
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-              <p className="text-sm text-blue-200 mb-1">Real-time Connection</p>
-              {getConnectionBadge()}
-            </div>
-            {/* Mobile connection badge */}
-            <div className="md:hidden">
-              {getConnectionBadge()}
-            </div>
           </div>
         </div>
       </div>

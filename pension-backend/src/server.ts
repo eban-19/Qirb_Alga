@@ -23,12 +23,13 @@ import uploadRoutes from './routes/uploads';
 import expenseRoutes from './routes/expenses';
 import adminRoutes from './routes/admin';
 import notificationRoutes from './routes/notifications';
+import { getSystemStatusController } from './routes/system';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
 
 dotenv.config();
 
-
+// ... rest of the code remains the same ...
 const app = express();
 
 const server = createServer(app);
@@ -66,7 +67,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:4173'],
+  origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:4173', 'http://127.0.0.1:8081'],
   credentials: true
 }));
 
@@ -126,6 +127,9 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin-approvals', adminRoutes); // Add route for frontend compatibility
 app.use('/api/notifications', notificationRoutes);
+
+// System status endpoint
+app.get('/api/system/status', getSystemStatusController);
 
 // Error logging
 app.use(errorLogger);

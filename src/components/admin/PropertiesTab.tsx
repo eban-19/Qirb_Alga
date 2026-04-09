@@ -206,8 +206,11 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-      {/* Stats Cards */}
-
+      {/* METRIC CARDS SECTION - REMOVED FOR CLEANER DISPLAY
+      // The metric cards (Total Properties, Cities Covered, Room Packages, Available Rooms) 
+      // have been removed from above the properties list for a cleaner interface.
+      // The code is preserved and can be restored if needed in the future.
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mx-4 sm:mx-6 md:mx-8">
 
         <div className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-500 rounded-3xl p-3 sm:p-4 md:p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
@@ -352,7 +355,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
 
-              <div className="text-xs text-green-300 font-semibold">Ready for booking</div>
+              <div className="text-xs text-green-300 font-semibold">Ready to book</div>
 
             </div>
 
@@ -361,6 +364,8 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
         </div>
 
       </div>
+      
+      */}
 
 
 

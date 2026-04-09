@@ -37,7 +37,13 @@ export function OwnerForm({ owner, isOpen, onClose, onSave }: OwnerFormProps) {
     phone: owner?.phone || "",
     businessId: owner?.businessId || "",
     status: owner?.status || "pending",
-    ...owner
+    registrationDate: owner?.registrationDate || "",
+    totalProperties: owner?.totalProperties || 0,
+    totalRevenue: owner?.totalRevenue || 0,
+    rating: owner?.rating || 0,
+    documentStatus: owner?.documentStatus || "pending",
+    lastActive: owner?.lastActive || "",
+    id: owner?.id || ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -123,6 +129,67 @@ export function OwnerForm({ owner, isOpen, onClose, onSave }: OwnerFormProps) {
                     <SelectItem value="suspended">Suspended</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="registrationDate">Registration Date</Label>
+                <Input
+                  id="registrationDate"
+                  type="date"
+                  value={formData.registrationDate}
+                  onChange={(e) => handleChange("registrationDate", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="totalProperties">Total Properties</Label>
+                <Input
+                  id="totalProperties"
+                  type="number"
+                  value={formData.totalProperties?.toString() || "0"}
+                  onChange={(e) => handleChange("totalProperties", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="totalRevenue">Total Revenue</Label>
+                <Input
+                  id="totalRevenue"
+                  type="number"
+                  value={formData.totalRevenue?.toString() || "0"}
+                  onChange={(e) => handleChange("totalRevenue", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="rating">Rating</Label>
+                <Input
+                  id="rating"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  value={formData.rating?.toString() || "0"}
+                  onChange={(e) => handleChange("rating", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="documentStatus">Document Status</Label>
+                <Select value={formData.documentStatus} onValueChange={(value) => handleChange("documentStatus", value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="lastActive">Last Active</Label>
+                <Input
+                  id="lastActive"
+                  type="datetime-local"
+                  value={formData.lastActive}
+                  onChange={(e) => handleChange("lastActive", e.target.value)}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-4">

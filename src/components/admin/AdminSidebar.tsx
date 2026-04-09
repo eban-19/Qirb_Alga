@@ -4,8 +4,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { adminSidebarLinks, getAdminIcon, getBadgeVariant } from '@/data/mock/adminSidebarData';
-
+import { adminSidebarLinks, getAdminIcon, getBadgeVariant, SidebarLink } from '@/data/mock/adminSidebarData';
 interface AdminSidebarProps {
   className?: string;
   collapsed?: boolean;
@@ -38,6 +37,72 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   };
 
+  const renderSidebarItem = (link: SidebarLink) => {
+    const Icon = getAdminIcon(link.icon);
+    const active = link.href ? isActiveLink(link.href) : false;
+    const badgeVariant = getBadgeVariant(link.badge);
+    
+    // Static Dashboard label (non-clickable)
+    if (link.isStatic) {
+      return (
+        <div key={link.id} className="mb-6">
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-3">
+              <Icon className="w-5 h-5 text-slate-400" />
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {link.label}
+              </span>
+            </div>
+          </div>
+          <div className="h-px bg-slate-700/50 mx-4"></div>
+        </div>
+      );
+    }
+
+    // Regular navigation items
+    return (
+      <Tooltip key={link.id} delayDuration={collapsed && !isMobile ? 0 : 1000}>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => link.href && handleNavigation(link.href)}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden",
+              "hover:bg-slate-700/50",
+              active
+                ? "bg-blue-600/10 text-blue-400 border-l-2 border-blue-400"
+                : "text-slate-300 hover:text-white",
+              collapsed && !isMobile && "justify-center px-3"
+            )}
+          >
+            {/* Background gradient effect */}
+            <div className={cn(
+              "absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              active && "opacity-100"
+            )} />
+            
+            <Icon className="w-4 h-4 relative z-10 flex-shrink-0" />
+            
+            {(!collapsed || isMobile) && (
+              <>
+                <span className="font-medium relative z-10 flex-1 text-left text-sm">
+                  {link.label}
+                </span>
+                {link.badge && (
+                  <Badge variant={badgeVariant} className="relative z-10 text-xs">
+                    {link.badge}
+                  </Badge>
+                )}
+              </>
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="ml-2">
+          <p>{link.label}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <TooltipProvider>
       <div className={cn(
@@ -60,7 +125,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              {(!collapsed || isMobile) && (
+              {(!collapsed && !isMobile) && (
                 <div>
                   <h2 className="text-lg font-bold text-white">Admin Panel</h2>
                   <p className="text-xs text-slate-400">Management System</p>
@@ -81,75 +146,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {adminSidebarLinks.map((link) => {
-            const Icon = getAdminIcon(link.icon);
-            const active = isActiveLink(link.href);
-            const badgeVariant = getBadgeVariant(link.badge);
-            
-            return (
-              <Tooltip key={link.id} delayDuration={collapsed && !isMobile ? 0 : 1000}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleNavigation(link.href)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
-                      active
-                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-                        : "text-slate-300 hover:bg-slate-700/50 hover:text-white",
-                      (collapsed && !isMobile) && "justify-center px-3"
-                    )}
-                  >
-                    {/* Background Effect */}
-                    <div className={cn(
-                      "absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-                      active && "opacity-100"
-                    )} />
-                    
-                    {/* Icon */}
-                    <div className={cn(
-                      "relative z-10 flex-shrink-0",
-                      active && "text-white"
-                    )}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    
-                    {/* Label */}
-                    {(!collapsed || isMobile) && (
-                      <div className="relative z-10 flex-1 text-left">
-                        <div className="font-medium">{link.label}</div>
-                        {link.description && (
-                          <div className="text-xs opacity-70">{link.description}</div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Badge */}
-                    {(!collapsed || isMobile) && link.badge && (
-                      <div className="relative z-10">
-                        <Badge variant={badgeVariant} className="text-xs">
-                          {link.badge}
-                        </Badge>
-                      </div>
-                    )}
-                    
-                    {/* Active Indicator */}
-                    {active && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-lg" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                {collapsed && !isMobile && (
-                  <TooltipContent side="right" className="bg-slate-800 border-slate-700 text-white">
-                    <div className="font-medium">{link.label}</div>
-                    {link.description && (
-                      <div className="text-xs text-slate-400">{link.description}</div>
-                    )}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-1">
+          {adminSidebarLinks.map((link) => renderSidebarItem(link))}
         </nav>
 
         {/* Footer */}
@@ -161,7 +159,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-bold">A</span>
             </div>
-            {!collapsed && (
+            {(!collapsed || isMobile) && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">Admin User</p>
                 <p className="text-xs text-slate-400 truncate">Administrator</p>

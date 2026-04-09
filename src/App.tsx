@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/hooks/use-language";
 import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RoomDetails from "./pages/RoomDetails.tsx";
@@ -34,13 +35,37 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
               
-              {/* Admin Dashboard Routes */}
-              <Route path="/dashboard/admin" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/owners" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/properties" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/approvals" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/bookings" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/alerts" element={<AdminDashboard />} />
+              {/* Admin Dashboard Routes - Protected */}
+              <Route path="/dashboard/admin" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/owners" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/properties" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/approvals" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/bookings" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/alerts" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

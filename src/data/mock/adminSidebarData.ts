@@ -5,19 +5,37 @@ import {
   CheckCircle,
   CalendarCheck,
   Bell,
+  ChevronDown,
+  ChevronRight,
   TrendingUp,
   Settings,
   Shield,
   AlertTriangle
 } from 'lucide-react';
 
-export const adminSidebarLinks = [
+export interface SidebarLink {
+  id: string;
+  label: string;
+  icon: string;
+  href?: string;
+  badge?: string | null;
+  children?: SidebarLink[];
+  isParent?: boolean;
+  isStatic?: boolean;
+}
+
+export const adminSidebarLinks: SidebarLink[] = [
+  {
+    id: "dashboard-label",
+    label: "Dashboard",
+    icon: "LayoutDashboard",
+    isStatic: true
+  },
   {
     id: "overview",
     label: "Overview",
     icon: "LayoutDashboard",
     href: "/dashboard/admin",
-    description: "System overview & metrics",
     badge: null
   },
   {
@@ -25,15 +43,13 @@ export const adminSidebarLinks = [
     label: "Owners",
     icon: "Users", 
     href: "/dashboard/admin/owners",
-    description: "Manage pension owners",
-    badge: "pending" // Will show count of pending owners
+    badge: null
   },
   {
     id: "properties",
     label: "Properties",
     icon: "Building",
     href: "/dashboard/admin/properties", 
-    description: "All pension properties",
     badge: null
   },
   {
@@ -41,15 +57,13 @@ export const adminSidebarLinks = [
     label: "Pension Approvals",
     icon: "CheckCircle",
     href: "/dashboard/admin/approvals",
-    description: "Pending pension approvals",
-    badge: "urgent" // Will show count of pending approvals
+    badge: null
   },
   {
     id: "bookings",
     label: "Bookings",
     icon: "CalendarCheck",
     href: "/dashboard/admin/bookings",
-    description: "All system bookings",
     badge: null
   },
   {
@@ -57,8 +71,7 @@ export const adminSidebarLinks = [
     label: "Alerts",
     icon: "Bell",
     href: "/dashboard/admin/alerts",
-    description: "System alerts & notifications",
-    badge: "new" // Will show count of unread alerts
+    badge: null
   }
 ];
 
@@ -70,6 +83,8 @@ export const getAdminIcon = (iconName: string) => {
     CheckCircle,
     CalendarCheck,
     Bell,
+    ChevronDown,
+    ChevronRight,
     TrendingUp,
     Settings,
     Shield,

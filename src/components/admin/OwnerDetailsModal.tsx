@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,16 +94,12 @@ export function OwnerDetailsModal({
             <DialogTitle className="text-2xl font-bold text-slate-900">
               Business Details
             </DialogTitle>
-            <DialogDescription>
-              View and manage business owner details and verification status
-            </DialogDescription>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
               className="h-8 w-8 p-0"
             >
-              <X className="h-4 w-4" />
             </Button>
           </div>
         </DialogHeader>
@@ -218,7 +214,7 @@ export function OwnerDetailsModal({
                       <span className="text-sm font-medium">License Document</span>
                     </div>
                     <a 
-                      href={owner.documentUrl} 
+                      href={owner.documentUrl.startsWith('http') ? owner.documentUrl : `http://localhost:3005${owner.documentUrl}`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline font-medium"
@@ -255,7 +251,6 @@ export function OwnerDetailsModal({
                   onClick={() => onReject?.(owner.id)}
                   className="px-6"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
                   Reject
                 </Button>
                 <Button

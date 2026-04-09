@@ -23,27 +23,43 @@ class ApiService {
         ...options.headers,
       };
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
+      const url = `${this.baseURL}${endpoint}`;
+      console.log('=== API DEBUGGING ===');
+      console.log('Request URL:', url);
+      console.log('Request method:', options.method || 'GET');
+      console.log('Request headers:', headers);
+      console.log('Token present:', !!token);
+
+      const response = await fetch(url, {
         ...options,
         headers,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       // Check if response is HTML (error page) instead of JSON
       const contentType = response.headers.get('content-type');
+      console.log('Response content-type:', contentType);
+      
       if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
+        console.log('HTML response:', text.substring(0, 200));
         throw new Error(`Server returned HTML error page instead of JSON. Response: ${text.substring(0, 200)}...`);
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
         const errorMessage = data.error ? `${data.message}: ${data.error}` : (data.message || `HTTP error! status: ${response.status}`);
+        console.log('API Error:', errorMessage);
         throw new Error(errorMessage);
       }
 
       return data as ApiResponse<T>;
     } catch (error) {
+      console.error('API Request failed:', error);
       throw error;
     }
   }
@@ -72,6 +88,19 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify({ userId, ...profileData }),
     });
+  }
+
+  // System status methods
+  async getSystemStatus(): Promise<ApiResponse<{
+    status: 'online' | 'offline' | 'degraded';
+    uptime: number;
+    database: boolean;
+    api: boolean;
+    storage: boolean;
+    lastCheck: string;
+    responseTime: number;
+  }>> {
+    return this.request('/system/status');
   }
 
   // Logout method

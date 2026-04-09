@@ -57,24 +57,9 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
               </button>
               
               <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-              <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
-                <span>System Management</span>
-                <span>•</span>
-                <span>Real-time Monitoring</span>
-              </div>
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Quick Stats - Hidden on mobile */}
-              <div className="hidden lg:flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-slate-600">System Online</span>
-                </div>
-                <div className="text-slate-500">
-                  Last sync: <span className="font-medium text-slate-700">Just now</span>
-                </div>
-              </div>
               
               {/* User Menu */}
               <div className="flex items-center gap-3">
@@ -84,16 +69,6 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                   </svg>
                   <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                
-                <div className="hidden md:flex items-center gap-3 pl-3 border-l border-slate-200">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">A</span>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-sm font-medium text-slate-900">Admin User</p>
-                    <p className="text-xs text-slate-500">Administrator</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

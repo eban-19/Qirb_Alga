@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Building, Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Calendar, Bell } from "lucide-react";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { Shield, Building, Users, DollarSign, TrendingUp, AlertTriangle, Calendar, Bell } from "lucide-react";
 import apiService from "@/services/api";
 import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 
@@ -19,6 +18,7 @@ import { PropertiesTab } from "@/components/admin/PropertiesTab";
 import PensionApprovalInline from "@/components/admin/PensionApprovalInline";
 import { AlertsTab } from "@/components/admin/AlertsTab";
 import { BookingsTab } from "@/components/admin/BookingsTab";
+import { OwnerDetailsModal } from "@/components/admin/OwnerDetailsModal";
 
 // TypeScript Interfaces
 interface PensionOwner {
@@ -94,6 +94,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedOwner, setSelectedOwner] = useState(null);
+  const [showOwnerDetails, setShowOwnerDetails] = useState(false);
   const [owners, setOwners] = useState([]);
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -110,8 +112,6 @@ export default function AdminDashboard() {
   });
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOwner, setSelectedOwner] = useState(null);
-  const [showOwnerDetails, setShowOwnerDetails] = useState(false);
 
   // Update active tab when route changes
   useEffect(() => {
@@ -126,82 +126,83 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
+      console.log('=== DEBUGGING fetchAdminData ===');
+      console.log('Token exists:', !!localStorage.getItem('token'));
+      console.log('Token value:', localStorage.getItem('token')?.substring(0, 20) + '...');
       
       // Fetch all data in parallel
       const [ownersRes, propertiesRes, bookingsRes, metricsRes, alertsRes, pensionsRes] = await Promise.all([
-        apiService.getAllOwners(),
-        apiService.getAllProperties(),
-        apiService.getAllBookings(),
-        apiService.getAdminMetrics(),
-        apiService.getSystemAlerts(),
+        apiService.getAllOwners().catch(err => {
+          console.error('Owners API error:', err);
+          return { data: [] };
+        }),
+        apiService.getAllProperties().catch(err => {
+          console.error('Properties API error:', err);
+          return { data: [] };
+        }),
+        apiService.getAllBookings().catch(err => {
+          console.error('Bookings API error:', err);
+          return { data: [] };
+        }),
+        apiService.getAdminMetrics().catch(err => {
+          console.error('Metrics API error:', err);
+          return { data: metrics };
+        }),
+        apiService.getSystemAlerts().catch(err => {
+          console.error('Alerts API error:', err);
+          return { data: [] };
+        }),
         fetch('http://localhost:3005/api/admin-approvals/pensions/all', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
           }
-        }).then(res => res.json())
+        }).then(res => res.json()).catch(err => {
+          console.error('Pensions API error:', err);
+          return { data: [] };
+        })
       ]);
+
+      console.log('API Responses:', {
+        owners: ownersRes.data?.length || 0,
+        properties: propertiesRes.data?.length || 0,
+        bookings: bookingsRes.data?.length || 0,
+        alerts: alertsRes.data?.length || 0,
+        pensions: pensionsRes.data?.length || 0
+      });
 
       setOwners(ownersRes.data || []);
       setProperties(propertiesRes.data || []);
       setBookings(bookingsRes.data || []);
-      setMetrics(metricsRes.data || metrics);
+      setMetrics(metricsRes.data || {
+        totalOwners: ownersRes.data?.length || 0,
+        totalProperties: propertiesRes.data?.length || 0,
+        totalBookings: bookingsRes.data?.length || 0,
+        monthlyRevenue: 0,
+        occupancyRate: 0,
+        pendingVerifications: ownersRes.data?.filter(o => o.status === 'pending').length || 0,
+        activeProperties: propertiesRes.data?.filter(p => p.status === 'active').length || 0,
+        averageRating: 0
+      });
       setAlerts(alertsRes.data || []);
       setPensions(pensionsRes.data || []);
 
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
+      // Don't reset to empty arrays - keep whatever data we successfully fetched
+      // The individual API calls have their own error handling with fallbacks
     } finally {
       setLoading(false);
     }
   };
 
-  // WebSocket integration for real-time updates
-  const {
-    isConnected,
-    connectionStatus,
-    subscribeToOwnerUpdates,
-    subscribeToPropertyUpdates,
-    subscribeToBookingUpdates,
-    subscribeToAlertUpdates,
-    subscribeToMetricsUpdates,
-  } = useWebSocket('admin');
-
-  useEffect(() => {
-    if (isConnected) {
-      // Subscribe to real-time updates
-      subscribeToOwnerUpdates((data: any) => {
-        setOwners(prev => prev.map(owner => 
-          owner.id === data.id ? { ...owner, ...data } : owner
-        ));
-      });
-
-      subscribeToPropertyUpdates((data: any) => {
-        setProperties(prev => prev.map(property => 
-          property.id === data.id ? { ...property, ...data } : property
-        ));
-      });
-
-      subscribeToBookingUpdates((data: any) => {
-        setBookings(prev => prev.map(booking => 
-          booking.id === data.id ? { ...booking, ...data } : booking
-        ));
-      });
-
-      subscribeToAlertUpdates((data: any) => {
-        setAlerts(prev => prev.find(alert => alert.id === data.id) 
-          ? prev.map(alert => alert.id === data.id ? { ...alert, ...data } : alert)
-          : [data, ...prev]
-        );
-      });
-
-      subscribeToMetricsUpdates((data: any) => {
-        setMetrics(prev => ({ ...prev, ...data }));
-      });
-    }
-  }, [isConnected]);
-
   const handleOwnerAction = async (ownerId: string, action: string, owner?: any) => {
+    console.log('=== DEBUGGING handleOwnerAction ===');
+    console.log('Action:', action);
+    console.log('Action type:', typeof action);
+    console.log('OwnerId:', ownerId);
+    console.log('Owner data:', owner);
+    
     try {
       switch (action) {
         case 'view':
@@ -231,6 +232,7 @@ export default function AdminDashboard() {
           break;
         default:
           console.log('Unknown action:', action);
+          console.log('Available actions: view, approve, verify, reject, suspend, delete, update');
           break;
       }
       fetchAdminData(); // Refresh data
@@ -275,25 +277,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const getConnectionBadge = () => {
-    const statusConfig = {
-      connected: { color: 'bg-green-500', text: 'Connected', icon: CheckCircle },
-      connecting: { color: 'bg-yellow-500', text: 'Connecting...', icon: AlertTriangle },
-      disconnected: { color: 'bg-red-500', text: 'Disconnected', icon: AlertTriangle },
-      error: { color: 'bg-red-500', text: 'Error', icon: AlertTriangle }
-    };
-
-    const config = statusConfig[connectionStatus as keyof typeof statusConfig] || statusConfig.disconnected;
-    const Icon = config.icon;
-
-    return (
-      <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.color} bg-opacity-20 text-white`}>
-        <Icon className="w-4 h-4" />
-        <span className="text-sm font-medium">{config.text}</span>
-      </div>
-    );
-  };
-
+  
   // Render content based on active tab
   const renderContent = () => {
     if (loading) {
@@ -332,7 +316,7 @@ export default function AdminDashboard() {
   return (
     <AdminDashboardLayout>
       {/* Page Header */}
-      <div className="mb-6">
+      <div className="mb-3">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 capitalize">
@@ -343,28 +327,6 @@ export default function AdminDashboard() {
                activeTab === 'bookings' ? 'Bookings' :
                activeTab === 'alerts' ? 'System Alerts' : 'Admin Dashboard'}
             </h1>
-            <p className="text-slate-600 mt-1">
-              {activeTab === 'overview' ? 'System overview and key metrics' :
-               activeTab === 'owners' ? 'Manage and monitor pension owners' :
-               activeTab === 'properties' ? 'View and manage all properties' :
-               activeTab === 'approvals' ? 'Review pending pension registrations' :
-               activeTab === 'bookings' ? 'Monitor all booking activity' :
-               activeTab === 'alerts' ? 'System alerts and notifications' : 'Admin Dashboard'}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Connection Status */}
-            <div className="flex items-center gap-2">
-              {getConnectionBadge()}
-            </div>
-            
-            {/* Quick Actions */}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => fetchAdminData()}>
-                Refresh
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -379,92 +341,13 @@ export default function AdminDashboard() {
       )}
       
       {/* Owner Details Modal */}
-      {showOwnerDetails && selectedOwner && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">Owner Details</h2>
-                <button
-                  onClick={() => setShowOwnerDetails(false)}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Business Information</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Business Name</label>
-                      <p className="text-slate-900">{selectedOwner.businessName || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Owner Name</label>
-                      <p className="text-slate-900">{selectedOwner.ownerName || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Business ID</label>
-                      <p className="text-slate-900">{selectedOwner.businessId || 'N/A'}</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Contact Information</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Email</label>
-                      <p className="text-slate-900">{selectedOwner.email || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Phone</label>
-                      <p className="text-slate-900">{selectedOwner.phone || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-500">Status</label>
-                      <div className="mt-1">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          selectedOwner.status === 'verified' 
-                            ? 'bg-green-100 text-green-800'
-                            : selectedOwner.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : selectedOwner.status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-slate-100 text-slate-800'
-                        }`}>
-                          {selectedOwner.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Statistics</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{selectedOwner.totalProperties || 0}</div>
-                    <div className="text-sm text-blue-600">Properties</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{selectedOwner.totalRevenue || 0}</div>
-                    <div className="text-sm text-green-600">Revenue</div>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">{selectedOwner.rating || 0}</div>
-                    <div className="text-sm text-yellow-600">Rating</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <OwnerDetailsModal
+        owner={selectedOwner}
+        isOpen={showOwnerDetails}
+        onClose={() => setShowOwnerDetails(false)}
+        onVerify={(ownerId) => handleOwnerAction(ownerId, "verify", selectedOwner)}
+        onReject={(ownerId) => handleOwnerAction(ownerId, "reject")}
+      />
     </AdminDashboardLayout>
   );
 }
