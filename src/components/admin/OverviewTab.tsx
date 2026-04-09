@@ -26,7 +26,7 @@ interface PensionOwner {
   id: string;
   businessName: string;
   ownerName: string;
-  status: "pending" | "verified" | "rejected" | "suspended";
+  status: "pending" | "verified" | "approved" | "rejected" | "suspended";
   registrationDate: string;
   totalProperties?: number;
   totalRevenue?: number;

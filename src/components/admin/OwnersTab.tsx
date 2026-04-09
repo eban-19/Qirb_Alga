@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-import { Search, Plus, Users, Shield, TrendingUp, Eye, Edit, Trash2, MoreHorizontal, Check, X, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, Plus, Users, Shield, TrendingUp, Eye, Edit, Trash2, MoreHorizontal, ChevronDown, Check, X, AlertCircle } from "lucide-react";
 
 import { OwnerCard } from "./OwnerCard";
 
@@ -42,7 +42,7 @@ interface PensionOwner {
 
   businessId: string;
 
-  status: "pending" | "verified" | "rejected" | "suspended";
+  status: "pending" | "verified" | "approved" | "rejected" | "suspended";
 
   registrationDate: string;
 
@@ -393,21 +393,56 @@ export function OwnersTab({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem 
-                                onClick={() => onOwnerAction(owner.id, "approve", owner)}
-                                className="flex items-center gap-2 text-green-600 hover:bg-green-50"
-                              >
-                                <Check className="w-4 h-4" />
-                                <span>Approve</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => onOwnerAction(owner.id, "reject", owner)}
-                                className="flex items-center gap-2 text-red-600 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                                <span>Reject</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              {/* Show Approve/Reject only for pending owners */}
+                              {owner.status === 'pending' && (
+                                <>
+                                  <DropdownMenuItem 
+                                    onClick={() => onOwnerAction(owner.id, "approve", owner)}
+                                    className="flex items-center gap-2 text-green-600 hover:bg-green-50"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    <span>Approve</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => onOwnerAction(owner.id, "reject", owner)}
+                                    className="flex items-center gap-2 text-red-600 hover:bg-red-50"
+                                  >
+                                    <X className="w-4 h-4" />
+                                    <span>Reject</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              
+                              {/* Show Suspend only for approved/verified owners */}
+                              {(owner.status === 'verified' || owner.status === 'approved') && (
+                                <>
+                                  <DropdownMenuItem 
+                                    onClick={() => onOwnerAction(owner.id, "suspend", owner)}
+                                    className="flex items-center gap-2 text-orange-600 hover:bg-orange-50"
+                                  >
+                                    <Shield className="w-4 h-4" />
+                                    <span>Suspend</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              
+                              {/* Show Reactivate only for suspended owners */}
+                              {owner.status === 'suspended' && (
+                                <>
+                                  <DropdownMenuItem 
+                                    onClick={() => onOwnerAction(owner.id, "reactivate", owner)}
+                                    className="flex items-center gap-2 text-green-600 hover:bg-green-50"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    <span>Reactivate</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              
+                              {/* Always show View Details and Delete */}
                               <DropdownMenuItem 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -419,7 +454,7 @@ export function OwnersTab({
                                 <Eye className="w-4 h-4" />
                                 <span>View Details</span>
                               </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteOwner(owner.id)}
                                 className="flex items-center gap-2 text-red-600 hover:bg-red-50"

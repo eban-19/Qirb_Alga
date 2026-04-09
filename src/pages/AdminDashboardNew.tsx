@@ -28,7 +28,7 @@ interface PensionOwner {
   email: string;
   phone: string;
   businessId: string;
-  status: "pending" | "verified" | "rejected" | "suspended";
+  status: "pending" | "verified" | "approved" | "rejected" | "suspended";
   registrationDate: string;
   totalProperties: number;
   totalRevenue: number;
@@ -220,6 +220,9 @@ export default function AdminDashboard() {
           break;
         case 'suspend':
           await apiService.suspendOwner(ownerId);
+          break;
+        case 'reactivate':
+          await apiService.approveOwner(ownerId); // Use approveOwner to reactivate
           break;
         case 'delete':
           // Delete owner from database

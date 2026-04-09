@@ -13,7 +13,7 @@ interface PensionOwner {
   email: string;
   phone: string;
   businessId: string;
-  status: "pending" | "verified" | "rejected" | "suspended";
+  status: "pending" | "verified" | "approved" | "rejected" | "suspended";
   registrationDate?: string;
   totalProperties?: number;
   totalRevenue?: number;
