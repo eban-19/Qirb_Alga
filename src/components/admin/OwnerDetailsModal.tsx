@@ -94,13 +94,6 @@ export function OwnerDetailsModal({
             <DialogTitle className="text-2xl font-bold text-slate-900">
               Business Details
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-            </Button>
           </div>
         </DialogHeader>
 
