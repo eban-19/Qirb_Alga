@@ -205,6 +205,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response: ApiResponse = await apiService.login(email, password);
 
       if (response.success && response.data) {
+        // Mark user as approved in localStorage for future suspension detection
+        const key = `user_${email}_approved`;
+        localStorage.setItem(key, 'true');
+        
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
           payload: {

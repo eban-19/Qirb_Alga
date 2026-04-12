@@ -6,15 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, XCircle, Lock, UserX, AlertCircle } from "lucide-react";
+import { getAccountStatusMessage, AccountStatusError } from "@/utils/authMessages";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<AccountStatusError | null>(null);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+
+  // Helper function to get icon based on error type
+  const getErrorIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'alert-triangle': return <AlertTriangle className="h-4 w-4" />;
+      case 'clock': return <Clock className="h-4 w-4" />;
+      case 'x-circle': return <XCircle className="h-4 w-4" />;
+      case 'lock': return <Lock className="h-4 w-4" />;
+      case 'user-x': return <UserX className="h-4 w-4" />;
+      case 'alert-circle': return <AlertCircle className="h-4 w-4" />;
+      default: return <AlertCircle className="h-4 w-4" />;
+    }
+  };
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
@@ -31,13 +45,14 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
       await login(email, password);
       // Navigation will be handled by useEffect
     } catch (error: any) {
-      setError(error.message || "Login failed");
+      const statusError = getAccountStatusMessage(error, email);
+      setError(statusError);
     } finally {
       setLoading(false);
     }
@@ -57,8 +72,33 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+              <Alert 
+                variant={error.variant}
+                className={`
+                  ${error.severity === 'medium' && error.status === 'suspended' ? 'border-orange-200 bg-orange-50' : ''}
+                  ${error.severity === 'low' ? 'border-blue-200 bg-blue-50' : ''}
+                  ${error.severity === 'high' ? 'border-red-200 bg-red-50' : ''}
+                `}
+              >
+                <div className="flex items-start gap-2">
+                  {error.icon && getErrorIcon(error.icon)}
+                  <div className="flex-1">
+                    <AlertDescription className={`font-semibold ${
+                      error.severity === 'medium' && error.status === 'suspended' ? 'text-orange-800' : ''
+                    } ${error.severity === 'low' ? 'text-blue-800' : ''} ${
+                      error.severity === 'high' ? 'text-red-800' : ''
+                    }`}>
+                      {error.title}
+                    </AlertDescription>
+                    <AlertDescription className={`text-sm mt-1 ${
+                      error.severity === 'medium' && error.status === 'suspended' ? 'text-orange-700' : ''
+                    } ${error.severity === 'low' ? 'text-blue-700' : ''} ${
+                      error.severity === 'high' ? 'text-red-700' : ''
+                    }`}>
+                      {error.message}
+                    </AlertDescription>
+                  </div>
+                </div>
               </Alert>
             )}
             <div className="space-y-2">

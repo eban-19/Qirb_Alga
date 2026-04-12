@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
+import SearchBar from "@/components/SearchBar";
 import RoomList from "@/components/RoomList";
 import HowItWorks from "@/components/HowItWorks";
 import OwnerBanner from "@/components/OwnerBanner";
@@ -10,7 +10,7 @@ const Rooms = () => {
     return (
         <div className="min-h-screen bg-background">
             <Navbar />
-            <HeroSection />
+            <SearchBar />
             <RoomList />
             <HowItWorks />
             <AppDownload />

@@ -12,6 +12,7 @@ import * as fs from 'fs';
 // Route imports (same as working .js version)
 import authRoutes from './routes/auth';
 import pensionRoutes from './routes/pensions';
+import propertyRoutes from './routes/properties';
 import packageRoutes from './routes/packages';
 import bookingRoutes from './routes/bookings';
 import roomRoutes from './routes/rooms';
@@ -115,6 +116,7 @@ app.use('/uploads', (req, res, next) => {
 // API Routes (same as working .js version)
 app.use('/api/auth', authRoutes);
 app.use('/api/pensions', pensionRoutes);
+app.use('/api/properties', propertyRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -141,6 +143,28 @@ app.get('/api/test', (req, res) => {
     message: 'API is working!',
     timestamp: new Date().toISOString()
   });
+});
+
+// Database test endpoint
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const { testConnection } = await import('./config/database');
+    const dbConnected = await testConnection();
+    res.json({
+      success: true,
+      message: 'Database connection test',
+      connected: dbConnected,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Database test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Health check endpoint

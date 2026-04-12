@@ -19,6 +19,7 @@ import PensionApprovalInline from "@/components/admin/PensionApprovalInline";
 import { AlertsTab } from "@/components/admin/AlertsTab";
 import { BookingsTab } from "@/components/admin/BookingsTab";
 import { OwnerDetailsModal } from "@/components/admin/OwnerDetailsModal";
+import PropertyDetailsModal from "@/components/admin/PropertyDetailsModal";
 
 // TypeScript Interfaces
 interface PensionOwner {
@@ -97,6 +98,10 @@ export default function AdminDashboard() {
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
   const [owners, setOwners] = useState([]);
+  
+  // Property details modal state
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [pensions, setPensions] = useState([]);
@@ -244,6 +249,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handlePropertyDetailsAction = async (action: string, propertyId: string) => {
+    console.log('=== DEBUGGING handlePropertyAction ===');
+    console.log('Action:', action);
+    console.log('PropertyId:', propertyId);
+    
+    switch (action) {
+      case 'view':
+        setSelectedPropertyId(propertyId);
+        setIsPropertyModalOpen(true);
+        break;
+      default:
+        console.log('Unknown property action:', action);
+        break;
+    }
+  };
+
   const handlePropertyAction = async (propertyId: string, action: string) => {
     try {
       // Property action methods not implemented in apiService yet
@@ -304,7 +325,7 @@ export default function AdminDashboard() {
           onFilterChange={setFilterStatus}
         />;
       case 'properties':
-        return <PropertiesTab properties={properties} onPropertyAction={handlePropertyAction} />;
+        return <PropertiesTab properties={properties} onPropertyAction={handlePropertyDetailsAction} />;
       case 'approvals':
         return <PensionApprovalInline pensions={pensions} />;
       case 'bookings':
@@ -350,6 +371,13 @@ export default function AdminDashboard() {
         onClose={() => setShowOwnerDetails(false)}
         onVerify={(ownerId) => handleOwnerAction(ownerId, "verify", selectedOwner)}
         onReject={(ownerId) => handleOwnerAction(ownerId, "reject")}
+      />
+      
+      {/* Property Details Modal */}
+      <PropertyDetailsModal
+        propertyId={selectedPropertyId}
+        isOpen={isPropertyModalOpen}
+        onClose={() => setIsPropertyModalOpen(false)}
       />
     </AdminDashboardLayout>
   );

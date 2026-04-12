@@ -4,23 +4,34 @@ import { Button } from "@/components/ui/button";
 
 import { Badge } from "@/components/ui/badge";
 
-import { MapPin, Eye, Edit, Trash2 } from "lucide-react";
+import { MapPin, Eye, Edit, Trash2, Bed, Package } from "lucide-react";
 
 import { Room } from "@/lib/rooms";
 
 
 
 interface PropertyCardProps {
-
-  property: Room;
-
+  property: any; // Using any to match API response structure which includes address field
   onAction: (action: string, propertyId: string) => void;
-
 }
 
 
 
 export function PropertyCard({ property, onAction }: PropertyCardProps) {
+
+  // Debug: Log property data structure
+  console.log(`=== PROPERTY CARD DATA ===`);
+  console.log('Property:', property);
+  console.log('Available rooms:', property.availableRooms || 0);
+  console.log('Total rooms:', property.totalRooms || 0);
+  console.log('Packages:', property.packages || []);
+  console.log('Packages length:', (property.packages || []).length);
+
+  // Calculate dynamic values
+  const availableRooms = property.availableRooms || 0;
+  const totalRooms = property.totalRooms || 0;
+  const packages = property.packages || [];
+  const packagesCount = packages.length;
 
   return (
 
@@ -82,11 +93,16 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
             <div className="flex items-center gap-2 mb-3">
 
-              <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded-full border-2 border-blue-300 group-hover:bg-blue-200 transition-colors">
+              <div 
+                className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded-full border-2 border-blue-300 group-hover:bg-blue-200 transition-colors cursor-pointer hover:border-blue-400"
+                onClick={() => onAction('location', property.id)}
+              >
 
                 <MapPin className="w-4 h-4 text-blue-600" />
 
-                <span className="text-sm font-semibold text-blue-800">{property.locationName}</span>
+                <span className="text-sm font-semibold text-blue-800">
+                  {property.address || property.locationName || property.city || property.area || 'Location'}
+                </span>
 
               </div>
 
@@ -94,48 +110,19 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
             
 
+            {/* Summary Info - Total Rooms and Packages */}
             <div className="flex items-center gap-4 text-sm text-slate-600 mb-3 group-hover:text-slate-700 transition-colors">
-
               <div className="flex items-center gap-1">
-
-                <span className="font-medium">{property.availableRooms}</span>
-
+                <Bed className="w-4 h-4 text-blue-500" />
+                <span className="font-medium">{availableRooms}</span>
                 <span>rooms available</span>
-
               </div>
-
-              <span className="text-slate-400">•</span>
-
+              <span className="text-slate-400">|</span>
               <div className="flex items-center gap-1">
-
-                <span className="font-medium">{property.packages?.length || 0}</span>
-
+                <Package className="w-4 h-4 text-purple-500" />
+                <span className="font-medium">{packagesCount}</span>
                 <span>packages</span>
-
               </div>
-
-            </div>
-
-            
-
-            <div className="flex flex-wrap items-center gap-2">
-
-              {(property.packages || []).slice(0, 3).map((pkg, index) => (
-
-                <Badge 
-
-                  key={index} 
-
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-700 hover:from-purple-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
-
-                >
-
-                  {pkg.name}: {pkg.price.toLocaleString()} ETB
-
-                </Badge>
-
-              ))}
-
             </div>
 
           </div>
@@ -144,21 +131,23 @@ export function PropertyCard({ property, onAction }: PropertyCardProps) {
 
           <div className="flex items-center gap-2 ml-4">
 
-            <Button 
+            {/* <Button 
 
               size="sm" 
 
-              variant="outline" 
+              variant="default" 
 
               onClick={() => onAction('view', property.id)}
 
-              className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transform hover:scale-110 transition-all duration-200"
+              className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transform hover:scale-110 transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700"
 
             >
 
-              <Eye className="w-4 h-4" />
+              <Eye className="w-4 h-4 mr-1" />
 
-            </Button>
+              View Details
+
+            </Button> */}
 
             {/* <Button 
 

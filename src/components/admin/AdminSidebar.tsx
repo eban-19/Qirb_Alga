@@ -24,9 +24,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const navigate = useNavigate();
 
   const isActiveLink = (href: string) => {
-    if (href === '/dashboard/admin') {
-      return location.pathname === href || location.pathname.startsWith('/dashboard/admin');
-    }
     return location.pathname === href;
   };
 
@@ -150,22 +147,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {adminSidebarLinks.map((link) => renderSidebarItem(link))}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - Empty now that admin account is moved to header */}
         <div className="p-4 border-t border-slate-700/50">
-          <div className={cn(
-            "flex items-center gap-3 p-3 rounded-lg bg-slate-700/30",
-            collapsed && "justify-center"
-          )}>
-            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-bold">A</span>
-            </div>
-            {(!collapsed || isMobile) && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">Admin User</p>
-                <p className="text-xs text-slate-400 truncate">Administrator</p>
-              </div>
-            )}
-          </div>
+          {/* Admin account moved to header */}
         </div>
       </div>
     </TooltipProvider>

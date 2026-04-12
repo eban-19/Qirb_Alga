@@ -15,11 +15,8 @@ import { Room } from "@/lib/rooms";
 
 
 interface PropertiesTabProps {
-
-  properties: Room[];
-
-  onPropertyAction: (action: string, propertyId: string, property?: Room) => void;
-
+  properties: any[]; // Using any to match API response structure
+  onPropertyAction: (action: string, propertyId: string, property?: any) => void;
 }
 
 
@@ -32,50 +29,44 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
 
 
 
-  // const handleCreateProperty = () => {
-
-  //   setSelectedProperty(undefined);
-
-  //   setShowForm(true);
-
-  // };
-
-
-
-  const handleEditProperty = (property: Room) => {
-
-    setSelectedProperty(property);
-
-    setShowForm(true);
-
+  const handlePropertyAction = (action: string, propertyId: string, property?: any) => {
+    if (action === "edit") {
+      // Handle edit action
+      setSelectedProperty(property);
+      setShowForm(true);
+    } else if (action === "delete") {
+      // Handle delete action
+      if (confirm("Are you sure you want to delete this property?")) {
+        onPropertyAction("delete", propertyId);
+      }
+    } else if (action === "location") {
+      // Handle location click - open Google Maps with property address
+      const address = property?.address || property?.locationName || property?.city || property?.area || '';
+      if (address) {
+        // Encode the address for URL and open Google Maps
+        const encodedAddress = encodeURIComponent(address);
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        window.open(googleMapsUrl, '_blank');
+      } else {
+        // Fallback if no address available
+        alert('Location information not available for this property');
+      }
+    } else {
+      onPropertyAction(action, propertyId, property);
+    }
   };
-
-
 
   const handleSaveProperty = (property: Room) => {
-
     if (property.id) {
-
       onPropertyAction("update", property.id, property);
-
     } else {
-
       onPropertyAction("create", "", property);
-
     }
-
   };
 
-
-
-  const handleDeleteProperty = (propertyId: string) => {
-
-    if (confirm("Are you sure you want to delete this property?")) {
-
-      onPropertyAction("delete", propertyId);
-
-    }
-
+  const handleCreateProperty = () => {
+    setSelectedProperty(undefined);
+    setShowForm(true);
   };
 
 
@@ -398,21 +389,7 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
                 property={property}
 
                 onAction={(action, propertyId) => {
-
-                  if (action === "edit") {
-
-                    handleEditProperty(property);
-
-                  } else if (action === "delete") {
-
-                    handleDeleteProperty(propertyId);
-
-                  } else {
-
-                    onPropertyAction(action, propertyId);
-
-                  }
-
+                  handlePropertyAction(action, propertyId, property);
                 }}
 
               />
@@ -446,8 +423,6 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
         </CardContent>
 
       </Card>
-
-
 
       {/* Property Form Modal */}
 

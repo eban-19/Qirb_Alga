@@ -44,9 +44,11 @@ export interface Room {
   latitude: number;
   longitude: number;
   availableRooms: number;
+  totalRooms?: number;
+  rooms?: any[];
+  packages?: any[];
   images: string[];
   videoUrl?: string;
-  packages: RoomPackage[];
   distance?: number;
   phone?: string;
   email?: string;

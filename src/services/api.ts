@@ -24,42 +24,34 @@ class ApiService {
       };
 
       const url = `${this.baseURL}${endpoint}`;
-      console.log('=== API DEBUGGING ===');
-      console.log('Request URL:', url);
-      console.log('Request method:', options.method || 'GET');
-      console.log('Request headers:', headers);
-      console.log('Token present:', !!token);
 
       const response = await fetch(url, {
         ...options,
         headers,
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
       // Check if response is HTML (error page) instead of JSON
       const contentType = response.headers.get('content-type');
-      console.log('Response content-type:', contentType);
       
       if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
-        console.log('HTML response:', text.substring(0, 200));
         throw new Error(`Server returned HTML error page instead of JSON. Response: ${text.substring(0, 200)}...`);
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (!response.ok) {
         const errorMessage = data.error ? `${data.message}: ${data.error}` : (data.message || `HTTP error! status: ${response.status}`);
-        console.log('API Error:', errorMessage);
-        throw new Error(errorMessage);
+        
+        // Create enhanced error with original response data
+        const enhancedError = new Error(errorMessage);
+        (enhancedError as any).originalResponse = data; // Preserve original response data
+        (enhancedError as any).status = response.status;
+        throw enhancedError;
       }
 
       return data as ApiResponse<T>;
     } catch (error) {
-      console.error('API Request failed:', error);
       throw error;
     }
   }
@@ -88,6 +80,179 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify({ userId, ...profileData }),
     });
+  }
+
+  // Property methods
+  async getPropertyById(propertyId: string): Promise<ApiResponse<{
+    id: string;
+    name: string;
+    location: string;
+    description?: string;
+    rooms: Array<{
+      id: string;
+      name: string;
+      type: string;
+      capacity: number;
+      price: number;
+      status: 'available' | 'occupied';
+      amenities?: string[];
+    }>;
+    packages: Array<{
+      id: string;
+      name: string;
+      price: number;
+      duration?: string;
+      description?: string;
+      features?: string[];
+    }>;
+    owner: {
+      id: string;
+      name: string;
+      email?: string;
+      phone?: string;
+    };
+    images?: string[];
+    totalRooms?: number;
+    availableRooms?: number;
+    avgRating?: number;
+    reviewCount?: number;
+  }>> {
+    console.log('=== FETCHING REAL PENSION DATA ===');
+    console.log('Pension ID:', propertyId);
+    
+    try {
+      // Use the same data structure as pension owner dashboard
+      const [
+        roomsResponse,
+        packagesResponse,
+        pensionResponse
+      ] = await Promise.all([
+        this.getRooms(parseInt(propertyId)),
+        this.getPackages(parseInt(propertyId)),
+        this.getPension(parseInt(propertyId))
+      ]);
+
+      console.log('=== REAL DATA RESPONSES ===');
+      console.log('Rooms response:', roomsResponse);
+      console.log('Packages response:', packagesResponse);
+      console.log('Pension response:', pensionResponse);
+
+      // Get pension data directly from response
+      if (!pensionResponse?.success || !pensionResponse?.data) {
+        console.log('Pension not found, using fallback');
+        throw new Error('Pension not found');
+      }
+
+      const pension = pensionResponse.data;
+
+      // Transform rooms data (same structure as dashboard)
+      const roomsData = roomsResponse?.data?.items || roomsResponse?.data || [];
+      const transformedRooms = Array.isArray(roomsData) ? roomsData.map((room: any) => ({
+        id: room.id || room.room_id,
+        name: room.name || room.room_type || 'Standard Room',
+        type: room.type || room.room_type || 'Standard',
+        capacity: room.capacity || 2,
+        price: room.price_per_night || room.price || 0,
+        status: (room.is_available ? 'available' : 'occupied') as 'available' | 'occupied',
+        amenities: room.amenities || []
+      })) : [];
+
+      // Transform packages data (same structure as dashboard)
+      const packagesData = packagesResponse?.data || [];
+      const transformedPackages = Array.isArray(packagesData) ? packagesData.map((pkg: any) => ({
+        id: pkg.package_id || pkg.id,
+        name: pkg.name || 'Standard Package',
+        price: pkg.price || 0,
+        duration: pkg.duration || '1 night',
+        description: pkg.description,
+        features: pkg.features || pkg.services || []
+      })) : [];
+
+      // Get owner info from pension data
+      const ownerInfo = {
+        id: pension.owner_id,
+        name: pension.owner_name || 'Property Owner',
+        email: pension.email || pension.owner_email,
+        phone: pension.phone || 'N/A'
+      };
+
+      console.log('=== TRANSFORMED DATA ===');
+      console.log('Pension:', pension.name);
+      console.log('Rooms count:', transformedRooms.length);
+      console.log('Packages count:', transformedPackages.length);
+      console.log('Owner:', ownerInfo.name);
+
+      return {
+        success: true,
+        data: {
+          id: pension.pension_id || pension.id,
+          name: pension.name,
+          location: pension.address,
+          description: pension.description,
+          rooms: transformedRooms,
+          packages: transformedPackages,
+          owner: ownerInfo,
+          images: pension.image_url ? [pension.image_url] : [],
+          totalRooms: transformedRooms.length,
+          availableRooms: transformedRooms.filter(r => r.status === 'available').length,
+          avgRating: pension.avg_rating || 0,
+          reviewCount: pension.review_count || 0
+        }
+      };
+
+    } catch (error: any) {
+      console.error('Failed to fetch pension data:', error);
+      
+      // First try to get basic property info to use actual names
+      let basicPropertyInfo = null;
+      try {
+        const basicResponse = await this.request('/admin/properties');
+        if (basicResponse.success && basicResponse.data) {
+          const property = (basicResponse.data as any[]).find(p => 
+            String(p.id || p.pension_id) === String(propertyId)
+          );
+          if (property) {
+            basicPropertyInfo = property;
+            console.log('Found basic property info:', property.name);
+          }
+        }
+      } catch (basicError) {
+        console.log('Could not fetch basic property info:', basicError);
+      }
+
+      // Create property info with empty data (no fake data)
+      const propertyName = basicPropertyInfo?.name || `Property ${propertyId}`;
+      const propertyLocation = basicPropertyInfo?.address || basicPropertyInfo?.location || 'Location Loading...';
+      const propertyDescription = basicPropertyInfo?.description || 'Property details are currently loading. Please try again later.';
+      const ownerName = basicPropertyInfo?.ownerName || basicPropertyInfo?.owner_name || 'Property Owner';
+      const ownerEmail = basicPropertyInfo?.ownerEmail || basicPropertyInfo?.owner_email || 'owner@example.com';
+
+      console.log('=== USING EMPTY DATA (NO FAKE DATA) ===');
+      console.log('Property name:', propertyName);
+
+      return {
+        success: true,
+        data: {
+          id: propertyId,
+          name: propertyName,
+          location: propertyLocation,
+          description: propertyDescription,
+          rooms: [], // Empty - no fake data
+          packages: [], // Empty - no fake data
+          owner: {
+            id: basicPropertyInfo?.ownerId || basicPropertyInfo?.owner_id || 'owner1',
+            name: ownerName,
+            email: ownerEmail,
+            phone: basicPropertyInfo?.phone || 'N/A'
+          },
+          images: [],
+          totalRooms: 0,
+          availableRooms: 0,
+          avgRating: 0,
+          reviewCount: 0
+        }
+      };
+    }
   }
 
   // System status methods
@@ -164,12 +329,12 @@ class ApiService {
   }
 
   // Room methods
-  async getRooms(pensionId: number, params: {
+  async getRooms(propertyId: number, params: {
     page?: number;
     limit?: number;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
-    return this.request(`/rooms/pension/${pensionId}${query ? `?${query}` : ''}`);
+    return this.request(`/rooms/pension/${propertyId}${query ? `?${query}` : ''}`);
   }
 
   async getMyRooms(params: {
@@ -275,9 +440,9 @@ class ApiService {
     });
   }
 
-  // Package management methods
+  // Package methods
   async getPackages(pensionId: number): Promise<ApiResponse<any[]>> {
-    return this.request(`/package-management/pensions/${pensionId}/packages`);
+    return this.request(`/packages/pensions/${pensionId}`);
   }
 
   async createPackage(pensionId: number, packageData: any): Promise<ApiResponse<any>> {
@@ -387,7 +552,90 @@ class ApiService {
   }
 
   async getAllProperties(): Promise<ApiResponse<any[]>> {
-    return this.request('/admin/properties');
+    console.log('=== FETCHING ALL PROPERTIES WITH ROOMS AND PACKAGES ===');
+    try {
+      // First get basic properties list
+      const response = await this.request('/admin/properties');
+      
+      if (!response.success || !response.data) {
+        console.error('Failed to fetch basic properties list');
+        return response as ApiResponse<any[]>;
+      }
+
+      console.log('=== BASIC PROPERTIES RESPONSE ===');
+      console.log('Properties count:', (response.data as any[]).length);
+      console.log('Sample property:', (response.data as any[])[0]);
+
+      // For each property, fetch real rooms and packages data
+      const propertiesWithDetails = await Promise.all(
+        (response.data as any[]).map(async (property: any) => {
+          try {
+            console.log(`=== FETCHING REAL DATA FOR PROPERTY ${property.id}: ${property.name} ===`);
+            
+            const propertyId = property.id || property.pension_id;
+            
+            // Fetch real rooms and packages data
+            const [roomsResponse, packagesResponse] = await Promise.all([
+              this.getRooms(parseInt(propertyId)),
+              this.getPackages(parseInt(propertyId))
+            ]);
+
+            console.log('Rooms response:', roomsResponse);
+            console.log('Packages response:', packagesResponse);
+
+            // Get real rooms data
+            const roomsData = roomsResponse.data?.items || roomsResponse.data || [];
+            const realRooms = Array.isArray(roomsData) ? roomsData : [];
+
+            // Get real packages data  
+            const packagesData = packagesResponse.data || [];
+            const realPackages = Array.isArray(packagesData) ? packagesData : [];
+
+            // Calculate real room counts
+            const availableRooms = realRooms.filter((room: any) => 
+              room.is_available || room.status === 'available'
+            ).length;
+
+            const result = {
+              ...property,
+              rooms: realRooms,
+              packages: realPackages,
+              totalRooms: realRooms.length,
+              availableRooms: availableRooms
+            };
+
+            console.log(`Property ${property.name}: ${result.availableRooms} available rooms, ${result.packages.length} packages`);
+            return result;
+
+          } catch (error) {
+            console.error(`Failed to fetch real data for property ${property.id}:`, error);
+            // Return property with empty arrays if real data fetch fails
+            return {
+              ...property,
+              rooms: [],
+              packages: [],
+              totalRooms: 0,
+              availableRooms: 0
+            };
+          }
+        })
+      );
+
+      console.log('=== FINAL PROPERTIES WITH REAL DATA ===');
+      console.log('Properties count:', propertiesWithDetails.length);
+      propertiesWithDetails.forEach((prop, index) => {
+        console.log(`Property ${index + 1}: ${prop.name} - Rooms: ${prop.rooms?.length || 0}, Available: ${prop.availableRooms || 0}, Packages: ${prop.packages?.length || 0}`);
+      });
+
+      return {
+        success: true,
+        data: propertiesWithDetails
+      };
+    } catch (error) {
+      console.error('Failed to fetch properties:', error);
+      // Return basic properties without details rather than failing completely
+      return this.request('/admin/properties') as Promise<ApiResponse<any[]>>;
+    }
   }
 
   async getAllBookings(): Promise<ApiResponse<any[]>> {
