@@ -1,19 +1,37 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
+import NotificationBell from '@/components/NotificationBell';
+
+interface SystemAlert {
+  id: string;
+  type: "verification" | "payment" | "complaint" | "system";
+  title: string;
+  message: string;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "open" | "resolved" | "investigating";
+  createdAt: string;
+  relatedEntity?: string;
+  entityType?: "owner" | "property" | "booking" | "guest";
+}
 
 interface AdminDashboardLayoutProps {
   children: React.ReactNode;
   className?: string;
+  alerts?: SystemAlert[];
+  onAlertClick?: (alertId: string) => void;
 }
 
 const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ 
   children, 
-  className 
+  className,
+  alerts = [],
+  onAlertClick
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
 
   return (
     <div className={cn("flex h-screen bg-slate-50 overflow-hidden", className)}>
@@ -59,16 +77,26 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
               <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
             </div>
             
-            <div className="flex items-center gap-4">
-              
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Search Button */}
+              <button
+                className="hidden sm:flex h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50 items-center justify-center"
+                onClick={() => setIsSearchOpenMobile(true)}
+              >
+                <Search className="h-4 w-4" />
+              </button>
+
+              {/* Notifications */}
+              <NotificationBell alerts={alerts} onAlertClick={onAlertClick} />
+
               {/* Admin Account */}
-              <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">A</span>
+              <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Admin User</p>
+                  <p className="text-xs text-slate-500">Administrator</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">Admin User</p>
-                  <p className="text-xs text-slate-600 truncate">Administrator</p>
+                <div className="w-9 h-9 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                  <span className="text-white text-sm font-bold">A</span>
                 </div>
               </div>
             </div>

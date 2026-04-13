@@ -95,17 +95,17 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedOwner, setSelectedOwner] = useState(null);
+  const [selectedOwner, setSelectedOwner] = useState<PensionOwner | null>(null);
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
-  const [owners, setOwners] = useState([]);
+  const [owners, setOwners] = useState<PensionOwner[]>([]);
   
   // Property details modal state
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
-  const [properties, setProperties] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [pensions, setPensions] = useState([]);
-  const [metrics, setMetrics] = useState({
+  const [properties, setProperties] = useState<any[]>([]); // TODO: Replace with proper Property interface
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pensions, setPensions] = useState<any[]>([]); // TODO: Replace with proper Pension interface
+  const [metrics, setMetrics] = useState<PlatformMetrics>({
     totalOwners: 0,
     totalProperties: 0,
     totalBookings: 0,
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
     activeProperties: 0,
     averageRating: 0
   });
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState<SystemAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Update active tab when route changes
@@ -139,15 +139,15 @@ export default function AdminDashboard() {
       const [ownersRes, propertiesRes, bookingsRes, metricsRes, alertsRes, pensionsRes] = await Promise.all([
         apiService.getAllOwners().catch(err => {
           console.error('Owners API error:', err);
-          return { data: [] };
+          return { data: [] as PensionOwner[] };
         }),
         apiService.getAllProperties().catch(err => {
           console.error('Properties API error:', err);
-          return { data: [] };
+          return { data: [] as any[] };
         }),
         apiService.getAllBookings().catch(err => {
           console.error('Bookings API error:', err);
-          return { data: [] };
+          return { data: [] as Booking[] };
         }),
         apiService.getAdminMetrics().catch(err => {
           console.error('Metrics API error:', err);
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
         }),
         apiService.getSystemAlerts().catch(err => {
           console.error('Alerts API error:', err);
-          return { data: [] };
+          return { data: [] as SystemAlert[] };
         }),
         fetch('http://localhost:3005/api/admin-approvals/pensions/all', {
           headers: {
@@ -164,44 +164,130 @@ export default function AdminDashboard() {
           }
         }).then(res => res.json()).catch(err => {
           console.error('Pensions API error:', err);
-          return { data: [] };
+          return { data: [] as any[] };
         })
       ]);
 
+      // Safe access to API response data with proper fallbacks
+      const ownersData = ownersRes?.data || [];
+      const propertiesData = propertiesRes?.data || [];
+      const bookingsData = bookingsRes?.data || [];
+      const alertsData = alertsRes?.data || [];
+      const pensionsData = pensionsRes?.data || [];
+
       console.log('API Responses:', {
-        owners: ownersRes.data?.length || 0,
-        properties: propertiesRes.data?.length || 0,
-        bookings: bookingsRes.data?.length || 0,
-        alerts: alertsRes.data?.length || 0,
-        pensions: pensionsRes.data?.length || 0
+        owners: ownersData.length,
+        properties: propertiesData.length,
+        bookings: bookingsData.length,
+        alerts: alertsData.length,
+        pensions: pensionsData.length
       });
 
-      setOwners(ownersRes.data || []);
-      setProperties(propertiesRes.data || []);
-      setBookings(bookingsRes.data || []);
-      setMetrics(metricsRes.data || {
-        totalOwners: ownersRes.data?.length || 0,
-        totalProperties: propertiesRes.data?.length || 0,
-        totalBookings: bookingsRes.data?.length || 0,
+      setOwners(ownersData);
+      setProperties(propertiesData);
+      setBookings(bookingsData);
+      setMetrics(metricsRes?.data || {
+        totalOwners: ownersData.length,
+        totalProperties: propertiesData.length,
+        totalBookings: bookingsData.length,
         monthlyRevenue: 0,
         occupancyRate: 0,
-        pendingVerifications: ownersRes.data?.filter(o => o.status === 'pending').length || 0,
-        activeProperties: propertiesRes.data?.filter(p => p.status === 'active').length || 0,
+        pendingVerifications: ownersData.filter((o: PensionOwner) => o.status === 'pending').length,
+        activeProperties: propertiesData.filter((p: any) => p.status === 'active').length,
         averageRating: 0
       });
-      setAlerts(alertsRes.data || []);
-      setPensions(pensionsRes.data || []);
+      
+      // Apply read status from localStorage to maintain persistence
+      const readNotifications = JSON.parse(localStorage.getItem('adminReadNotifications') || '[]');
+      const alertsWithReadStatus = alertsData.map((alert: SystemAlert) => ({
+        ...alert,
+        status: readNotifications.includes(alert.id) ? 'resolved' as const : alert.status
+      }));
+      
+      setAlerts(alertsWithReadStatus);
+      setPensions(pensionsData);
+
+      // Create notifications for new entities (only if they haven't been created before)
+      createNotificationsForNewEntities(ownersData, pensionsData);
 
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
       // Don't reset to empty arrays - keep whatever data we successfully fetched
       // The individual API calls have their own error handling with fallbacks
-    } finally {
-      setLoading(false);
+    }
+
+    setLoading(false);
+  };
+
+  // Separate function for creating notifications - only runs when new entities are detected
+  const createNotificationsForNewEntities = async (owners: PensionOwner[], pensions: any[]) => {
+    try {
+      console.log('=== CHECKING FOR NEW ENTITIES TO CREATE NOTIFICATIONS ===');
+      
+      // Get existing notification IDs from localStorage to prevent duplicates
+      const existingNotificationIds = JSON.parse(localStorage.getItem('adminCreatedNotifications') || '[]');
+      const readNotifications = JSON.parse(localStorage.getItem('adminReadNotifications') || '[]');
+      
+      // Create notifications for new pending/verified owners
+      const newOwnerNotifications: SystemAlert[] = owners
+        .filter((owner: PensionOwner) => (owner.status === 'pending' || owner.status === 'verified'))
+        .filter((owner: PensionOwner) => !existingNotificationIds.includes(`registration-${owner.id}`))
+        .map((owner: PensionOwner) => ({
+          id: `registration-${owner.id}`,
+          type: "verification" as const,
+          title: "New Pension Registration",
+          message: `${owner.businessName} by ${owner.ownerName} is awaiting approval`,
+          severity: owner.status === 'pending' ? "high" as const : "medium" as const,
+          status: readNotifications.includes(`registration-${owner.id}`) ? "resolved" as const : "open" as const,
+          createdAt: owner.registrationDate,
+          relatedEntity: owner.id,
+          entityType: "owner" as const
+        }));
+      
+      // Create notifications for new pensions
+      const newPensionNotifications: SystemAlert[] = pensions
+        .filter((pension: any) => !existingNotificationIds.includes(`pension-${pension.id}`))
+        .map((pension: any) => ({
+          id: `pension-${pension.id}`,
+          type: "verification" as const,
+          title: "New Pension Registered",
+          message: `${pension.name} has been registered and is awaiting approval`,
+          severity: "medium" as const,
+          status: readNotifications.includes(`pension-${pension.id}`) ? "resolved" as const : "open" as const,
+          createdAt: pension.createdAt || new Date().toISOString(),
+          relatedEntity: pension.id,
+          entityType: "property" as const
+        }));
+      
+      const allNewNotifications = [...newOwnerNotifications, ...newPensionNotifications];
+      
+      if (allNewNotifications.length > 0) {
+        console.log(`Creating ${allNewNotifications.length} new notifications`);
+        
+        // Update existing notifications list with new ones
+        setAlerts(prev => {
+          const combined = [...prev, ...allNewNotifications];
+          // Remove duplicates by ID
+          const unique = combined.filter((alert, index, self) => 
+            index === self.findIndex(a => a.id === alert.id)
+          );
+          return unique;
+        });
+        
+        // Store the notification IDs we've created to prevent recreation
+        const newNotificationIds = allNewNotifications.map(n => n.id);
+        const updatedNotificationIds = [...existingNotificationIds, ...newNotificationIds];
+        localStorage.setItem('adminCreatedNotifications', JSON.stringify(updatedNotificationIds));
+      } else {
+        console.log('No new entities found for notification creation');
+      }
+      
+    } catch (error) {
+      console.error('Failed to create notifications for new entities:', error);
     }
   };
 
-  const handleOwnerAction = async (ownerId: string, action: string, owner?: any) => {
+  const handleOwnerAction = async (ownerId: string, action: string, owner?: PensionOwner) => {
     console.log('=== DEBUGGING handleOwnerAction ===');
     console.log('Action:', action);
     console.log('Action type:', typeof action);
@@ -213,7 +299,7 @@ export default function AdminDashboard() {
         case 'view':
           // Show owner details modal or navigate to details page
           console.log('View owner details:', owner);
-          setSelectedOwner(owner);
+          setSelectedOwner(owner || null);
           setShowOwnerDetails(true);
           return; // Don't refresh data for view action
         case 'approve':
@@ -237,7 +323,7 @@ export default function AdminDashboard() {
         case 'update':
           // For update actions, we might need to implement this method
           console.log('Update action not implemented in apiService');
-          break;
+          return; // Add return statement here
         default:
           console.log('Unknown action:', action);
           console.log('Available actions: view, approve, verify, reject, suspend, delete, update');
@@ -245,7 +331,33 @@ export default function AdminDashboard() {
       }
       fetchAdminData(); // Refresh data
     } catch (error) {
-      console.error('Failed to update owner:', error);
+      console.error('Failed to handle owner action:', error);
+    }
+  };
+
+  const handleAlertClick = (alertId: string) => {
+    console.log('Alert clicked:', alertId);
+    // Mark alert as read
+    handleAlertAction(alertId, 'mark_as_read');
+  };
+
+  const handleAlertAction = async (alertId: string, action: string) => {
+    console.log('Alert action:', alertId, action);
+    
+    if (action === 'mark_as_read') {
+      // Update alert status to 'resolved' immediately
+      setAlerts(prev => prev.map((alert: SystemAlert) => 
+        alert.id === alertId 
+          ? { ...alert, status: 'resolved' as const }
+          : alert
+      ));
+      
+      // Persist read status in localStorage
+      const readNotifications = JSON.parse(localStorage.getItem('adminReadNotifications') || '[]');
+      if (!readNotifications.includes(alertId)) {
+        readNotifications.push(alertId);
+        localStorage.setItem('adminReadNotifications', JSON.stringify(readNotifications));
+      }
     }
   };
 
@@ -265,18 +377,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePropertyAction = async (propertyId: string, action: string) => {
-    try {
-      // Property action methods not implemented in apiService yet
-      console.log('Property action:', action, 'for property:', propertyId);
-      // TODO: Implement property action methods in apiService
-      // await apiService.updatePropertyStatus(propertyId, action);
-      fetchAdminData(); // Refresh data
-    } catch (error) {
-      console.error('Failed to update property:', error);
-    }
-  };
-
   const handleBookingAction = async (bookingId: string, action: string) => {
     try {
       // Booking action methods not implemented in apiService yet
@@ -285,22 +385,9 @@ export default function AdminDashboard() {
       // await apiService.updateBookingStatus(bookingId, action);
       fetchAdminData(); // Refresh data
     } catch (error) {
-      console.error('Failed to update booking:', error);
+      console.error('Failed to handle booking action:', error);
     }
   };
-
-  const handleAlertAction = async (alertId: string, action: string) => {
-    try {
-      // Alert action methods not implemented in apiService yet
-      console.log('Alert action:', action, 'for alert:', alertId);
-      // TODO: Implement alert action methods in apiService
-      // await apiService.updateAlertStatus(alertId, action);
-      fetchAdminData(); // Refresh data
-    } catch (error) {
-      console.error('Failed to update alert:', error);
-    }
-  };
-
   
   // Render content based on active tab
   const renderContent = () => {
@@ -314,7 +401,7 @@ export default function AdminDashboard() {
 
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab metrics={metrics} owners={owners} properties={properties} bookings={bookings} />;
+        return <OverviewTab metrics={metrics} recentOwners={owners.slice(0, 5)} alerts={alerts} />;
       case 'owners':
         return <OwnersTab 
           owners={owners} 
@@ -331,14 +418,14 @@ export default function AdminDashboard() {
       case 'bookings':
         return <BookingsTab bookings={bookings} properties={properties} onBookingAction={handleBookingAction} />;
       case 'alerts':
-        return <AlertsTab alerts={alerts} onAlertAction={handleAlertAction} />;
+        return <AlertsTab alerts={alerts} />;
       default:
-        return <OverviewTab metrics={metrics} owners={owners} properties={properties} bookings={bookings} />;
+        return <OverviewTab metrics={metrics} recentOwners={owners.slice(0, 5)} alerts={alerts} />;
     }
   };
 
   return (
-    <AdminDashboardLayout>
+    <AdminDashboardLayout alerts={alerts} onAlertClick={handleAlertClick}>
       {/* Page Header */}
       <div className="mb-3">
         <div className="flex items-center justify-between">

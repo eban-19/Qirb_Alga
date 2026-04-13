@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { adminSidebarLinks, getAdminIcon, getBadgeVariant, SidebarLink } from '@/data/mock/adminSidebarData';
+import { adminSidebarLinks, getAdminIcon, getBadgeVariant, SidebarLink, updateAlertsBadge } from '@/data/mock/adminSidebarData';
 interface AdminSidebarProps {
   className?: string;
   collapsed?: boolean;
@@ -22,6 +22,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Use static sidebar links since notifications are now in header
+  const sidebarLinks = adminSidebarLinks;
 
   const isActiveLink = (href: string) => {
     return location.pathname === href;
@@ -85,7 +88,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   {link.label}
                 </span>
                 {link.badge && (
-                  <Badge variant={badgeVariant} className="relative z-10 text-xs">
+                  <Badge variant={badgeVariant as any} className="relative z-10 text-xs">
                     {link.badge}
                   </Badge>
                 )}
@@ -144,7 +147,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
-          {adminSidebarLinks.map((link) => renderSidebarItem(link))}
+          {sidebarLinks.map((link) => renderSidebarItem(link))}
         </nav>
 
         {/* Footer - Empty now that admin account is moved to header */}

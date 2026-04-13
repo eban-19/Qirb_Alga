@@ -71,9 +71,15 @@ export const adminSidebarLinks: SidebarLink[] = [
     label: "Alerts",
     icon: "Bell",
     href: "/dashboard/admin/alerts",
-    badge: null
+    badge: null // No badge since notifications are in header
   }
 ];
+
+export const updateAlertsBadge = (count: number): SidebarLink[] => {
+  return adminSidebarLinks.map(link => 
+    link.id === "alerts" ? { ...link, badge: count.toString() } : link
+  );
+};
 
 export const getAdminIcon = (iconName: string) => {
   const icons: { [key: string]: any } = {
@@ -94,14 +100,12 @@ export const getAdminIcon = (iconName: string) => {
 };
 
 export const getBadgeVariant = (badgeType: string | null) => {
-  switch (badgeType) {
-    case "urgent":
-      return "destructive";
-    case "pending":
-      return "secondary";
-    case "new":
-      return "default";
-    default:
-      return null;
+  // YouTube-style notification colors
+  if (!badgeType || badgeType === "0") return null;
+  
+  const count = parseInt(badgeType);
+  if (count > 0) {
+    return "destructive"; // Red color like YouTube notifications
   }
+  return null;
 };

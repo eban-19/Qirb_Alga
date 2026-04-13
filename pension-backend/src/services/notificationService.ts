@@ -45,15 +45,17 @@ class NotificationService {
   async createNotification(notification: Notification): Promise<void> {
     try {
       const query = `
-        INSERT INTO notifications (user_id, title, message, type)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO notifications (user_id, title, message, type, created_at)
+        VALUES (?, ?, ?, ?, NOW())
       `;
       await executeQuery(query, [notification.user_id, notification.title, notification.message, notification.type]);
       
-      // If user is connected via WebSocket, send real-time notification
+      // If User is connected via WebSocket, send real-time notification
       if (wsServer.isUserConnected(notification.user_id)) {
         wsServer.sendNotificationToUser(notification.user_id, notification);
       }
+      
+      console.log(`✅ Notification created for user ${notification.user_id}: ${notification.title}`);
     } catch (error: any) {
       console.error('❌ Error creating notification:', error);
       throw error;
