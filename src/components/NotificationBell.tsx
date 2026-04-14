@@ -6,40 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import notificationService, { Notification } from '@/services/notificationService';
 import websocketService from '@/services/websocketService';
-
-interface SystemAlert {
-  id: string;
-  type: "verification" | "payment" | "complaint" | "system";
-  title: string;
-  message: string;
-  severity: "low" | "medium" | "high" | "critical";
-  status: "open" | "resolved" | "investigating";
-  createdAt: string;
-  relatedEntity?: string;
-  entityType?: "owner" | "property" | "booking" | "guest";
-}
+import apiService from '@/services/api';
 
 interface NotificationBellProps {
   className?: string;
-  alerts?: SystemAlert[];
-  onAlertClick?: (alertId: string) => void;
 }
 
-const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', alerts = [], onAlertClick }) => {
+const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isRealTimeConnected, setIsRealTimeConnected] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-
-  // Calculate unread count from alerts
-  const unreadCount = alerts.filter(alert => alert?.status === 'open').length;
-
-  // Handle alert click to mark as read
-  const handleAlertClick = (alert: SystemAlert) => {
-    if (alert.status === 'open' && onAlertClick) {
-      onAlertClick(alert.id);
-    }
-  };
 
   // Toggle notification panel
   const toggleNotifications = () => {
@@ -49,6 +29,109 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', ale
   // Close notification panel
   const closeNotifications = () => {
     setIsOpen(false);
+  };
+
+  // Fetch notifications from backend
+  const fetchNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.getNotifications(50);
+      if (response.success) {
+        let notifications = response.data.items || response.data || [];
+        
+        console.log('📥 Fetched notifications:', notifications);
+        
+        // Check if we have admin notifications (string IDs)
+        const hasAdminNotifications = notifications.some((n: any) => typeof n.notification_id === 'string');
+        console.log('🔍 Has admin notifications:', hasAdminNotifications);
+        
+        // Apply localStorage read state to admin notifications
+        const readAdminNotifications = JSON.parse(localStorage.getItem('readAdminNotifications') || '[]');
+        console.log('💾 Read admin notifications from localStorage:', readAdminNotifications);
+        
+        notifications = notifications.map((n: any) => {
+          if (typeof n.notification_id === 'string' && readAdminNotifications.includes(n.notification_id)) {
+            console.log('✅ Marking as read from localStorage:', n.notification_id);
+            return { ...n, is_read: 1 };
+          }
+          return n;
+        });
+        
+        console.log('📊 Notifications after applying localStorage:', notifications);
+        
+        // Calculate unread count from filtered notifications (source of truth)
+        const unreadCount = notifications.filter((n: any) => !n.is_read).length;
+        console.log('🔢 Calculated unread count:', unreadCount);
+        
+        setNotifications(notifications);
+        setUnreadCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: number | string) => {
+    try {
+      console.log('🔔 Marking as read:', notificationId, 'Type:', typeof notificationId);
+      
+      // Check if notificationId is a string (admin notification) or number (regular notification)
+      if (typeof notificationId === 'string') {
+        // Admin notification - persist read state in localStorage
+        const readAdminNotifications = JSON.parse(localStorage.getItem('readAdminNotifications') || '[]');
+        console.log('💾 Current read admin notifications before save:', readAdminNotifications);
+        
+        if (!readAdminNotifications.includes(notificationId)) {
+          readAdminNotifications.push(notificationId);
+          localStorage.setItem('readAdminNotifications', JSON.stringify(readAdminNotifications));
+          console.log('💾 Saved to localStorage:', readAdminNotifications);
+        } else {
+          console.log('⚠️ Notification already in localStorage');
+        }
+        
+        // Optimistic update
+        setNotifications(prevNotifications =>
+          prevNotifications.map(n =>
+            String(n.notification_id) === notificationId ? { ...n, is_read: 1 } : n
+          )
+        );
+        setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+      } else {
+        // Regular notification - call backend API
+        await apiService.markNotificationAsRead(notificationId);
+        // Refresh notifications
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      // Mark all admin notifications as read in localStorage
+      const adminNotifications = notifications.filter((n: any) => typeof n.notification_id === 'string');
+      const adminNotificationIds = adminNotifications.map((n: any) => n.notification_id);
+      const readAdminNotifications = JSON.parse(localStorage.getItem('readAdminNotifications') || '[]');
+      
+      adminNotificationIds.forEach((id: string) => {
+        if (!readAdminNotifications.includes(id)) {
+          readAdminNotifications.push(id);
+        }
+      });
+      localStorage.setItem('readAdminNotifications', JSON.stringify(readAdminNotifications));
+      
+      // Mark regular notifications as read via API
+      await apiService.markAllNotificationsAsRead();
+      // Refresh notifications
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   // Outside click detection
@@ -82,17 +165,34 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', ale
     closeNotifications();
   }, [location.pathname]);
 
-  // Initialize WebSocket connection (for future real-time updates)
+  // Fetch notifications on component mount and when panel opens
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Refresh notifications when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen]);
+
+  // Initialize WebSocket connection (for real-time updates)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       // Set up WebSocket event handlers
       websocketService.onNotification((notification) => {
         console.log('Real-time notification received:', notification);
+        // Refresh notifications when new one arrives
+        fetchNotifications();
       });
 
       websocketService.onUnreadCount((count) => {
         console.log('Real-time unread count update:', count);
+        // Ensure count is a valid number, fallback to 0 if invalid
+        const validCount = typeof count === 'number' && count >= 0 ? count : 0;
+        setUnreadCount(validCount);
       });
 
       websocketService.onConnection((connected) => {
@@ -114,42 +214,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', ale
     };
   }, []);
 
-  const getAlertIcon = (type: string) => {
-    const iconMap: { [key: string]: JSX.Element } = {
-      'verification': <div className="text-blue-600">{"\ud83d\udd10"}</div>,
-      'payment': <div className="text-green-600">{"\ud83d\udcb0"}</div>,
-      'complaint': <div className="text-red-600">{"\u26a0\ufe0f"}</div>,
-      'system': <div className="text-slate-600">{"\ud83d\udcca"}</div>
-    };
-
-    return iconMap[type] || <div className="text-slate-600">{"\ud83d\udce2"}</div>;
-  };
-
-  const getAlertColor = (type: string) => {
-    const colorMap: { [key: string]: string } = {
-      'verification': 'border-blue-200 bg-blue-50 hover:bg-blue-100',
-      'payment': 'border-green-200 bg-green-50 hover:bg-green-100',
-      'complaint': 'border-red-200 bg-red-50 hover:bg-red-100',
-      'system': 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-    };
-
-    return colorMap[type] || 'border-slate-200 bg-slate-50 hover:bg-slate-100';
-  };
-
-  const formatTime = (createdAt: string) => {
-    const date = new Date(createdAt);
+  // Helper function to format time
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else {
-      return 'Just now';
-    }
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -203,42 +281,47 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', ale
               </Button>
             </div>
 
-            {/* Alerts List */}
+            {/* Notifications List */}
             <div className="max-h-80 overflow-y-auto">
-              {alerts.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center p-6 sm:p-8 text-slate-500">
+                  <div className="animate-spin h-6 w-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto mb-2"></div>
+                  <p className="text-sm sm:text-base">Loading notifications...</p>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="text-center p-6 sm:p-8 text-slate-500">
                   <Bell className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 text-slate-300" />
                   <p className="text-sm sm:text-base">No notifications yet</p>
                 </div>
               ) : (
-                alerts.map((alert) => (
+                notifications.map((notification) => (
                   <div
-                    key={alert.id}
+                    key={notification.notification_id}
                     className={`p-3 sm:p-4 border-b border-slate-100 cursor-pointer transition-colors ${
-                      alert.status === 'open' ? getAlertColor(alert.type) : 'hover:bg-slate-50'
+                      !notification.is_read ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' : 'hover:bg-slate-50'
                     }`}
-                    onClick={() => handleAlertClick(alert)}
+                    onClick={() => markAsRead(notification.notification_id)}
                   >
                     <div className="flex items-start gap-2 sm:gap-3">
                       <div className="flex-shrink-0 mt-0.5 sm:mt-1">
-                        {getAlertIcon(alert.type)}
+                        <div className="text-blue-600">{"\ud83d\udccb"}</div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h4 className={`text-xs sm:text-sm font-medium text-slate-900 truncate ${
-                            alert.status === 'open' ? 'font-semibold' : 'font-normal'
+                            !notification.is_read ? 'font-semibold' : 'font-normal'
                           }`}>
-                            {alert.title}
+                            {notification.title}
                           </h4>
-                          {alert.status === 'open' && (
+                          {!notification.is_read && (
                             <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></div>
                           )}
                         </div>
                         <p className="text-xs sm:text-sm text-slate-600 mb-1 line-clamp-2 sm:line-clamp-3">
-                          {alert.message}
+                          {notification.message}
                         </p>
                         <p className="text-xs text-slate-400">
-                          {formatTime(alert.createdAt)}
+                          {formatTime(notification.created_at)}
                         </p>
                       </div>
                     </div>
@@ -248,16 +331,24 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '', ale
             </div>
 
             {/* Footer */}
-            {alerts.length > 0 && (
-              <div className="p-3 border-t border-slate-200">
+            {notifications.length > 0 && (
+              <div className="p-3 sm:p-4 border-t border-slate-200 space-y-2">
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-slate-600 hover:text-slate-900"
+                    onClick={markAllAsRead}
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Mark all as read
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    // Navigate to alerts tab
-                    setIsOpen(false);
-                  }}
-                  className="w-full text-sm text-blue-600 hover:text-blue-700"
+                  className="w-full text-xs text-slate-600 hover:text-slate-900"
+                  onClick={() => console.log('View all notifications')}
                 >
                   View all notifications
                 </Button>

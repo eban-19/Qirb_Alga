@@ -1,6 +1,7 @@
 import * as express from 'express';
 import notificationService from '../services/notificationService';
 import { authenticateToken } from '../middleware/auth';
+import { executeQuery } from '../config/database';
 
 const router = express.Router();
 
@@ -8,14 +9,74 @@ const router = express.Router();
 router.get('/', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role;
     const limit = parseInt(req.query.limit as string) || 50;
     
-    const notifications = await notificationService.getUserNotifications(userId, limit);
+    let notifications: any[] = [];
+    let unreadCount = 0;
+    
+    // Check if user is admin
+    if (userRole === 'admin' || userRole === 'Admin') {
+      // Return admin-specific notifications (pending owners, pending pensions)
+      
+      // Get pending owners as individual notification items
+      const pendingOwners = await executeQuery(
+        `SELECT u.user_id, u.full_name, u.email, u.created_at
+         FROM users u
+         WHERE u.role = 'Owner' AND u.approved != 1
+         ORDER BY u.created_at DESC
+         LIMIT ?`,
+        [limit]
+      );
+
+      pendingOwners.forEach((owner: any) => {
+        notifications.push({
+          notification_id: `owner_${owner.user_id}`,
+          user_id: userId,
+          title: 'Pending Owner Verification',
+          message: `${owner.full_name} (${owner.email}) is waiting for approval`,
+          type: 'owner_verification',
+          is_read: 0,
+          created_at: owner.created_at
+        });
+      });
+
+      // Get pending pensions as individual notification items
+      const pendingPensions = await executeQuery(
+        `SELECT p.pension_id, p.name, p.status, p.created_at, u.full_name as owner_name
+         FROM pensions p
+         LEFT JOIN users u ON p.owner_id = u.user_id
+         WHERE p.status = 'pending'
+         ORDER BY p.created_at DESC
+         LIMIT ?`,
+        [limit]
+      );
+
+      pendingPensions.forEach((pension: any) => {
+        notifications.push({
+          notification_id: `pension_${pension.pension_id}`,
+          user_id: userId,
+          title: 'Pending Pension Approval',
+          message: `${pension.name} by ${pension.owner_name} is waiting for approval`,
+          type: 'pension_approval',
+          is_read: 0,
+          created_at: pension.created_at
+        });
+      });
+
+      // Calculate unread count
+      unreadCount = notifications.filter((n: any) => n.is_read === 0).length;
+      
+    } else {
+      // Return standard user notifications
+      notifications = await notificationService.getUserNotifications(userId, limit);
+      unreadCount = await notificationService.getUnreadCount(userId);
+    }
     
     res.json({
       success: true,
       data: notifications,
-      unreadCount: await notificationService.getUnreadCount(userId)
+      unreadCount: unreadCount
     });
   } catch (error: any) {
     console.error('❌ Error fetching notifications:', error);

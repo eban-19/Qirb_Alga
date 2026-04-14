@@ -1536,8 +1536,8 @@ export const Dashboard: React.FC = () => {
     // Find the booking to check current status after refresh
     const booking = bookings.find(b => (b.id || b.booking_id) === bookingId);
     if (booking?.status === 'Completed') {
-      alert('Booking is already completed');
-      return;
+      // This will be handled by the inline message system in BookingSection
+      throw new Error('Booking is already completed');
     }
 
     try {
@@ -1545,13 +1545,14 @@ export const Dashboard: React.FC = () => {
       if (response.success) {
         // Refresh data to get updated booking status from backend
         await loadRealData();
-        alert('Booking completed early. Room is now available.');
+        // Success message will be handled by BookingSection
       } else {
-        alert(`Failed to complete booking early: ${response.message}`);
+        throw new Error(response.message || 'Failed to complete booking early');
       }
     } catch (error: any) {
       console.error("Frontend error:", error);
-      alert(error?.response?.data?.message || "Early checkout failed");
+      // Error message will be handled by BookingSection
+      throw error;
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ interface WalkInForm {
   guestName: string;
   phoneNumber: string;
   packageId: string;
+}
+
+interface InlineMessage {
+  bookingId: string | number;
+  type: 'success' | 'error' | 'processing';
+  message: string;
+  timestamp: number;
 }
 
 const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEarly: (id: string) => void }) => {
@@ -128,6 +136,138 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     packageId: ''
   });
   const [packages, setPackages] = useState<any[]>([]);
+  const [inlineMessages, setInlineMessages] = useState<InlineMessage[]>([]);
+  const [inlineMessagesEnabled, setInlineMessagesEnabled] = useState(true);
+  const [showEarlyCheckoutConfirm, setShowEarlyCheckoutConfirm] = useState(false);
+  const [pendingEarlyCheckoutId, setPendingEarlyCheckoutId] = useState<string | number | null>(null);
+  const [isProcessingEarlyCheckout, setIsProcessingEarlyCheckout] = useState(false);
+
+  // Scroll lock when modal is open
+  useEffect(() => {
+    if (showEarlyCheckoutConfirm) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [showEarlyCheckoutConfirm]);
+
+  // Message management functions
+  const addMessage = (bookingId: string | number, type: 'success' | 'error' | 'processing', message: string) => {
+    const newMessage: InlineMessage = {
+      bookingId,
+      type,
+      message,
+      timestamp: Date.now()
+    };
+    setInlineMessages(prev => [...prev.filter(msg => msg.bookingId !== bookingId), newMessage]);
+    
+    // Auto-remove success and error messages after 5 seconds
+    if (type === 'success' || type === 'error') {
+      setTimeout(() => {
+        setInlineMessages(prev => prev.filter(msg => msg.timestamp !== newMessage.timestamp));
+      }, 5000);
+    }
+  };
+
+  const clearMessage = (bookingId: string | number) => {
+    setInlineMessages(prev => prev.filter(msg => msg.bookingId !== bookingId));
+  };
+
+  // Inline Message Component
+  const InlineMessageComponent: React.FC<{ bookingId: string | number }> = ({ bookingId }) => {
+    const message = inlineMessages.find(msg => msg.bookingId === bookingId);
+    
+    if (!message) return null;
+
+    const getMessageStyles = () => {
+      switch (message.type) {
+        case 'success':
+          return 'bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100/50';
+        case 'error':
+          return 'bg-gradient-to-r from-red-50 to-rose-50 border-rose-200 text-rose-800 shadow-rose-100/50';
+        case 'processing':
+          return 'bg-gradient-to-r from-blue-50 to-cyan-50 border-cyan-200 text-cyan-800 shadow-cyan-100/50';
+        default:
+          return 'bg-gradient-to-r from-gray-50 to-slate-50 border-slate-200 text-slate-800 shadow-slate-100/50';
+      }
+    };
+
+    const getMessageIcon = () => {
+      switch (message.type) {
+        case 'success':
+          return (
+            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L6 11l-4 4m0 6l4-4m0 6" />
+            </svg>
+          );
+        case 'error':
+          return (
+            <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          );
+        case 'processing':
+          return (
+            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin">
+              <div className="h-2 w-2 border-2 border-cyan-600 border-t-transparent rounded-full mt-1"></div>
+            </div>
+          );
+        default:
+          return (
+            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1 4h-1v4M8 12h8v8H8" />
+            </svg>
+          );
+      }
+    };
+
+    return (
+      <div className={`mt-3 p-4 rounded-xl border ${getMessageStyles()} flex items-start gap-3 animate-in fade-in-0 slide-in-from-top-2 duration-500 shadow-lg transform transition-all duration-300 hover:scale-[1.02]`}>
+        {/* Icon with subtle animation */}
+        <div className="flex items-start gap-3 flex-1">
+          <div className={`flex-shrink-0 mt-0.5 transition-transform duration-300 ${message.type === 'success' ? 'animate-bounce' : message.type === 'error' ? 'animate-pulse' : ''}`}>
+            {getMessageIcon()}
+          </div>
+          
+          {/* Content with better typography */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`text-sm font-bold tracking-wide ${message.type === 'success' ? 'text-emerald-700' : message.type === 'error' ? 'text-rose-700' : message.type === 'processing' ? 'text-cyan-700' : 'text-slate-700'}`}>
+                {message.type === 'success' && '✓'}
+                {message.type === 'error' && '⚠'}
+                {message.type === 'processing' && '⟳'}
+              </div>
+              <div className={`text-sm font-semibold ${message.type === 'success' ? 'text-emerald-800' : message.type === 'error' ? 'text-rose-800' : message.type === 'processing' ? 'text-cyan-800' : 'text-slate-800'}`}>
+                {message.type === 'success' && 'Success'}
+                {message.type === 'error' && 'Error'}
+                {message.type === 'processing' && 'Processing'}
+              </div>
+            </div>
+            
+            {/* Message description with better spacing */}
+            <div className={`text-sm leading-relaxed ${message.type === 'success' ? 'text-emerald-600' : message.type === 'error' ? 'text-rose-600' : message.type === 'processing' ? 'text-cyan-600' : 'text-slate-600'}`}>
+              {message.message}
+            </div>
+          </div>
+        </div>
+        
+        {/* Enhanced dismiss button with hover effects */}
+        {message.type !== 'processing' && (
+          <button
+            onClick={() => clearMessage(bookingId)}
+            className="ml-auto flex-shrink-0 p-2 rounded-lg bg-white/80 backdrop-blur-sm hover:bg-white transition-all duration-200 hover:shadow-md border border-current/20 hover:border-current/30 text-current/70 hover:text-current/90 group"
+            title={`Dismiss ${message.type} message`}
+          >
+            <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="ml-2 text-xs font-medium">ESC</span>
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // Load packages for walk-in booking
   useEffect(() => {
@@ -179,6 +319,121 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
   };
 
+  // Wrapper function for early checkout with message handling
+  const handleEarlyCheckoutWithMessages = async (bookingId: string | number) => {
+    // Only show messages if enabled
+    if (!inlineMessagesEnabled) {
+      await onCompleteEarly(bookingId);
+      return;
+    }
+
+    try {
+      // Show processing message
+      addMessage(bookingId, 'processing', 'Processing early checkout...');
+      
+      // Call the original early checkout handler
+      await onCompleteEarly(bookingId);
+      
+      // Show success message
+      addMessage(bookingId, 'success', 'Booking completed early. Room is now available.');
+      
+    } catch (error: any) {
+      console.error('Early checkout error:', error);
+      
+      // Show appropriate error message
+      const errorMessage = error.message || 'Early checkout failed';
+      if (errorMessage.includes('already completed')) {
+        addMessage(bookingId, 'error', 'This booking is already completed.');
+      } else if (errorMessage.includes('not found')) {
+        addMessage(bookingId, 'error', 'Booking not found.');
+      } else {
+        addMessage(bookingId, 'error', 'Failed to complete early checkout. Please try again.');
+      }
+    }
+  };
+
+  // Early Checkout Confirmation Dialog Component
+  const EarlyCheckoutConfirmDialog = () => {
+    if (!showEarlyCheckoutConfirm) return null;
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        setShowEarlyCheckoutConfirm(false);
+        setPendingEarlyCheckoutId(null);
+        setIsProcessingEarlyCheckout(false);
+      }
+    };
+
+    return ReactDOM.createPortal(
+      <div 
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+        onClick={handleBackdropClick}
+      >
+        <div 
+          className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v-6h6a3 3 0 0 6 12v6a3 3 0 0 6 12z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Confirm Early Checkout</h3>
+              <p className="text-sm text-slate-600 mt-2">
+                Are you sure you want to complete this booking early and make the room available?
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => {
+                setShowEarlyCheckoutConfirm(false);
+                setPendingEarlyCheckoutId(null);
+                setIsProcessingEarlyCheckout(false);
+              }}
+              disabled={isProcessingEarlyCheckout}
+              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (pendingEarlyCheckoutId) {
+                  setIsProcessingEarlyCheckout(true);
+                  await handleEarlyCheckoutWithMessages(pendingEarlyCheckoutId);
+                }
+                setShowEarlyCheckoutConfirm(false);
+                setPendingEarlyCheckoutId(null);
+                setIsProcessingEarlyCheckout(false);
+              }}
+              disabled={isProcessingEarlyCheckout}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isProcessingEarlyCheckout ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Processing...
+                </>
+              ) : (
+                'Confirm'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
+  // Handler to show confirmation dialog
+  const handleEarlyCheckoutClick = (bookingId: string | number) => {
+    setPendingEarlyCheckoutId(bookingId);
+    setShowEarlyCheckoutConfirm(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -210,7 +465,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           Table
         </Button>
       </div>
-
       
       {/* Cards View */}
       {viewMode === "card" && (
@@ -271,19 +525,21 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   {(() => {
                     const status = booking.status?.toLowerCase();
                     const showButton = status === 'confirmed' && status !== 'completed';
-                    console.log(`TABLE BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
+                    console.log(`BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
                     return showButton;
                   })() && (
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
+                      onClick={() => handleEarlyCheckoutClick(booking.id || booking.booking_id)} 
                       className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
                     >
                       <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
                     </Button>
                   )}
                 </div>
+                {/* Inline Message */}
+                <InlineMessageComponent bookingId={booking.id || booking.booking_id} />
               </CardContent>
             </Card>
           ))}
@@ -376,7 +632,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                              <Button 
                                variant="outline" 
                                size="sm" 
-                               onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
+                               onClick={() => handleEarlyCheckoutClick(booking.id || booking.booking_id)} 
                                title="Complete Early" 
                                className="hover:bg-blue-50 hover:border-blue-300 border-blue-200 text-blue-600 transition-all duration-300 px-2"
                              >
@@ -386,8 +642,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                          </div>
                       </TableCell>
                     </TableRow>
-                    );
-                  })}
+                  );
+                })}
                 </TableBody>
               </Table>
             </div>
@@ -395,18 +651,30 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
         </Card>
       )}
 
-    {/* Walk-In Booking Modal */}
-    {showWalkInModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Add Walk-In Booking</h3>
-            <Button variant="ghost" size="sm" onClick={() => setShowWalkInModal(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
+      {/* Inline Messages for Table View */}
+      {viewMode === "table" && (
+        <div className="space-y-2">
+          {bookings.map((booking) => (
+            <InlineMessageComponent key={`msg-${booking.id}`} bookingId={booking.id || booking.booking_id} />
+          ))}
+        </div>
+      )}
+
+      {/* Early Checkout Confirmation Dialog */}
+      <EarlyCheckoutConfirmDialog />
+
+      {/* Walk-In Booking Modal */}
+      {showWalkInModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Add Walk-In Booking</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowWalkInModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Guest Name</label>
               <input
@@ -459,7 +727,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           </div>
         </div>
       </div>
-    )}
+      )}
     </div>
   );
 };

@@ -82,7 +82,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
             <div className="flex items-center gap-2 sm:gap-3">
 
               {/* Notifications */}
-              <NotificationBell alerts={alerts} onAlertClick={onAlertClick} />
+              <NotificationBell />
 
               {/* Admin Account */}
               <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
