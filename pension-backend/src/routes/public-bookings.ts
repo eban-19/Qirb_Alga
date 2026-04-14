@@ -301,4 +301,144 @@ router.get('/bookings/:bookingId', async (req: express.Request, res: express.Res
   }
 });
 
+// Walk-In Booking Endpoint
+router.post('/walk-in-bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    console.log('=== WALK-IN BOOKING REQUEST ===');
+    console.log('Request body:', req.body);
+    
+    const { 
+      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut 
+    } = req.body;
+
+    console.log('Walk-in booking data:', {
+      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut
+    });
+
+    // Validate required fields
+    if (!pensionId || !packageName || !guestName || !phoneNumber || !checkIn || !checkOut) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields',
+        required: ['pensionId', 'packageName', 'guestName', 'phoneNumber', 'checkIn', 'checkOut']
+      });
+    }
+
+    // Validate dates
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Check-out date must be after check-in date'
+      });
+    }
+
+    if (checkInDate <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Check-in date must be in future'
+      });
+    }
+
+    // Check if pension exists and is approved
+    const pensionCheck = await executeQuery(
+      'SELECT * FROM pensions WHERE pension_id = ? AND status = "Approved"',
+      [pensionId]
+    );
+
+    if (pensionCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pension not found or not approved'
+      });
+    }
+
+    // Check package exists for this pension
+    const packageCheck = await executeQuery(
+      'SELECT * FROM packages WHERE pension_id = ? AND name = ?',
+      [pensionId, packageName]
+    );
+
+    if (packageCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Package not found for this pension'
+      });
+    }
+
+    const packageData = packageCheck[0];
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Use package original price without commission
+    const totalPrice = packageData.price_per_night * nights;
+
+    // Find available room
+    const availableRoom = await executeQuery(`
+      SELECT r.* FROM rooms r
+      LEFT JOIN bookings b ON r.room_id = b.room_id
+      WHERE r.pension_id = ? AND r.is_available = TRUE
+      AND (
+        b.room_id IS NULL OR
+        b.status NOT IN ('Confirmed', 'Pending') OR
+        (b.check_in_date > ? OR b.check_out_date < ?)
+      )
+      LIMIT 1
+    `, [pensionId, checkOut, checkIn, checkIn, checkOut]);
+
+    if (availableRoom.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No available rooms for the selected dates'
+      });
+    }
+
+    // Create walk-in booking (no user account needed)
+    const bookingResult = await executeQuery(`
+      INSERT INTO bookings (room_id, check_in_date, check_out_date, total_price, special_requests, status, created_at, walk_in_guest_name, walk_in_guest_phone, booking_source)
+      VALUES (?, ?, ?, ?, ?, 'Pending', NOW(), ?, ?, ?, 'Walk-In')
+    `, [availableRoom[0].room_id, checkIn, checkOut, totalPrice, null, guestName, phoneNumber]);
+
+    const bookingId = bookingResult.insertId;
+
+    console.log('✅ Walk-in booking created:', {
+      bookingId,
+      pensionId,
+      packageName,
+      guestName,
+      phoneNumber,
+      checkIn,
+      checkOut,
+      totalPrice
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Walk-in booking created successfully',
+      data: {
+        bookingId,
+        pensionName: pensionCheck[0].name,
+        packageName,
+        checkIn,
+        checkOut,
+        totalPrice,
+        status: 'Pending',
+        guestInfo: {
+          guestName,
+          phoneNumber
+        },
+        bookingSource: 'Walk-In'
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Walk-in booking error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create walk-in booking'
+    });
+  }
+});
+
 export default router;

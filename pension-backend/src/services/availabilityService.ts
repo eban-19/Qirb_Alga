@@ -63,8 +63,8 @@ class AvailabilityService {
             early_check_in = ?,
             check_in_by = ?,
             status = 'Confirmed'
-        WHERE booking_id = ?
-      `, [now, isEarly ? 1 : 0, data.staffId, data.bookingId]);
+        WHERE booking_id = ? AND room_id = (SELECT room_id FROM bookings WHERE booking_id = ?)
+      `, [now, isEarly ? 1 : 0, data.staffId, data.bookingId, data.bookingId]);
 
       // Update room status
       const oldStatus = bookingData.availability_status;

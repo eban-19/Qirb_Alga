@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import {
   X, 
   TrashIcon, 
   Search,
-  CheckCircle
+  CheckCircle,
+  Plus
 } from "lucide-react";
 
 interface BookingSectionProps {
@@ -23,6 +24,12 @@ interface BookingSectionProps {
   onToggleView: () => void;
   onUpdateStatus: (id: string | number, status: string) => void;
   onCompleteEarly: (id: string | number) => void;
+}
+
+interface WalkInForm {
+  guestName: string;
+  phoneNumber: string;
+  packageId: string;
 }
 
 const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEarly: (id: string) => void }) => {
@@ -86,8 +93,18 @@ const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEar
           <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
         </div>
         <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
-          {booking.status?.toLowerCase() === 'confirmed' && (
-            <Button size="sm" variant="outline" onClick={() => onCompleteEarly(booking.id || booking.booking_id)} className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
+          {(() => {
+            const status = booking.status?.toLowerCase();
+            const showButton = status === 'confirmed' && status !== 'completed';
+            console.log(`BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
+            return showButton;
+          })() && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
+              className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
+            >
               <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
             </Button>
           )}
@@ -104,6 +121,64 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onUpdateStatus,
   onCompleteEarly
 }) => {
+  const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [walkInForm, setWalkInForm] = useState<WalkInForm>({
+    guestName: '',
+    phoneNumber: '',
+    packageId: ''
+  });
+  const [packages, setPackages] = useState<any[]>([]);
+
+  // Load packages for walk-in booking
+  useEffect(() => {
+    const loadPackages = async () => {
+      try {
+        const response = await fetch('http://localhost:3005/api/packages');
+        const data = await response.json();
+        if (data.success) {
+          setPackages(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to load packages:', error);
+      }
+    };
+    loadPackages();
+  }, []);
+
+  const handleWalkInSubmit = async () => {
+    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3005/api/walk-in-bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guestName: walkInForm.guestName,
+          phoneNumber: walkInForm.phoneNumber,
+          packageId: walkInForm.packageId,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowWalkInModal(false);
+        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '' });
+        alert('Walk-in booking created successfully!');
+        // You might want to refresh bookings list here
+      } else {
+        alert('Failed to create booking: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error creating walk-in booking:', error);
+      alert('Failed to create booking');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -136,6 +211,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
         </Button>
       </div>
 
+      
       {/* Cards View */}
       {viewMode === "card" && (
         <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -144,7 +220,14 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               <CardHeader className="relative pb-0">
                 <div className="flex justify-between items-start mb-4">
                   <div className="space-y-2">
-                    <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</h3>
+                      {booking.booking_source === 'Walk-In' && (
+                        <Badge className="bg-blue-600 text-white text-xs shadow-sm">
+                          Walk-In
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-slate-600 flex items-center gap-1">
                       <Mail className="h-3 w-3" />
                       {booking.user_email}
@@ -185,8 +268,18 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
-                  {booking.status?.toLowerCase() === 'confirmed' && (
-                    <Button size="sm" variant="outline" onClick={() => onCompleteEarly(booking.id || booking.booking_id)} className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                  {(() => {
+                    const status = booking.status?.toLowerCase();
+                    const showButton = status === 'confirmed' && status !== 'completed';
+                    console.log(`TABLE BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
+                    return showButton;
+                  })() && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
+                      className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                    >
                       <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
                     </Button>
                   )}
@@ -274,8 +367,19 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                            <Button variant="outline" size="sm" onClick={() => onUpdateStatus(booking.id || booking.booking_id, 'cancelled')} title="Cancel Booking" className="hover:bg-red-50 hover:border-red-300 border-red-200 text-red-600 transition-all duration-300 px-2">
                              <X className="h-4 w-4" />
                            </Button>
-                           {booking.status?.toLowerCase() === 'confirmed' && (
-                             <Button variant="outline" size="sm" onClick={() => onCompleteEarly(booking.id || booking.booking_id)} title="Complete Early" className="hover:bg-blue-50 hover:border-blue-300 border-blue-200 text-blue-600 transition-all duration-300 px-2">
+                           {(() => {
+                             const status = booking.status?.toLowerCase();
+                             const showButton = status === 'confirmed' && status !== 'completed';
+                             console.log(`HEADER BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
+                             return showButton;
+                           })() && (
+                             <Button 
+                               variant="outline" 
+                               size="sm" 
+                               onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
+                               title="Complete Early" 
+                               className="hover:bg-blue-50 hover:border-blue-300 border-blue-200 text-blue-600 transition-all duration-300 px-2"
+                             >
                                <CheckCircle className="h-4 w-4" />
                              </Button>
                            )}
@@ -290,6 +394,72 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           </CardContent>
         </Card>
       )}
+
+    {/* Walk-In Booking Modal */}
+    {showWalkInModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Add Walk-In Booking</h3>
+            <Button variant="ghost" size="sm" onClick={() => setShowWalkInModal(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Guest Name</label>
+              <input
+                type="text"
+                value={walkInForm.guestName}
+                onChange={(e) => setWalkInForm(prev => ({ ...prev, guestName: e.target.value }))}
+                className="w-full p-2 border rounded-md"
+                placeholder="Enter guest name"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone Number</label>
+              <input
+                type="tel"
+                value={walkInForm.phoneNumber}
+                onChange={(e) => setWalkInForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                className="w-full p-2 border rounded-md"
+                placeholder="Enter phone number"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Package</label>
+              <select
+                value={walkInForm.packageId}
+                onChange={(e) => setWalkInForm(prev => ({ ...prev, packageId: e.target.value }))}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Select a package</option>
+                {packages.map(pkg => (
+                  <option key={pkg.package_id} value={pkg.package_id}>
+                    {pkg.name} - ETB {pkg.price_per_night}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowWalkInModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleWalkInSubmit}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Create Booking
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 };

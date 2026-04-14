@@ -61,7 +61,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
         {/* Top Bar */}
         <header className="bg-white border-b border-slate-200 px-4 py-4 shadow-sm sticky top-0 z-40">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className={`flex items-center ${sidebarCollapsed ? 'gap-2' : 'gap-4'}`}>
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -74,17 +74,12 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 )}
               </button>
               
-              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+              {!sidebarCollapsed && (
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+              )}
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Search Button */}
-              <button
-                className="hidden sm:flex h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50 items-center justify-center"
-                onClick={() => setIsSearchOpenMobile(true)}
-              >
-                <Search className="h-4 w-4" />
-              </button>
 
               {/* Notifications */}
               <NotificationBell alerts={alerts} onAlertClick={onAlertClick} />

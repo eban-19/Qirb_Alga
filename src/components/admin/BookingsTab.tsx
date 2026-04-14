@@ -67,48 +67,7 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
           </div>
         </div>
         
-        {/* <Button 
-          onClick={handleCreateBooking}
-          size="lg"
-          className="
-            relative
-            overflow-hidden
-            bg-gradient-to-r from-green-600 via-green-700 to-emerald-700 
-            hover:from-green-700 hover:via-green-800 hover:to-emerald-800 
-            text-white 
-            font-bold 
-            px-8 
-            py-4 
-            text-lg
-            shadow-xl 
-            hover:shadow-2xl 
-            transform 
-            hover:scale-105 
-            transition-all 
-            duration-300
-            border-2 
-            border-green-800
-            rounded-xl
-            before:absolute
-            before:inset-0
-            before:bg-gradient-to-r
-            before:from-white/20
-            before:to-transparent
-            before:opacity-0
-            hover:before:opacity-100
-            before:transition-opacity
-            before:duration-300
-            active:scale-95
-            group
-          "
-        >
-          <span className="relative z-10 flex items-center gap-3">
-            <Plus className="w-6 h-6 transform group-hover:rotate-90 transition-transform duration-300" />
-            <span>Add New Booking</span>
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          </span>
-        </Button> */}
-      </div>
+              </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mx-4 sm:mx-6 md:mx-8">

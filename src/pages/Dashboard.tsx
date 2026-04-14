@@ -128,6 +128,15 @@ export const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expensesData, setExpensesData] = useState<any[]>([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
+  
+  // Walk-In Booking Modal State
+  const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [walkInForm, setWalkInForm] = useState({
+    guestName: '',
+    phoneNumber: '',
+    packageId: ''
+  });
+  const [walkInPackages, setWalkInPackages] = useState<any[]>([]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -135,6 +144,75 @@ export const Dashboard: React.FC = () => {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
+
+  // Load packages for walk-in booking
+  useEffect(() => {
+    const loadWalkInPackages = async () => {
+      if (userPension) {
+        try {
+          const response = await apiService.getPackages(userPension.pension_id || userPension.id);
+          if (response.data) {
+            setWalkInPackages(response.data);
+          }
+        } catch (error) {
+          console.error('Failed to load packages for walk-in booking:', error);
+        }
+      }
+    };
+    loadWalkInPackages();
+  }, [userPension]);
+
+  // Walk-In booking handler
+  const handleWalkInSubmit = async () => {
+    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const selectedPackage = walkInPackages.find(pkg => pkg.package_id === walkInForm.packageId);
+      if (!selectedPackage) {
+        alert('Please select a valid package');
+        return;
+      }
+
+      const response = await fetch('http://localhost:3005/api/public/walk-in-bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pensionId: userPension.pension_id || userPension.id,
+          packageName: selectedPackage.name,
+          guestName: walkInForm.guestName,
+          phoneNumber: walkInForm.phoneNumber,
+          checkIn: new Date().toISOString().split('T')[0], // Today
+          checkOut: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowWalkInModal(false);
+        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '' });
+        alert('Walk-in booking created successfully!');
+        // Refresh bookings
+        if (userPension) {
+          const allBookingsResponse = await apiService.getBookings();
+          const allBookings = allBookingsResponse?.data?.items || [];
+          const filteredBookings = allBookings.filter(booking => 
+            booking.pension_id === (userPension.pension_id || userPension.id)
+          );
+          setBookings(filteredBookings);
+        }
+      } else {
+        alert('Failed to create booking: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error creating walk-in booking:', error);
+      alert('Failed to create booking');
+    }
+  };
 
   // Check owner approval status
   useEffect(() => {
@@ -385,7 +463,7 @@ export const Dashboard: React.FC = () => {
     description: `Booking - ${b.user_name || 'Guest'} (${b.room_name || 'Room'})`,
     type: b.type || 'income',
     amount: parseFloat(b.total_price) || 0,
-    status: b.status === 'confirmed' ? 'completed' : b.status
+    status: b.status // Keep original booking status, don't auto-convert
   }));
 
   const loadRealData = async () => {
@@ -1452,19 +1530,28 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleCompleteBookingEarly = async (bookingId: string | number) => {
+    // Force refresh booking data first to get latest status
+    await loadRealData();
+    
+    // Find the booking to check current status after refresh
+    const booking = bookings.find(b => (b.id || b.booking_id) === bookingId);
+    if (booking?.status === 'Completed') {
+      alert('Booking is already completed');
+      return;
+    }
+
     try {
       const response = await apiService.completeBookingEarly(bookingId);
       if (response.success) {
-        setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: 'completed' } : b));
-        // Refresh data to update room availability and reports
-        loadRealData();
+        // Refresh data to get updated booking status from backend
+        await loadRealData();
         alert('Booking completed early. Room is now available.');
       } else {
         alert(`Failed to complete booking early: ${response.message}`);
       }
     } catch (error: any) {
-      console.error('Complete booking early error:', error);
-      alert('Error completing booking early.');
+      console.error("Frontend error:", error);
+      alert(error?.response?.data?.message || "Early checkout failed");
     }
   };
 
@@ -1764,7 +1851,13 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
               {activeTab === "bookings" && (
-                <Button className="gap-2 bg-primary hover:bg-primary/90">
+                <Button 
+                  className="gap-2 bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    console.log('New Booking button clicked!');
+                    setShowWalkInModal(true);
+                  }}
+                >
                   <Calendar className="h-4 w-4" />
                   New Booking
                 </Button>
@@ -1802,13 +1895,7 @@ export const Dashboard: React.FC = () => {
                   </Button>
                 </div>
               )}
-              {activeTab === "guests" && (
-                <Button className="gap-2 bg-primary hover:bg-primary/90">
-                  <Users className="h-4 w-4" />
-                  Add Guest
-                </Button>
-              )}
-              {activeTab === "pension-profile" && (
+                            {activeTab === "pension-profile" && (
                 <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
                   <Building className="h-4 w-4" />
                   Manage Packages
@@ -3641,6 +3728,72 @@ export const Dashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Walk-In Booking Modal */}
+      {showWalkInModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Add Walk-In Booking</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowWalkInModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Guest Name</label>
+                <input
+                  type="text"
+                  value={walkInForm.guestName}
+                  onChange={(e) => setWalkInForm(prev => ({ ...prev, guestName: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="Enter guest name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={walkInForm.phoneNumber}
+                  onChange={(e) => setWalkInForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Package</label>
+                <select
+                  value={walkInForm.packageId}
+                  onChange={(e) => setWalkInForm(prev => ({ ...prev, packageId: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Select a package</option>
+                  {walkInPackages.map(pkg => (
+                    <option key={pkg.package_id} value={pkg.package_id}>
+                      {pkg.name} - ETB {pkg.price_per_night}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowWalkInModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleWalkInSubmit}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Create Booking
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
