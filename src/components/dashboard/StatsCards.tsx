@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Users, BedDouble, CalendarCheck, DollarSign } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { TranslationText } from "@/components/TranslationText";
 
 interface StatsCardsProps {
   staffCount: number;
@@ -15,6 +17,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
   activeBookings, 
   totalRevenue 
 }) => {
+  const { language } = useLanguage();
   return (
     <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {/* Total Staff */}
@@ -25,7 +28,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">Total Staff</p>
+                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide"><TranslationText text="Total Staff" language={language} /></p>
               </div>
               <p className="text-3xl font-bold text-blue-800 group-hover:text-blue-900 transition-colors">{staffCount}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-green-100/50 rounded-lg">
@@ -48,7 +51,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">Available Rooms</p>
+                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide"><TranslationText text="Available Rooms" language={language} /></p>
               </div>
               <p className="text-3xl font-bold text-emerald-800 group-hover:text-emerald-900 transition-colors">
                 {availableRooms}
@@ -73,7 +76,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Active Bookings</p>
+                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide"><TranslationText text="Active Bookings" language={language} /></p>
               </div>
               <p className="text-3xl font-bold text-purple-800 group-hover:text-purple-900 transition-colors">{activeBookings}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-red-100/50 rounded-lg">
@@ -96,7 +99,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide">Total Revenue</p>
+                <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide"><TranslationText text="Total Revenue" language={language} /></p>
               </div>
               <p className="text-3xl font-bold text-amber-800 group-hover:text-amber-900 transition-colors">ETB {totalRevenue.toLocaleString()}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-green-100/50 rounded-lg">

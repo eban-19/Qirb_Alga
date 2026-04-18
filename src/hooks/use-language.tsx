@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { languageLabels, translations, trDict, type Language, type TranslationSchema } from "@/lib/i18n";
+import { languageLabels, translations, translateText, type Language, type TranslationSchema } from "@/lib/i18n";
 
 interface LanguageContextValue {
   language: Language;
   setLanguage: (language: Language) => void;
   t: TranslationSchema;
   tr: (text: string) => string;
+  trAsync: (text: string) => Promise<string>;
   options: Array<{ value: Language; label: string }>;
 }
 
@@ -36,7 +37,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       language,
       setLanguage,
       t: translations[language],
-      tr: (text: string) => trDict(text, language),
+      tr: (text: string) => {
+        // Synchronous fallback - returns original text
+        // Use trAsync for actual translation
+        if (language === 'en') return text;
+        return text;
+      },
+      trAsync: async (text: string) => {
+        // Asynchronous backend translation
+        return await translateText(text, language);
+      },
       options: [
         { value: "en", label: languageLabels.en },
         { value: "om", label: languageLabels.om },

@@ -10,9 +10,25 @@ import { RoomPackage } from "@/lib/rooms";
 interface Room {
   id?: string;
   name: string;
+  name_en?: string;
+  name_am?: string;
+  name_om?: string;
+  name_ml?: { en?: string; am?: string; om?: string };
   description: string;
+  description_en?: string;
+  description_am?: string;
+  description_om?: string;
+  description_ml?: { en?: string; am?: string; om?: string };
   ownerInfo: string;
+  ownerInfo_en?: string;
+  ownerInfo_am?: string;
+  ownerInfo_om?: string;
+  owner_info_ml?: { en?: string; am?: string; om?: string };
   roomDetails: string;
+  roomDetails_en?: string;
+  roomDetails_am?: string;
+  roomDetails_om?: string;
+  room_details_ml?: { en?: string; am?: string; om?: string };
   locationName: string;
   city: string;
   area: string;
@@ -31,11 +47,23 @@ interface PropertyFormProps {
 }
 
 export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyFormProps) {
-  const [formData, setFormData] = useState<Room>({
+  const [formData, setFormData] = useState<any>({
     name: property?.name || "",
+    name_en: property?.name_ml?.en || property?.name || "",
+    name_am: property?.name_ml?.am || "",
+    name_om: property?.name_ml?.om || "",
     description: property?.description || "",
+    description_en: property?.description_ml?.en || property?.description || "",
+    description_am: property?.description_ml?.am || "",
+    description_om: property?.description_ml?.om || "",
     ownerInfo: property?.ownerInfo || "",
+    ownerInfo_en: property?.owner_info_ml?.en || property?.ownerInfo || "",
+    ownerInfo_am: property?.owner_info_ml?.am || "",
+    ownerInfo_om: property?.owner_info_ml?.om || "",
     roomDetails: property?.roomDetails || "",
+    roomDetails_en: property?.room_details_ml?.en || property?.roomDetails || "",
+    roomDetails_am: property?.room_details_ml?.am || "",
+    roomDetails_om: property?.room_details_ml?.om || "",
     locationName: property?.locationName || "",
     city: property?.city || "",
     area: property?.area || "",
@@ -43,17 +71,49 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
     longitude: property?.longitude || 0,
     availableRooms: property?.availableRooms || 0,
     images: property?.images || [],
-    packages: property?.packages || [
-      { name: "Basic", price: 2000, description: "Room only with shared essentials.", image: "", services: ["Standard WiFi", "Shared Bathroom"], availableRooms: 1 },
-      { name: "Standard", price: 3500, description: "Comfortable stay with private amenities.", image: "", services: ["High-speed WiFi", "Private Bathroom", "Breakfast Included"], availableRooms: 2 },
-      { name: "Premium", price: 5000, description: "Luxury experience with full board.", image: "", services: ["Premium WiFi", "Private Balcony", "All Meals Included"], availableRooms: 1 }
-    ],
+    packages: property?.packages || [],
     ...property
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Construct multilingual JSON objects
+    const name_ml = {
+      en: formData.name_en || formData.name,
+      am: formData.name_am,
+      om: formData.name_om
+    };
+    
+    const description_ml = {
+      en: formData.description_en || formData.description,
+      am: formData.description_am,
+      om: formData.description_om
+    };
+    
+    const owner_info_ml = {
+      en: formData.ownerInfo_en || formData.ownerInfo,
+      am: formData.ownerInfo_am,
+      om: formData.ownerInfo_om
+    };
+    
+    const room_details_ml = {
+      en: formData.roomDetails_en || formData.roomDetails,
+      am: formData.roomDetails_am,
+      om: formData.roomDetails_om
+    };
+    
+    onSave({
+      ...formData,
+      name: formData.name_en || formData.name,
+      description: formData.description_en || formData.description,
+      ownerInfo: formData.ownerInfo_en || formData.ownerInfo,
+      roomDetails: formData.roomDetails_en || formData.roomDetails,
+      name_ml,
+      description_ml,
+      owner_info_ml,
+      room_details_ml
+    });
     onClose();
   };
 
@@ -68,7 +128,7 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
   };
 
   const addPackage = () => {
-    const newPackage: RoomPackage = {
+    const newPackage: any = {
       name: "New Package",
       price: 3000,
       description: "Description for new package",
@@ -100,23 +160,55 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Basic Information</h3>
+              <div>
+                <Label htmlFor="name_en">Property Name (English)</Label>
+                <Input
+                  id="name_en"
+                  value={formData.name_en}
+                  onChange={(e) => handleChange("name_en", e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="name_am">Property Name (Amharic)</Label>
+                <Input
+                  id="name_am"
+                  value={formData.name_am}
+                  onChange={(e) => handleChange("name_am", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="name_om">Property Name (Afaan Oromo)</Label>
+                <Input
+                  id="name_om"
+                  value={formData.name_om}
+                  onChange={(e) => handleChange("name_om", e.target.value)}
+                />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Property Name</Label>
+                  <Label htmlFor="ownerInfo_en">Owner Information (English)</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
+                    id="ownerInfo_en"
+                    value={formData.ownerInfo_en}
+                    onChange={(e) => handleChange("ownerInfo_en", e.target.value)}
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="ownerInfo">Owner Information</Label>
+                  <Label htmlFor="ownerInfo_am">Owner Information (Amharic)</Label>
                   <Input
-                    id="ownerInfo"
-                    value={formData.ownerInfo}
-                    onChange={(e) => handleChange("ownerInfo", e.target.value)}
-                    required
+                    id="ownerInfo_am"
+                    value={formData.ownerInfo_am}
+                    onChange={(e) => handleChange("ownerInfo_am", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ownerInfo_om">Owner Information (Afaan Oromo)</Label>
+                  <Input
+                    id="ownerInfo_om"
+                    value={formData.ownerInfo_om}
+                    onChange={(e) => handleChange("ownerInfo_om", e.target.value)}
                   />
                 </div>
                 <div>
@@ -140,21 +232,57 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
                 </div>
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description_en">Description (English)</Label>
                 <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  rows={3}
+                  id="description_en"
+                  value={formData.description_en}
+                  onChange={(e) => handleChange("description_en", e.target.value)}
+                  rows={2}
                 />
               </div>
               <div>
-                <Label htmlFor="roomDetails">Room Details</Label>
+                <Label htmlFor="description_am">Description (Amharic)</Label>
                 <Textarea
-                  id="roomDetails"
-                  value={formData.roomDetails}
-                  onChange={(e) => handleChange("roomDetails", e.target.value)}
-                  rows={3}
+                  id="description_am"
+                  value={formData.description_am}
+                  onChange={(e) => handleChange("description_am", e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="description_om">Description (Afaan Oromo)</Label>
+                <Textarea
+                  id="description_om"
+                  value={formData.description_om}
+                  onChange={(e) => handleChange("description_om", e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="roomDetails_en">Room Details (English)</Label>
+                <Textarea
+                  id="roomDetails_en"
+                  value={formData.roomDetails_en}
+                  onChange={(e) => handleChange("roomDetails_en", e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="roomDetails_am">Room Details (Amharic)</Label>
+                <Textarea
+                  id="roomDetails_am"
+                  value={formData.roomDetails_am}
+                  onChange={(e) => handleChange("roomDetails_am", e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="roomDetails_om">Room Details (Afaan Oromo)</Label>
+                <Textarea
+                  id="roomDetails_om"
+                  value={formData.roomDetails_om}
+                  onChange={(e) => handleChange("roomDetails_om", e.target.value)}
+                  rows={2}
                 />
               </div>
             </div>

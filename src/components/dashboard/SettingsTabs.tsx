@@ -31,6 +31,8 @@ import {
   Users,
   BedDouble
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { TranslationText } from "@/components/TranslationText";
 
 interface SettingsTabsProps {
   activeTab: string;
@@ -79,17 +81,19 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
   setEditingPackage,
   setNewPackage
 }) => {
+  const { language } = useLanguage();
+  
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-            {activeTab === "settings-legal" ? "Legal Settings" :
-             activeTab === "settings-billing" ? "Billing Settings" :
-             activeTab === "settings-pension" ? "Pension Profile" :
-             "Security Settings"}
+            {activeTab === "settings-legal" ? <TranslationText text="Legal Settings" language={language} /> :
+             activeTab === "settings-billing" ? <TranslationText text="Billing Settings" language={language} /> :
+             activeTab === "settings-pension" ? <TranslationText text="Pension Profile" language={language} /> :
+             <TranslationText text="Security Settings" language={language} />}
           </h2>
-          <p className="text-slate-500 text-sm">Configure your property and account preferences.</p>
+          <p className="text-slate-500 text-sm"><TranslationText text="Configure your property and account preferences." language={language} /></p>
         </div>
         <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
           <Button
@@ -98,7 +102,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-legal' ? 'bg-amber-600 text-white hover:bg-amber-600 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-legal')}
           >
-            Legal
+            <TranslationText text="Legal" language={language} />
           </Button>
           <Button
             variant="ghost"
@@ -106,7 +110,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-billing' ? 'bg-blue-600 text-white hover:bg-blue-600 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-billing')}
           >
-            Billing
+            <TranslationText text="Billing" language={language} />
           </Button>
           <Button
             variant="ghost"
@@ -114,7 +118,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-pension' ? 'bg-purple-600 text-white hover:bg-purple-600 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-pension')}
           >
-            Pension Profile
+            <TranslationText text="Pension Profile" language={language} />
           </Button>
           <Button
             variant="ghost"
@@ -122,7 +126,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-security' ? 'bg-slate-900 text-white hover:bg-slate-900 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-security')}
           >
-            Security
+            <TranslationText text="Security" language={language} />
           </Button>
         </div>
       </div>

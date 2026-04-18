@@ -8,6 +8,8 @@ import {
   BarChart3, 
   TrashIcon 
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { TranslationText } from "@/components/TranslationText";
 
 interface RoomsSectionProps {
   rooms: any[];
@@ -24,6 +26,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
 }) => {
   // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const { language } = useLanguage();
   
   return (
     <div className="space-y-6">
@@ -40,7 +43,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
-          Cards
+          <TranslationText text="Cards" language={language} />
         </Button>
         <Button
           variant={viewMode === "table" ? "default" : "ghost"}
@@ -53,7 +56,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
           }`}
         >
           <BarChart3 className="h-4 w-4" />
-          Table
+          <TranslationText text="Table" language={language} />
         </Button>
       </div>
 
@@ -65,8 +68,12 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               <div className="mx-auto w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <LayoutDashboard className="h-12 w-12 text-slate-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No rooms found</h3>
-              <p className="text-slate-500 mb-4">Get started by adding your first room to this pension.</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                <TranslationText text="No rooms found" language={language} />
+              </h3>
+              <p className="text-slate-500 mb-4">
+                <TranslationText text="Get started by adding your first room to this pension." language={language} />
+              </p>
             </div>
           ) : (
             <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -85,20 +92,24 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-slate-900">{room.type}</h3>
-                      <p className="text-sm text-slate-500">Room {room.room_number || room.id}</p>
+                      <p className="text-sm text-slate-500">
+                        <TranslationText text="Room" language={language} /> {room.room_number || room.id}
+                      </p>
                     </div>
                   </div>
                   <Badge className={`${
                     room.status === "Available" ? "bg-emerald-500" :
                     room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                   } text-white text-xs px-3 py-1 shadow-sm`}>
-                    {room.status}
+                    <TranslationText text={room.status} language={language} />
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between mb-6">
                   <span className="text-3xl font-bold text-slate-900">ETB {room.price}</span>
-                  <span className="text-sm text-slate-500 font-medium">per night</span>
+                  <span className="text-sm text-slate-500 font-medium">
+                    <TranslationText text="per night" language={language} />
+                  </span>
                 </div>
 
                 <div className="flex gap-2">
@@ -111,7 +122,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                   >
                     <TrashIcon className="h-4 w-4" />
                     <span className="hidden sm:inline">
-                      {room.status === 'Occupied' ? 'Occupied' : 'Delete'}
+                      {room.status === 'Occupied' ? (
+                        <TranslationText text="Occupied" language={language} />
+                      ) : (
+                        <TranslationText text="Delete" language={language} />
+                      )}
                     </span>
                   </Button>
                 </div>
@@ -131,12 +146,24 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="font-bold">Room Number</TableHead>
-                    <TableHead className="font-bold">Type</TableHead>
-                    <TableHead className="font-bold">Price</TableHead>
-                    <TableHead className="font-bold">Status</TableHead>
-                    <TableHead className="font-bold">Capacity</TableHead>
-                    <TableHead className="font-bold">Actions</TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Room Number" language={language} />
+                    </TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Type" language={language} />
+                    </TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Price" language={language} />
+                    </TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Status" language={language} />
+                    </TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Capacity" language={language} />
+                    </TableHead>
+                    <TableHead className="font-bold">
+                      <TranslationText text="Actions" language={language} />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -145,7 +172,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex flex-col items-center">
                           <LayoutDashboard className="h-12 w-12 text-slate-400 mb-2" />
-                          <p className="text-slate-500">No rooms found</p>
+                          <p className="text-slate-500">
+                            <TranslationText text="No rooms found" language={language} />
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -160,7 +189,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                             room.status === "Available" ? "bg-emerald-500" :
                             room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                           } text-white text-xs shadow-sm`}>
-                            {room.status}
+                            <TranslationText text={room.status} language={language} />
                           </Badge>
                         </TableCell>
                         <TableCell>{room.capacity}</TableCell>

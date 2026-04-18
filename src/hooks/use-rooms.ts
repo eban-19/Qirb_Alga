@@ -1,14 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRoomById, getRooms } from "@/lib/rooms";
 import apiService from "@/services/api";
+import { useLanguage } from "@/hooks/use-language";
 
 export function useRooms() {
+  const { language } = useLanguage();
+  
   return useQuery({
-    queryKey: ["rooms"],
+    queryKey: ["rooms", language],
     queryFn: async () => {
       try {
-        // Try to get real data from backend
-        const response = await apiService.getPublicPensions();
+        // Try to get real data from backend with language parameter
+        const response = await apiService.getPublicPensions({ language });
         console.log('🔍 useRooms - Full API response:', response);
         console.log('🔍 useRooms - Response data:', response.data);
         console.log('🔍 useRooms - Response items:', response.data?.items);
@@ -74,15 +77,16 @@ export function useRooms() {
 // Global hook to refresh all packages when rooms are created
 export function useRefreshPackages() {
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
   
   return {
     refreshAllPackages: async (pensionId: number) => {
       try {
-        // Get latest rooms data
-        const roomsResponse = await apiService.getRooms(pensionId);
+        // Get latest rooms data with language parameter
+        const roomsResponse = await apiService.getRooms(pensionId, { language });
         if (roomsResponse.success && roomsResponse.data?.items) {
-          // Get current packages
-          const packagesResponse = await apiService.getPublicPension(pensionId);
+          // Get current packages with language parameter
+          const packagesResponse = await apiService.getPublicPension(pensionId, { language });
           if (packagesResponse.data && packagesResponse.data.packages) {
             // Update all packages with correct available rooms
             const updatedPackages = packagesResponse.data.packages.map((pkg: any) => {
@@ -111,15 +115,17 @@ export function useRefreshPackages() {
 }
 
 export function useRoomById(id: string) {
+  const { language } = useLanguage();
+  
   return useQuery({
-    queryKey: ["rooms", id],
+    queryKey: ["rooms", id, language],
     queryFn: async () => {
       try {
-        // Get real data from backend
-        const response = await apiService.getPublicPension(parseInt(id));
+        // Get real data from backend with language parameter
+        const response = await apiService.getPublicPension(parseInt(id), { language });
         if (response.data && response.data.packages) {
           // Calculate available rooms dynamically from real room data
-          const roomsResponse = await apiService.getRooms(parseInt(id));
+          const roomsResponse = await apiService.getRooms(parseInt(id), { language });
           if (roomsResponse.success && roomsResponse.data?.items) {
             const updatedPackages = response.data.packages.map((pkg: any) => {
               const packageRooms = roomsResponse.data.items.filter((room: any) => room.package_id === pkg.id);

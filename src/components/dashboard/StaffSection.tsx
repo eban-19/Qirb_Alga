@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { LayoutDashboard, Edit, Trash2, MessageSquare, Phone, Mail, BarChart3, User, Building, DollarSign } from 'lucide-react';
 import { StaffMember } from '../../data/types/dashboardTypes';
+import { useLanguage } from '@/hooks/use-language';
+import { TranslationText } from '@/components/TranslationText';
 
 interface StaffSectionProps {
   staff: StaffMember[];
@@ -24,6 +26,8 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   onDeleteStaff,
   downloadTemplate
 }) => {
+  const { language } = useLanguage();
+  
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -39,7 +43,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
-          Cards
+          <TranslationText text="Cards" language={language} />
         </Button>
         <Button 
           variant={viewMode === "table" ? "default" : "ghost"}
@@ -52,7 +56,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           }`}
         >
           <BarChart3 className="h-4 w-4" />
-          Table
+          <TranslationText text="Table" language={language} />
         </Button>
       </div>
 
@@ -62,7 +66,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Total Staff</p>
+                <p className="text-sm text-blue-600 font-medium"><TranslationText text="Total Staff" language={language} /></p>
                 <p className="text-2xl font-bold text-blue-700">{staff.length}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -76,7 +80,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-emerald-600 font-medium">Active</p>
+                <p className="text-sm text-emerald-600 font-medium"><TranslationText text="Active" language={language} /></p>
                 <p className="text-2xl font-bold text-emerald-700">
                   {staff.filter(s => s.status === 'Active').length}
                 </p>
@@ -92,7 +96,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-amber-600 font-medium">On Leave</p>
+                <p className="text-sm text-amber-600 font-medium"><TranslationText text="On Leave" language={language} /></p>
                 <p className="text-2xl font-bold text-amber-700">
                   {staff.filter(s => s.status === 'On Leave').length}
                 </p>
@@ -108,7 +112,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 font-medium">Departments</p>
+                <p className="text-sm text-slate-600 font-medium"><TranslationText text="Departments" language={language} /></p>
                 <p className="text-2xl font-bold text-slate-700">
                   {[...new Set(staff.map(s => s.department))].length}
                 </p>
@@ -139,7 +143,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                         member.status === 'Active' ? 'bg-emerald-500 shadow-emerald-500/25' :
                         member.status === 'On Leave' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-slate-500 shadow-slate-500/25'
                       } text-white text-xs shadow-sm`}>
-                        {member.status}
+                        <TranslationText text={member.status} language={language} />
                       </Badge>
                     </div>
                   </div>
@@ -149,28 +153,28 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      Role
+                      <TranslationText text="Role" language={language} />
                     </span>
                     <span className="font-bold text-slate-900 text-sm">{member.role}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <Building className="h-4 w-4" />
-                      Department
+                      <TranslationText text="Department" language={language} />
                     </span>
                     <span className="font-bold text-slate-900 text-sm">{member.department}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <Phone className="h-4 w-4" />
-                      Contact
+                      <TranslationText text="Contact" language={language} />
                     </span>
                     <span className="font-bold text-slate-900 text-sm">{member.phone}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
                     <span className="text-sm font-bold text-emerald-700 flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      Salary
+                      <TranslationText text="Salary" language={language} />
                     </span>
                     <span className="font-bold text-emerald-700 text-lg">ETB {member.salary.toLocaleString()}</span>
                   </div>
@@ -184,7 +188,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     onClick={() => onEditStaff(member.id)}
                   >
                     <Edit className="h-3.5 w-3.5" />
-                    Edit
+                    <TranslationText text="Edit" language={language} />
                   </Button>
                   <Button 
                     variant="outline" 
@@ -193,7 +197,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     onClick={() => onDeleteStaff(member.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete
+                    <TranslationText text="Delete" language={language} />
                   </Button>
                 </div>
               </CardContent>
@@ -207,13 +211,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="pl-4 sm:pl-6 whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="pl-4 sm:pl-6 whitespace-nowrap"><TranslationText text="Employee" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap">ID</TableHead>
-                    <TableHead className="whitespace-nowrap">Role</TableHead>
-                    <TableHead className="whitespace-nowrap">Department</TableHead>
-                    <TableHead className="whitespace-nowrap">Salary</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-right pr-4 sm:pr-6 whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap"><TranslationText text="Role" language={language} /></TableHead>
+                    <TableHead className="whitespace-nowrap"><TranslationText text="Department" language={language} /></TableHead>
+                    <TableHead className="whitespace-nowrap"><TranslationText text="Salary" language={language} /></TableHead>
+                    <TableHead className="whitespace-nowrap"><TranslationText text="Status" language={language} /></TableHead>
+                    <TableHead className="text-right pr-4 sm:pr-6 whitespace-nowrap"><TranslationText text="Actions" language={language} /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -243,7 +247,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           member.status === 'Active' ? 'bg-emerald-500' :
                           member.status === 'On Leave' ? 'bg-amber-500' : 'bg-slate-400'
                         } text-white text-[10px]`}>
-                          {member.status}
+                          <TranslationText text={member.status} language={language} />
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-4 sm:pr-6">

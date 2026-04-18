@@ -15,6 +15,10 @@ import Login from "./pages/Login.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import AdminDashboard from "./pages/AdminDashboardNew.tsx";
 import PendingApproval from "./pages/PendingApproval.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import Terms from "./pages/Terms.tsx";
+import About from "./pages/About.tsx";
+import HowItWorks from "./pages/HowItWorks.tsx";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +70,12 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              
+              {/* Footer Pages */}
+              <Route path="/about" element={<About />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

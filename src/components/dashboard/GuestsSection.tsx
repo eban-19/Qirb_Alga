@@ -16,6 +16,8 @@ import {
   MessageSquare,
   Edit
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { TranslationText } from "@/components/TranslationText";
 
 interface GuestsSectionProps {
   guests: any[];
@@ -28,6 +30,8 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   viewMode,
   onToggleView
 }) => {
+  const { language } = useLanguage();
+  
   // Debug: Log guest data to see available fields
   console.log('🔍 Guests Section - Guest data:', guests);
   if (guests.length > 0) {
@@ -53,7 +57,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
-          Cards
+          <TranslationText text="Cards" language={language} />
         </Button>
         <Button
           variant={viewMode === "table" ? "default" : "ghost"}
@@ -66,7 +70,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
           }`}
         >
           <BarChart3 className="h-4 w-4" />
-          Table
+          <TranslationText text="Table" language={language} />
         </Button>
       </div>
 
@@ -98,35 +102,35 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                     guest.status === 'Checked In' ? 'bg-emerald-500' :
                     guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
                   } text-white text-xs shadow-sm shadow-black/5`}>
-                    {guest.status}
+                    <TranslationText text={guest.status} language={language} />
                   </Badge>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
                       <Building className="h-4 w-4 text-purple-600" />
-                      Nationality
+                      <TranslationText text="Nationality" language={language} />
                     </span>
                     <span className="font-bold text-slate-900">{guest.nationality}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
                       <BedDouble className="h-4 w-4 text-purple-600" />
-                      Room
+                      <TranslationText text="Room" language={language} />
                     </span>
                     <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
                       <CalendarCheck className="h-4 w-4 text-purple-600" />
-                      Total Bookings
+                      <TranslationText text="Total Bookings" language={language} />
                     </span>
                     <span className="font-bold text-slate-900">{guest.totalBookings}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 shadow-sm">
                     <span className="text-sm font-bold text-emerald-700 flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      Total Spent
+                      <TranslationText text="Total Spent" language={language} />
                     </span>
                     <span className="font-bold text-emerald-700 text-lg">ETB {guest.totalSpent.toLocaleString()}</span>
                   </div>
@@ -145,14 +149,14 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="font-bold">Guest</TableHead>
-                    <TableHead className="font-bold">Contact</TableHead>
-                    <TableHead className="font-bold">Nationality</TableHead>
-                    <TableHead className="font-bold">Room</TableHead>
-                    <TableHead className="font-bold">Status</TableHead>
-                    <TableHead className="text-right font-bold">Total Bookings</TableHead>
-                    <TableHead className="text-right font-bold">Total Spent</TableHead>
-                    <TableHead className="font-bold">Actions</TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Guest" language={language} /></TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Contact" language={language} /></TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Nationality" language={language} /></TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Room" language={language} /></TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Status" language={language} /></TableHead>
+                    <TableHead className="text-right font-bold"><TranslationText text="Total Bookings" language={language} /></TableHead>
+                    <TableHead className="text-right font-bold"><TranslationText text="Total Spent" language={language} /></TableHead>
+                    <TableHead className="font-bold"><TranslationText text="Actions" language={language} /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,7 +176,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                           guest.status === 'Checked In' ? 'bg-emerald-500' :
                           guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
                         } text-white text-xs shadow-sm`}>
-                          {guest.status}
+                          <TranslationText text={guest.status} language={language} />
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>

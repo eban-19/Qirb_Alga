@@ -2914,32 +2914,18 @@ export default function AdminDashboard() {
                         {selectedOwner.status === 'rejected' && <XCircle className="w-4 h-4" />}
 
                         {selectedOwner.status}
-
                       </div>
-
                     </div>
-
                     
-
                     <div>
-
                       <p className="text-sm font-medium text-slate-600">Total Properties</p>
-
                       <p className="text-slate-900 font-medium">{selectedOwner.totalProperties}</p>
-
                     </div>
-
                   </div>
-
                 </div>
 
-
-
                 <div className="space-y-4">
-
                   <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Performance</h3>
-
-                  
 
                   <div className="space-y-3">
 

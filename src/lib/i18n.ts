@@ -900,143 +900,56 @@ export const translations: Record<Language, TranslationSchema> = {
     },
 };
 
-export const dynamicTranslations: Record<Language, Record<string, string>> = {
-    en: {},
-    om: {
-        // Packages
-        "Basic": "Bu'uura",
-        "Standard": "Idilee",
-        "Premium": "Olaanaa",
-        // Services
-        "Standard WiFi": "WiFi Idilee",
-        "Shared Bathroom": "Mana Fincaan Waloo",
-        "Daily Cleaning": "Qulqullina Guyyaa",
-        "High-speed WiFi": "WiFi Saffisaa",
-        "Private Bathroom": "Mana Fincaan Dhuunfaa",
-        "Breakfast Included": "Ciree Dabalatee",
-        "Free Parking": "Ijaarsa Konkolaataa Bilisa",
-        "Premium WiFi": "WiFi Olaanaa",
-        "Private Balcony": "Baalkoonii Dhuunfaa",
-        "3 Meals Included": "Nyaata 3 Dabalatee",
-        "Airport Pickup": "Dirree Xiyyaaraatii Fudhachuu",
-        "Laundry Service": "Tajaajila Uffata Miiccuu",
-        "Fresh Towels": "Fooxaa Haaraa",
-        "En-suite Bathroom": "Mana Fincaan Keessaa",
-        "All Meals Included": "Nyaanni Hundi Dabalatee",
-        "Fresh Linens": "Uffata Siree Haaraa",
-        "Dedicated Workspace": "Iddoo Hojii Dhuunfaa",
-        "Airport Transfer": "Geejjiba Dirree Xiyyaaraa",
-        "Weekly Cleaning": "Qulqullina Torbee",
-        "Basic Cleaning": "Qulqullina Bu'uuraa",
-        // Descriptions (Package)
-        "Room only with shared essentials.": "Kutaa qofa wantoota bu'uuraa waloo waliin.",
-        "Comfortable stay with private amenities.": "Turtii mijataa wantoota dhuunfaa waliin.",
-        "Luxury experience with full board.": "Muuxannoo olaanaa nyaata guutuu waliin.",
-        "Functional and affordable room.": "Kutaa tajaajila gaarii fi gatii madaalawaa qabu.",
-        "Comfort room with private bathroom.": "Kutaa mijataa mana fincaan dhuunfaa waliin.",
-        "Spacious room with city view.": "Kutaa bal'aa magaalaa agarsiisu.",
-        "Compact room with essential utilities.": "Kutaa xiqqaa tajaajiloota bu'uuraa waliin.",
-        "Basic business room with workspace.": "Kutaa hojii bu'uuraa iddoo hojii waliin.",
-        "Executive room with all-inclusive services.": "Kutaa hooggansaa tajaajiloota hunda dabalatee.",
-        "Standard room, very budget-friendly.": "Kutaa idilee, gatii baay'ee madaalawaa.",
-        "Entry-level private room.": "Kutaa dhuunfaa sadarkaa jalqabaa.",
-        "Larger room with better ventilation and services.": "Kutaa bal'aa qilleensa fi tajaajila gaarii waliin.",
-        "Standard lodge room.": "Kutaa loojii idilee.",
-        "Large room with balcony.": "Kutaa bal'aa baalkoonii waliin.",
-        "Practical shared-facility room.": "Kutaa tajaajila waloo qabu.",
-        "Standard private room.": "Kutaa dhuunfaa idilee.",
-        "Large shared-apartment room with all perks.": "Kutaa bal'aa appaartamaantii waloo faayidaa hunda waliin.",
-        // Descriptions (Room Overview)
-        "Clean and affordable pension close to key transport and shopping areas.": "Pensiinii qulqulluu fi gatii madaalawaa iddoo geejjibaa fi gabaatti dhihoo.",
-        "Cozy rooms for short and mid-term stays in central Addis.": "Kutoota mijataa turtii yeroo gabaabaa fi giddugaleessaaf giddugala Finfinneetti.",
-        "Modern pension with upgraded interiors and on-site support staff.": "Pensiinii ammayaa meeshaalee keessaa fooyya'anii fi hojjettoota deeggarsaa waliin.",
-        "Budget-friendly property with easy access to city bus routes.": "Qabeenya gatii madaalawaa daandii awtoobusii magaalaatti salphaatti argamu.",
-        "Comfort-oriented lodge with improved facilities and reception desk.": "Loojii mijummaa irratti xiyyeeffate tajaajiloota fooyya'anii fi keessummeessaa waliin.",
-        "Convenient city-center rooms for students, workers, and visitors.": "Kutoota giddugala magaalaa mijatoo barattoota, hojjettoota fi daawwattootaaf.",
-        // Owner Info
-        "Managed by Sunshine Hospitality PLC.": "Wiixata Keessummeessaa Sunshine PLC tiin bulchama.",
-        "Family-run guest house with 10+ years of service.": "Mana keessummaa maatiin bulchamu kan tajaajila waggaa 10+ qabu.",
-        "Operated by Habesha City Lodging.": "Habesha City Lodging tiin hojjatama.",
-        "Privately owned neighborhood pension.": "Pensiinii naannoo dhuunfaan qabame.",
-        "Managed by Royal Comfort Holdings.": "Royal Comfort Holdings tiin bulchama.",
-        "Operated by City Center Housing Services.": "Tajaajila Mana Giddugala Magaalaatiin hojjatama.",
-        // Room Details
-        "Single and double rooms with private bathroom options.": "Kutoota siree tokkoo fi lamaa filannoo mana fincaan dhuunfaa waliin.",
-        "Quiet floors, daily housekeeping, and optional meal plans.": "Darbii cal jedhe, qulqullina guyyaa fi filannoo nyaataa.",
-        "Business-friendly rooms with desk space and fast internet.": "Kutoota hojiif mijatan iddoo minxaaxii fi intarneetii saffisaa waliin.",
-        "Simple rooms for students and workers.": "Kutoota salphaa barattoota fi hojjettootaaf.",
-        "Includes rooms with private balcony and improved ventilation.": "Kutoota baalkoonii dhuunfaa fi qilleensa gaarii waliin.",
-        "Flexible stay duration and practical shared facilities.": "Turtii jijjiirramaa fi tajaajiloota waloo qabatamaa.",
-    },
-    am: {
-        // Packages
-        "Basic": "መሰረታዊ",
-        "Standard": "መደበኛ",
-        "Premium": "ፕሪሚየም",
-        // Services
-        "Standard WiFi": "መደበኛ ዋይፋይ",
-        "Shared Bathroom": "የጋራ መታጠቢያ ቤት",
-        "Daily Cleaning": "ዕለታዊ ጽዳት",
-        "High-speed WiFi": "ፈጣን ዋይፋይ",
-        "Private Bathroom": "የግል መታጠቢያ ቤት",
-        "Breakfast Included": "ቁርስ ተካትቷል",
-        "Free Parking": "ነጻ ማቆሚያ",
-        "Premium WiFi": "ፕሪሚየም ዋይፋይ",
-        "Private Balcony": "የግል በረንዳ",
-        "3 Meals Included": "3 ምግቦች ተካትተዋል",
-        "Airport Pickup": "ከአየር ማረፊያ መቀበል",
-        "Laundry Service": "የልብስ ማጠብ አገልግልት",
-        "Fresh Towels": "አዲስ ፎጣዎች",
-        "En-suite Bathroom": "የውስጥ መታጠቢያ ቤት",
-        "All Meals Included": "ሁሉም ምግቦች ተካትተዋል",
-        "Fresh Linens": "አዲስ አንሶላዎች",
-        "Dedicated Workspace": "የተመደበ የስራ ቦታ",
-        "Airport Transfer": "የአየር ማረፊያ ትራንስፖርት",
-        "Weekly Cleaning": "ሳምንታዊ ጽዳት",
-        "Basic Cleaning": "መሰረታዊ ጽዳት",
-        // Descriptions (Package)
-        "Room only with shared essentials.": "ክፍል ብቻ ከጋራ አቅርቦቶች ጋር።",
-        "Comfortable stay with private amenities.": "ምቹ ቆይታ ከግል አገልግሎቶች ጋር።",
-        "Luxury experience with full board.": "የቅንጦት ተሞክሮ ከሙሉ ምግብ ጋር።",
-        "Functional and affordable room.": "ውጤታማ እና ተመጣጣኝ ክፍል ።",
-        "Comfort room with private bathroom.": "ምቹ ክፍል ከግል መታጠቢያ ቤት ጋር።",
-        "Spacious room with city view.": "ሰፊ ክፍል የከተማ እይታ ያለው።",
-        "Compact room with essential utilities.": "መሰረታዊ አገልግሎቶች ያሉት አነስተኛ ክፍል ።",
-        "Basic business room with workspace.": "መሰረታዊ የንግድ ክፍል ከስራ ቦታ ጋር።",
-        "Executive room with all-inclusive services.": "የአስተዳደር ክፍል ሁሉን አቀፍ አገልግሎት ጋር።",
-        "Standard room, very budget-friendly.": "መደበኛ ክፍል፣ በጣም ተመጣጣኝ የሆነ።",
-        "Entry-level private room.": "የመግቢያ ደረጃ የግል ክፍል ።",
-        "Larger room with better ventilation and services.": "ሰፊ ክፍል ከተሻለ አየር እና አገልግሎቶች ጋር።",
-        "Standard lodge room.": "መደበኛ የሎጅ ክፍል ።",
-        "Large room with balcony.": "ሰፊ ክፍል ከበረንዳ ጋር።",
-        "Practical shared-facility room.": "የጋራ አገልግሎት መገልገያ ክፍል ።",
-        "Standard private room.": "መደበኛ የግል ክፍል ።",
-        "Large shared-apartment room with all perks.": "ከሁሉም ጥቅሞች ጋር ትልቅ የጋራ አፓርትመንት ክፍል ።",
-        // Descriptions (Room Overview)
-        "Clean and affordable pension close to key transport and shopping areas.": "ለንግድ እና ለትራንስፖርት ቦታዎች ቅርብ የሆነ ንጹህ እና ተመጣጣኝ ፔንሽን ።",
-        "Cozy rooms for short and mid-term stays in central Addis.": "ለአጭር እና ለመካከለኛ ጊዜ ቆይታ ምቹ ክፍሎች በማዕከላዊ አዲስ አበባ።",
-        "Modern pension with upgraded interiors and on-site support staff.": "ባዘመኑ የውስጥ ክፍሎች እና ድጋፍ ሰጪ ሰራተኞች ያሉት ዘመናዊ ፔንሽን ።",
-        "Budget-friendly property with easy access to city bus routes.": "ለከተማ አውቶቡስ መስመሮች በቀላሉ የሚገኝ ተመጣጣኝ ንብረት።",
-        "Comfort-oriented lodge with improved facilities and reception desk.": "በምቾት ላይ ያተኮረ ሎጅ በተሻሻሉ አገልግሎቶች የተሟላ።",
-        "Convenient city-center rooms for students, workers, and visitors.": "ለተማሪዎች፣ ሰራተኞች እና ጎብኝዎች ምቹ የከተማ-ማዕከል ክፍሎች ።",
-        // Owner Info
-        "Managed by Sunshine Hospitality PLC.": "በሰንሻይን መስተንግዶ PLC የሚተዳደር።",
-        "Family-run guest house with 10+ years of service.": "የ10+ ዓመታት አገልግሎት ያለው በቤተሰብ የሚተዳደር የነፃ እንግዳ ቤት።",
-        "Operated by Habesha City Lodging.": "በሀበሻ ከተማ ሎጅንግ የሚተዳደር።",
-        "Privately owned neighborhood pension.": "የግል ንብረት የሆነ የሰፈር ፔንሽን ።",
-        "Managed by Royal Comfort Holdings.": "በRoyal Comfort Holdings የሚተዳደር።",
-        "Operated by City Center Housing Services.": "በከተማ ማዕከል የቤት አገልግሎቶች የሚተዳደር።",
-        // Room Details
-        "Single and double rooms with private bathroom options.": "የግል መታጠቢያ ቤት አማራጭ ያላቸው ነጠላ እና ድርብ ክፍሎች።",
-        "Quiet floors, daily housekeeping, and optional meal plans.": "ጸጥ ያሉ ወለሎች፣ የእለት ተእለት ጽዳት፣ እና የምግብ ዕቅድ አማራጮች።",
-        "Business-friendly rooms with desk space and fast internet.": "ለስራ ምቹ ክፍሎች ከስራ ጠረጴዛ እና ፈጣን ኢንተርኔት ጋር።",
-        "Simple rooms for students and workers.": "ለተማሪዎች እና ሰራተኞች ቀላል ክፍሎች።",
-        "Includes rooms with private balcony and improved ventilation.": "የግል በረንዳ እና የተሻለ አየር ያላቸውን ክፍሎች ያካትታል ።",
-        "Flexible stay duration and practical shared facilities.": "ተለዋዋጭ የቆይታ ጊዜ እና የጋራ አገልግሎቶች።",
-    }
-};
+// Backend translation function - calls API for real translation
+export async function translateText(text: string, language: Language): Promise<string> {
+  if (language === 'en') return text;
+  
+  try {
+    const response = await fetch('http://localhost:3005/api/translations/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.trim(), targetLanguage: language })
+    });
+    const data = await response.json();
+    return data.translatedText || text;
+  } catch (error) {
+    console.error('Translation failed:', error);
+    return text; // Fallback to original
+  }
+}
 
+// Backend batch translation function
+export async function translateTextBatch(texts: string[], language: Language): Promise<string[]> {
+  if (language === 'en') return texts;
+  
+  try {
+    const response = await fetch('http://localhost:3005/api/translations/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        texts, 
+        targetLanguage: language, 
+        sourceLanguage: 'en' 
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('Batch translation API error:', response.status);
+      return texts; // Fallback to originals
+    }
+    
+    const data = await response.json();
+    return data.translatedTexts || texts;
+  } catch (error) {
+    console.error('Batch translation failed:', error);
+    return texts; // Fallback to originals
+  }
+}
+
+// Legacy function for backward compatibility - now calls backend
 export const trDict = (text: string, lang: Language): string => {
-    if (lang === "en") return text;
-    return dynamicTranslations[lang]?.[text] || text;
+  // For immediate synchronous use, return original text
+  // For async use, use translateText() instead
+  if (lang === "en") return text;
+  return text; // Will be translated asynchronously by components
 };

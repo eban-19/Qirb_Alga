@@ -18,6 +18,8 @@ import {
   CheckCircle,
   Plus
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { TranslationText } from "@/components/TranslationText";
 
 interface BookingSectionProps {
   bookings: any[];
@@ -40,7 +42,7 @@ interface InlineMessage {
   timestamp: number;
 }
 
-const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEarly: (id: string) => void }) => {
+const BookingCard = ({ booking, onCompleteEarly, language }: { booking: any; onCompleteEarly: (id: string) => void; language: any }) => {
   // Debug: Log booking data to see available fields
   console.log('🔍 Owner Dashboard Booking data:', booking);
   console.log('🔍 Room fields available:', {
@@ -60,7 +62,7 @@ const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEar
       <CardHeader className="relative pb-0">
         <div className="flex justify-between items-start mb-4">
           <div className="space-y-2">
-            <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</h3>
+            <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || <TranslationText text="Guest" language={language} />}</h3>
             <p className="text-sm text-slate-600 flex items-center gap-1">
               <Mail className="h-3 w-3" />
               {booking.user_email}
@@ -70,7 +72,7 @@ const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEar
             booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
             booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-red-500 shadow-red-500/25'
           } text-white text-xs shadow-sm capitalize`}>
-            {booking.status}
+            <TranslationText text={booking.status} language={language} />
           </Badge>
         </div>
       </CardHeader>
@@ -78,26 +80,26 @@ const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEar
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <BedDouble className="h-4 w-4" />
-            Room
+            <TranslationText text="Room" language={language} />
           </span>
           <span className="font-bold text-slate-900">{roomInfo}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <CalendarCheck className="h-4 w-4" />
-            Check-in
+            <TranslationText text="Check-in" language={language} />
           </span>
           <span className="font-bold text-slate-900">{new Date(booking.check_in_date).toLocaleDateString()}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Check-out
+            <TranslationText text="Check-out" language={language} />
           </span>
           <span className="font-bold text-slate-900">{new Date(booking.check_out_date).toLocaleDateString()}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
-          <span className="text-sm font-bold text-emerald-700">Total</span>
+          <span className="text-sm font-bold text-emerald-700"><TranslationText text="Total" language={language} /></span>
           <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
         </div>
         <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
@@ -113,7 +115,7 @@ const BookingCard = ({ booking, onCompleteEarly }: { booking: any; onCompleteEar
               onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
               className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
             >
-              <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
+              <CheckCircle className="h-4 w-4 mr-1.5" /> <TranslationText text="Early Checkout" language={language} />
             </Button>
           )}
         </div>
@@ -129,6 +131,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onUpdateStatus,
   onCompleteEarly
 }) => {
+  const { language } = useLanguage();
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState<WalkInForm>({
     guestName: '',
@@ -380,9 +383,9 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">Confirm Early Checkout</h3>
+              <h3 className="text-lg font-semibold text-slate-900"><TranslationText text="Confirm Early Checkout" language={language} /></h3>
               <p className="text-sm text-slate-600 mt-2">
-                Are you sure you want to complete this booking early and make the room available?
+                <TranslationText text="Are you sure you want to complete this booking early and make the room available?" language={language} />
               </p>
             </div>
           </div>
@@ -449,7 +452,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
-          Cards
+          <TranslationText text="Cards" language={language} />
         </Button>
         <Button
           variant={viewMode === "table" ? "default" : "ghost"}
@@ -462,7 +465,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           }`}
         >
           <BarChart3 className="h-4 w-4" />
-          Table
+          <TranslationText text="Table" language={language} />
         </Button>
       </div>
       
@@ -470,78 +473,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       {viewMode === "card" && (
         <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {bookings.map((booking) => (
-            <Card key={booking.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02] relative">
-              <CardHeader className="relative pb-0">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</h3>
-                      {booking.booking_source === 'Walk-In' && (
-                        <Badge className="bg-blue-600 text-white text-xs shadow-sm">
-                          Walk-In
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-600 flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      {booking.user_email}
-                    </p>
-                  </div>
-                  <Badge className={`${
-                    booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
-                    booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-red-500 shadow-red-500/25'
-                  } text-white text-xs shadow-sm capitalize`}>
-                    {booking.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <span className="text-sm text-slate-600 flex items-center gap-2">
-                    <BedDouble className="h-4 w-4" />
-                    Room
-                  </span>
-                  <span className="font-bold text-slate-900">{booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <span className="text-sm text-slate-600 flex items-center gap-2">
-                    <CalendarCheck className="h-4 w-4" />
-                    Check-in
-                  </span>
-                  <span className="font-bold text-slate-900">{new Date(booking.check_in_date).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                  <span className="text-sm text-slate-600 flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Check-out
-                  </span>
-                  <span className="font-bold text-slate-900">{new Date(booking.check_out_date).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
-                  <span className="text-sm font-bold text-emerald-700">Total</span>
-                  <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
-                </div>
-                <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
-                  {(() => {
-                    const status = booking.status?.toLowerCase();
-                    const showButton = status === 'confirmed' && status !== 'completed';
-                    console.log(`BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
-                    return showButton;
-                  })() && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleEarlyCheckoutClick(booking.id || booking.booking_id)} 
-                      className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1.5" /> Early Checkout
-                    </Button>
-                  )}
-                </div>
-                {/* Inline Message */}
-                <InlineMessageComponent bookingId={booking.id || booking.booking_id} />
-              </CardContent>
-            </Card>
+            <BookingCard 
+              key={booking.id} 
+              booking={booking} 
+              onCompleteEarly={handleEarlyCheckoutClick}
+              language={language}
+            />
           ))}
         </div>
       )}

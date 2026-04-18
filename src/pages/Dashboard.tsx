@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/use-language';
+import { TranslationText } from '@/components/TranslationText';
 import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -81,6 +83,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { refreshAllPackages } = useRefreshPackages();
   const { user, logout, isAdmin, isPensionOwner, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
@@ -303,8 +306,8 @@ export const Dashboard: React.FC = () => {
         packagesResponse
       ] = await Promise.all([
         apiService.getStaff(pensionId),
-        apiService.getRooms(pensionId),
-        apiService.getPackages(pensionId)
+        apiService.getRooms(pensionId, { language }),
+        apiService.getPackages(pensionId, { language })
       ]);
       
       // Update staff data
@@ -484,7 +487,7 @@ export const Dashboard: React.FC = () => {
         reviewsResponse
       ] = await Promise.all([
         apiService.getBookings(),
-        apiService.getPensions(),
+        apiService.getPensions({ language }),
         apiService.getMyReviews()
       ]);
 
@@ -567,8 +570,8 @@ export const Dashboard: React.FC = () => {
           packagesResponse
         ] = await Promise.all([
           apiService.getStaff(pensionId),
-          apiService.getRooms(pensionId),
-          apiService.getPackages(pensionId)
+          apiService.getRooms(pensionId, { language }),
+          apiService.getPackages(pensionId, { language })
         ]);
 
         // Update staff data
@@ -696,8 +699,14 @@ export const Dashboard: React.FC = () => {
   const [editingPackage, setEditingPackage] = useState<any>(null);
   const [newPackage, setNewPackage] = useState({
     name: '',
+    name_en: '',
+    name_am: '',
+    name_om: '',
     price: '',
     description: '',
+    description_en: '',
+    description_am: '',
+    description_om: '',
     services: ['WiFi', 'Clean Room', 'Basic Amenities'],
     isMostPopular: false,
     image: '',
@@ -1294,10 +1303,25 @@ export const Dashboard: React.FC = () => {
           // Wait a moment for image state to update if needed
           await new Promise(resolve => setTimeout(resolve, 100));
           
+          // Construct multilingual JSON objects
+          const name_ml = {
+            en: newPackage.name_en || newPackage.name,
+            am: newPackage.name_am,
+            om: newPackage.name_om
+          };
+          
+          const description_ml = {
+            en: newPackage.description_en || newPackage.description,
+            am: newPackage.description_am,
+            om: newPackage.description_om
+          };
+          
           const packageData = {
-            name: newPackage.name,
+            name: newPackage.name_en || newPackage.name,
             price: parseInt(newPackage.price),
-            description: newPackage.description,
+            description: newPackage.description_en || newPackage.description,
+            name_ml,
+            description_ml,
             services: newPackage.services,
             image: (newPackage as any).image || (editingPackage as any).image || '',
             customService: newPackage.customService,
@@ -1355,8 +1379,14 @@ export const Dashboard: React.FC = () => {
     setEditingPackage(pkg);
     setNewPackage({
       name: pkg.name,
+      name_en: pkg.name_ml?.en || pkg.name || '',
+      name_am: pkg.name_ml?.am || '',
+      name_om: pkg.name_ml?.om || '',
       price: pkg.price.toString(),
       description: pkg.description,
+      description_en: pkg.description_ml?.en || pkg.description || '',
+      description_am: pkg.description_ml?.am || '',
+      description_om: pkg.description_ml?.om || '',
       services: pkg.services || ['WiFi', 'Clean Room', 'Basic Amenities'],
       isMostPopular: pkg.isMostPopular,
       image: pkg.image || '',
@@ -1782,9 +1812,9 @@ export const Dashboard: React.FC = () => {
 
                   {/* Page Title */}
                   <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
-                    {activeTab === "staff" ? "Staff & HR Management" : 
-                     activeTab === "overview" ? "Dashboard Overview" : 
-                     activeTab === "availability" ? "Availability Management" :
+                    {activeTab === "staff" ? <TranslationText text="Staff & HR Management" language={language} /> : 
+                     activeTab === "overview" ? <TranslationText text="Dashboard Overview" language={language} /> : 
+                     activeTab === "availability" ? <TranslationText text="Availability Management" language={language} /> :
                      activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </h1>
                 </div>
@@ -2434,7 +2464,22 @@ export const Dashboard: React.FC = () => {
                         <button
                           onClick={() => {
                             setEditingPackage(null);
-                            setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
+                            setNewPackage({ 
+                              name: '', 
+                              name_en: '', 
+                              name_am: '', 
+                              name_om: '', 
+                              price: '', 
+                              description: '', 
+                              description_en: '', 
+                              description_am: '', 
+                              description_om: '', 
+                              services: ['WiFi', 'Clean Room', 'Basic Amenities'], 
+                              isMostPopular: false, 
+                              image: '', 
+                              customService: '', 
+                              imageType: 'Normal' 
+                            });
                             setShowAddPackageModal(true);
                           }}
                           className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all duration-300 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
@@ -3158,7 +3203,7 @@ export const Dashboard: React.FC = () => {
                 <p className="text-xs text-slate-500">Enter the actual room numbers as they exist in your building</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Number of Beds (auto-filled from package)</Label>
                   <Input
@@ -3346,7 +3391,7 @@ export const Dashboard: React.FC = () => {
                           
                           // Refresh rooms list
                           console.log('🔍 Refreshing rooms for pension:', currentPension.pension_id || currentPension.id);
-                          const roomsResponse = await apiService.getRooms(currentPension.pension_id || currentPension.id);
+                          const roomsResponse = await apiService.getRooms(currentPension.pension_id || currentPension.id, { language });
                           console.log('🔍 Rooms API response:', roomsResponse);
                           if (roomsResponse.success) {
                             console.log('🔍 Setting rooms state with:', roomsResponse.data);
@@ -3425,11 +3470,31 @@ export const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Package Name</Label>
+                <Label className="text-sm font-bold text-slate-700">Package Name (English)</Label>
                 <Input
-                  value={newPackage.name}
-                  onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
+                  value={newPackage.name_en}
+                  onChange={(e) => setNewPackage({ ...newPackage, name_en: e.target.value, name: e.target.value })}
                   placeholder="e.g., Luxury Double, Luxury Family, Economy Single"
+                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Package Name (Amharic)</Label>
+                <Input
+                  value={newPackage.name_am}
+                  onChange={(e) => setNewPackage({ ...newPackage, name_am: e.target.value })}
+                  placeholder="ጥቅል ስም (አማርኛ)"
+                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Package Name (Afaan Oromo)</Label>
+                <Input
+                  value={newPackage.name_om}
+                  onChange={(e) => setNewPackage({ ...newPackage, name_om: e.target.value })}
+                  placeholder="Maqaan Qabxii (Afaan Oromoo)"
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
                 />
               </div>
@@ -3446,19 +3511,41 @@ export const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Description (optional)</Label>
+                <Label className="text-sm font-bold text-slate-700">Description (English)</Label>
                 <textarea
-                  value={newPackage.description}
-                  onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
+                  value={newPackage.description_en}
+                  onChange={(e) => setNewPackage({ ...newPackage, description_en: e.target.value, description: e.target.value })}
                   placeholder="Describe what's included in this package..."
-                  rows={3}
+                  rows={2}
+                  className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Description (Amharic)</Label>
+                <textarea
+                  value={newPackage.description_am}
+                  onChange={(e) => setNewPackage({ ...newPackage, description_am: e.target.value })}
+                  placeholder="ትዕርር ያካትታል (አማርኛ)"
+                  rows={2}
+                  className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700">Description (Afaan Oromo)</Label>
+                <textarea
+                  value={newPackage.description_om}
+                  onChange={(e) => setNewPackage({ ...newPackage, description_om: e.target.value })}
+                  placeholder="Ibsa (Afaan Oromoo)"
+                  rows={2}
                   className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
                 />
               </div>
               
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700">Services</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {['WiFi', 'Breakfast', 'TV', 'Mini-fridge', 'Balcony', 'Air Conditioning', 'Parking', 'Pool Access'].map(service => (
                     <label key={service} className="flex items-center space-x-2 cursor-pointer">
                       <input
@@ -3648,7 +3735,7 @@ export const Dashboard: React.FC = () => {
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Role</Label>
                   <Input
@@ -3687,7 +3774,7 @@ export const Dashboard: React.FC = () => {
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-blue-500/20 hover:border-blue-500/50 transition-all duration-300"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Salary (ETB)</Label>
                   <Input

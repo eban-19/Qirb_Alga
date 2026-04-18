@@ -2,6 +2,7 @@ import * as express from 'express';
 import { executeQuery, executeTransaction } from '../config/database';
 import { authenticateToken, requireAdmin, requireOwnerApproval } from '../middleware/auth';
 import geocodingService from '../services/geocoding';
+import { getMultilingualText } from '../utils/multilingual';
 
 const router = express.Router();
 
@@ -21,11 +22,13 @@ interface PensionData {
 router.get('/', authenticateToken as any, requireOwnerApproval as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {
     const userId = req.user.userId;
+    const { language = 'en' } = req.query;
     console.log('=== GET PENSIONS FOR USER ===');
     console.log('User ID:', userId);
     
     const pensions = await executeQuery(`
       SELECT p.pension_id as id, p.name, p.address, p.description, p.phone, p.email, p.capacity, p.image_url, p.owner_id,
+             p.name_ml, p.description_ml, p.owner_info_ml, p.room_details_ml,
              op.business_name, op.business_email, op.business_phone, op.license_number, op.approval_status
       FROM pensions p
       LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
@@ -34,9 +37,18 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
     console.log('Found pensions:', pensions.length);
     console.log('Pensions data:', pensions);
     
+    // Apply multilingual text extraction
+    const formattedPensions = pensions.map((p: any) => ({
+      ...p,
+      name: getMultilingualText(p.name_ml, language as string) || p.name,
+      description: getMultilingualText(p.description_ml, language as string) || p.description,
+      owner_info: getMultilingualText(p.owner_info_ml, language as string) || p.owner_info,
+      room_details: getMultilingualText(p.room_details_ml, language as string) || p.room_details
+    }));
+    
     res.json({
       success: true,
-      data: pensions
+      data: formattedPensions
     });
   } catch (error: any) {
     console.error('Get pensions error:', error);
@@ -48,6 +60,7 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
+    const { language = 'en' } = req.query;
 
     const pensionResult = await executeQuery(`
       SELECT p.*, u.full_name as owner_name, u.email as owner_email,
@@ -66,14 +79,26 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
       });
     }
 
-    const pension = { ...pensionResult[0], id: pensionResult[0].pension_id };
+    const pensionData = pensionResult[0];
+    const pension = { 
+      ...pensionData, 
+      id: pensionData.pension_id,
+      name: getMultilingualText(pensionData.name_ml, language as string) || pensionData.name,
+      description: getMultilingualText(pensionData.description_ml, language as string) || pensionData.description,
+      owner_info: getMultilingualText(pensionData.owner_info_ml, language as string) || pensionData.owner_info,
+      room_details: getMultilingualText(pensionData.room_details_ml, language as string) || pensionData.room_details
+    };
 
     // Get rooms for this pension
     const roomsResult = await executeQuery(
       'SELECT * FROM rooms WHERE pension_id = ? AND is_available = TRUE ORDER BY price_per_night',
       [id]
     );
-    const rooms = roomsResult.map((r: any) => ({ ...r, id: r.room_id }));
+    const rooms = roomsResult.map((r: any) => ({ 
+      ...r, 
+      id: r.room_id,
+      type: getMultilingualText(r.room_type_ml, language as string) || r.room_type
+    }));
 
     // Get packages for this pension
     let packages: any[] = [];
@@ -82,7 +107,12 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
         'SELECT * FROM packages WHERE pension_id = ? AND is_active = TRUE ORDER BY price',
         [id]
       );
-      packages = packagesResult.map((pkg: any) => ({ ...pkg, id: pkg.package_id || pkg.id }));
+      packages = packagesResult.map((pkg: any) => ({ 
+        ...pkg, 
+        id: pkg.package_id || pkg.id,
+        name: getMultilingualText(pkg.name_ml, language as string) || pkg.name,
+        description: getMultilingualText(pkg.description_ml, language as string) || pkg.description
+      }));
     } catch (e: any) {
       console.warn('Packages table not found or query failed');
       if ((pension as any).packages) {
@@ -197,8 +227,12 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       capacity,
       owner_info,
       room_details,
-      image_url
-    }: PensionData = req.body;
+      image_url,
+      name_ml,
+      description_ml,
+      owner_info_ml,
+      room_details_ml
+    }: PensionData & { name_ml?: any, description_ml?: any, owner_info_ml?: any, room_details_ml?: any } = req.body;
 
     console.log('Extracted values:', {
       name,
@@ -220,6 +254,12 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       });
     }
 
+    // Prepare multilingual fields
+    const nameMlJson = name_ml ? JSON.stringify(name_ml) : JSON.stringify({ en: name });
+    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : JSON.stringify({ en: description });
+    const ownerInfoMlJson = owner_info_ml ? JSON.stringify(owner_info_ml) : JSON.stringify({ en: owner_info });
+    const roomDetailsMlJson = room_details_ml ? JSON.stringify(room_details_ml) : JSON.stringify({ en: room_details });
+
     // Geocode address to get coordinates
     console.log(`🗺️ Geocoding address for new pension: "${address}"`);
     let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
@@ -238,9 +278,9 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
     
     // Always create pensions with 'pending' status for admin approval workflow
     const result = await executeQuery(
-      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, latitude, longitude, owner_id, status, image_url, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
-      [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, userId, image_url || null]
+      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, latitude, longitude, owner_id, status, image_url, name_ml, description_ml, owner_info_ml, room_details_ml, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, NOW())`,
+      [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, userId, image_url || null, nameMlJson, descriptionMlJson, ownerInfoMlJson, roomDetailsMlJson]
     );
 
     console.log('INSERT result:', result);
@@ -291,8 +331,12 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       capacity,
       owner_info,
       room_details,
-      image_url
-    }: PensionData = req.body;
+      image_url,
+      name_ml,
+      description_ml,
+      owner_info_ml,
+      room_details_ml
+    }: PensionData & { name_ml?: any, description_ml?: any, owner_info_ml?: any, room_details_ml?: any } = req.body;
 
     console.log('Extracted values:', {
       name,
@@ -338,6 +382,12 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
 
     console.log('Ownership check passed. Updating pension...');
     
+    // Prepare multilingual fields
+    const nameMlJson = name_ml ? JSON.stringify(name_ml) : (pension[0].name_ml || JSON.stringify({ en: name || pension[0].name }));
+    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : (pension[0].description_ml || JSON.stringify({ en: description || pension[0].description }));
+    const ownerInfoMlJson = owner_info_ml ? JSON.stringify(owner_info_ml) : (pension[0].owner_info_ml || JSON.stringify({ en: owner_info || pension[0].owner_info }));
+    const roomDetailsMlJson = room_details_ml ? JSON.stringify(room_details_ml) : (pension[0].room_details_ml || JSON.stringify({ en: room_details || pension[0].room_details }));
+    
     // Geocode address to get updated coordinates
     console.log(`🗺️ Geocoding updated address for pension: "${address}"`);
     let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
@@ -356,9 +406,24 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
     try {
       await executeQuery(
         `UPDATE pensions 
-         SET name = ?, description = ?, owner_info = ?, room_details = ?, address = ?, phone = ?, email = ?, capacity = ?, latitude = ?, longitude = ?, image_url = ?
+         SET name = ?, description = ?, owner_info = ?, room_details = ?, address = ?, phone = ?, email = ?, capacity = ?, latitude = ?, longitude = ?, image_url = ?, name_ml = ?, description_ml = ?, owner_info_ml = ?, room_details_ml = ?
          WHERE pension_id = ?`,
-        [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, image_url || null, id]
+        [name || pension[0].name, 
+         description || pension[0].description, 
+         owner_info || pension[0].owner_info, 
+         room_details || pension[0].room_details, 
+         address, 
+         phone, 
+         email, 
+         capacity || 0, 
+         coordinates.lat, 
+         coordinates.lng, 
+         image_url || null,
+         nameMlJson,
+         descriptionMlJson,
+         ownerInfoMlJson,
+         roomDetailsMlJson,
+         id]
       );
 
       console.log('Pension updated successfully');

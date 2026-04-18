@@ -557,7 +557,7 @@ export default function DashboardBookings() {
                   <h3 className="text-lg font-semibold">Booking Summary</h3>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-slate-600">Guest Name:</span>
                       <p className="font-medium">{bookingData.guestName || 'Not provided'}</p>

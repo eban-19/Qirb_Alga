@@ -1,6 +1,7 @@
 import * as express from 'express';
 import { executeQuery } from '../config/database';
 import { authenticateToken } from '../middleware/auth';
+import { getMultilingualText, updateMultilingualField } from '../utils/multilingual';
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/pension/:pensionId/room-types', authenticateToken as any, async (re
 router.get('/pension/:pensionId', async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, language = 'en' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const rooms = await executeQuery(
@@ -48,7 +49,7 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
         items: rooms.map((r: any) => ({ 
           ...r, 
           id: r.room_id, 
-          type: r.room_type,
+          type: getMultilingualText(r.room_type_ml, language as string) || r.room_type,
           is_available: r.availability_status?.toLowerCase() === 'available'
         })),
         pagination: {
@@ -70,6 +71,7 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
+    const { language = 'en' } = req.query;
 
     const room = await executeQuery(`
       SELECT r.*, p.name as pension_name, p.address as pension_address
@@ -88,7 +90,7 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
         room: { 
           ...room[0], 
           id: room[0].room_id, 
-          type: room[0].room_type,
+          type: getMultilingualText(room[0].room_type_ml, language as string) || room[0].room_type,
           is_available: room[0].availability_status?.toLowerCase() === 'available'
         }
       }
@@ -112,16 +114,17 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       number_of_beds, 
       availability_status, 
       packageId,
-      room_number  
+      room_number,
+      room_type_ml
     } = req.body;
 
     console.log('🔍 Room creation request:', {
-      pension_id, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number
+      pension_id, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number, room_type_ml
     });
 
     // Validation
-    if (!pension_id || !room_type || !price_per_night) {
-      return res.status(400).json({ success: false, message: 'Pension ID, room type, and price per night are required' });
+    if (!pension_id || !room_type) {
+      return res.status(400).json({ success: false, message: 'Pension ID and room type are required' });
     }
 
     // Check ownership
@@ -130,14 +133,17 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
+    // Prepare multilingual field
+    const roomTypeMlJson = room_type_ml ? JSON.stringify(room_type_ml) : JSON.stringify({ en: room_type });
+
     const result = await executeQuery(
-      `INSERT INTO rooms (pension_id, owner_id, room_type, capacity, price_per_night, number_of_beds, availability_status, package_id, room_number, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [pension_id, userId, room_type, capacity || 1, price_per_night, number_of_beds || 1, availability_status, packageId, room_number]
+      `INSERT INTO rooms (pension_id, owner_id, room_type, capacity, price_per_night, number_of_beds, availability_status, package_id, room_number, room_type_ml, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [pension_id, userId, room_type, capacity || 1, price_per_night, number_of_beds || 1, availability_status, packageId, room_number, roomTypeMlJson]
     );
 
     console.log('🔍 Room insertion data:', {
-      pension_id, userId, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number
+      pension_id, userId, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number, roomTypeMlJson
     });
 
     res.status(201).json({ success: true, message: 'Room created successfully', data: { id: result.insertId } });
@@ -152,7 +158,7 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
   try {
     const userId = req.user.userId;
     const { id } = req.params;
-    const { room_type, capacity, price_per_night, number_of_beds, availability_status } = req.body;
+    const { room_type, capacity, price_per_night, number_of_beds, availability_status, room_type_ml } = req.body;
 
     // Check ownership
     const room = await executeQuery('SELECT r.*, p.owner_id FROM rooms r JOIN pensions p ON r.pension_id = p.pension_id WHERE r.room_id = ?', [id]);
@@ -163,15 +169,27 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
+    // Prepare multilingual field update
+    let roomTypeMlJson;
+    if (room_type_ml) {
+      roomTypeMlJson = JSON.stringify(room_type_ml);
+    } else if (room[0].room_type_ml) {
+      // Keep existing multilingual field if not provided
+      roomTypeMlJson = room[0].room_type_ml;
+    } else {
+      roomTypeMlJson = JSON.stringify({ en: room_type || room[0].room_type });
+    }
+
     await executeQuery(
       `UPDATE rooms 
-       SET room_type = ?, capacity = ?, price_per_night = ?, number_of_beds = ?, availability_status = ?, last_status_update = NOW()
+       SET room_type = ?, capacity = ?, price_per_night = ?, number_of_beds = ?, availability_status = ?, room_type_ml = ?, last_status_update = NOW()
        WHERE room_id = ?`,
       [room_type || room[0].room_type, 
        capacity || room[0].capacity, 
        price_per_night || room[0].price_per_night, 
        number_of_beds || room[0].number_of_beds,
        availability_status || room[0].availability_status,
+       roomTypeMlJson,
        id]
     );
 
@@ -204,7 +222,7 @@ router.delete('/:id', authenticateToken as any, async (req: any, res: express.Re
 router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
-    const { pension_id, page = 1, limit = 10 } = req.query;
+    const { pension_id, page = 1, limit = 10, language = 'en' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     let query = `
@@ -227,7 +245,7 @@ router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.
     const normalizedRooms = rooms.map((r: any) => ({ 
       ...r, 
       id: r.room_id, 
-      type: r.room_type,
+      type: getMultilingualText(r.room_type_ml, language as string) || r.room_type,
       is_available: r.availability_status?.toLowerCase() === 'available'
     }));
 

@@ -284,13 +284,15 @@ class ApiService {
     page?: number;
     limit?: number;
     search?: string;
+    language?: string;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
     return this.request(`/public/pensions${query ? `?${query}` : ''}`);
   }
 
-  async getPublicPension(id: number): Promise<ApiResponse<any>> {
-    return this.request(`/public/pensions/${id}`);
+  async getPublicPension(id: number, params: { language?: string } = {}): Promise<ApiResponse<any>> {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request(`/public/pensions/${id}${query ? `?${query}` : ''}`);
   }
 
   // Pension methods
@@ -299,6 +301,7 @@ class ApiService {
     limit?: number;
     search?: string;
     status?: string;
+    language?: string;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
     return this.request(`/pensions/my/pensions${query ? `?${query}` : ''}`);
@@ -332,6 +335,7 @@ class ApiService {
   async getRooms(propertyId: number, params: {
     page?: number;
     limit?: number;
+    language?: string;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
     return this.request(`/rooms/pension/${propertyId}${query ? `?${query}` : ''}`);
@@ -341,6 +345,7 @@ class ApiService {
     page?: number;
     limit?: number;
     pension_id?: number;
+    language?: string;
   } = {}): Promise<PaginatedResponse<any>> {
     const query = new URLSearchParams(params as any).toString();
     return this.request(`/rooms/my/rooms${query ? `?${query}` : ''}`);
@@ -441,8 +446,9 @@ class ApiService {
   }
 
   // Package methods
-  async getPackages(pensionId: number): Promise<ApiResponse<any[]>> {
-    return this.request(`/packages/pensions/${pensionId}`);
+  async getPackages(pensionId: number, params: { language?: string } = {}): Promise<ApiResponse<any[]>> {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request(`/packages/pensions/${pensionId}${query ? `?${query}` : ''}`);
   }
 
   async createPackage(pensionId: number, packageData: any): Promise<ApiResponse<any>> {

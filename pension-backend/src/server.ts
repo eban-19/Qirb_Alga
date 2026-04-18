@@ -24,9 +24,11 @@ import uploadRoutes from './routes/uploads';
 import expenseRoutes from './routes/expenses';
 import adminRoutes from './routes/admin';
 import notificationRoutes from './routes/notifications';
+import translationRoutes from './routes/translations';
 import { getSystemStatusController } from './routes/system';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
+import scheduledCheckoutWorker from './services/scheduledCheckoutWorker';
 
 dotenv.config();
 
@@ -129,6 +131,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin-approvals', adminRoutes); // Add route for frontend compatibility
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/translations', translationRoutes);
 
 // System status endpoint
 app.get('/api/system/status', getSystemStatusController);
@@ -257,6 +260,9 @@ const startServer = async () => {
       // Initialize WebSocket server
       wsServer.initialize(server);
       console.log(`🔌 WebSocket server ready for real-time notifications`);
+      
+      // Start scheduled checkout worker
+      scheduledCheckoutWorker.start();
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -270,6 +276,9 @@ const startServer = async () => {
 process.on('SIGTERM', () => {
 
   console.log('🛑 SIGTERM received, shutting down gracefully');
+
+  // Stop scheduled checkout worker
+  scheduledCheckoutWorker.stop();
 
   server.close(() => {
 
@@ -286,6 +295,9 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
 
   console.log('🛑 SIGINT received, shutting down gracefully');
+
+  // Stop scheduled checkout worker
+  scheduledCheckoutWorker.stop();
 
   server.close(() => {
 

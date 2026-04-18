@@ -2,6 +2,7 @@ import * as express from 'express';
 import { executeQuery } from '../config/database';
 import { authenticateToken } from '../middleware/auth';
 import notificationService from '../services/notificationService';
+import bookingService from '../services/bookingService';
 
 const router = express.Router();
 
@@ -319,7 +320,7 @@ router.delete('/:bookingId', authenticateToken as any, async (req: any, res: any
   }
 });
 
-// Complete booking early
+// Complete booking early (manual checkout by admin/owner)
 router.post('/:bookingId/complete-early', authenticateToken as any, async (req: any, res: any) => {
   try {
     const { bookingId } = req.params;
@@ -328,7 +329,7 @@ router.post('/:bookingId/complete-early', authenticateToken as any, async (req: 
 
     console.log("EARLY CHECKOUT REQUEST:", { bookingId, userId, notes });
 
-    // Check if booking exists and belongs to user's pension
+    // Verify booking belongs to user's pension before processing
     const booking = await executeQuery(`
       SELECT b.*, p.owner_id
       FROM bookings b
@@ -338,65 +339,33 @@ router.post('/:bookingId/complete-early', authenticateToken as any, async (req: 
     `, [bookingId, userId]);
 
     if (booking.length === 0) {
-      console.log("EARLY CHECKOUT BLOCKED: Booking not found");
+      console.log("EARLY CHECKOUT BLOCKED: Booking not found or not authorized");
       return res.status(404).json({
         success: false,
         message: 'Booking not found'
       });
     }
 
-    const bookingData = booking[0];
-    console.log("EARLY CHECKOUT BOOKING DATA:", bookingData);
+    // Use the single source of truth checkout logic (manual checkout)
+    const result = await bookingService.completeBookingCheckout(parseInt(bookingId), false);
 
-    // STRICT STATUS CHECK
-    if (bookingData.status === 'Completed') {
-      console.log("EARLY CHECKOUT BLOCKED: Booking already completed");
-      return res.status(400).json({
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      const statusCode = result.message === 'Booking not found' ? 404 : 400;
+      res.status(statusCode).json({
         success: false,
-        message: "Booking already completed"
+        message: result.message
       });
     }
 
-    // MINIMAL UPDATE QUERY
-    await executeQuery(`
-      UPDATE bookings 
-      SET status = 'Completed',
-          actual_check_out = NOW()
-      WHERE booking_id = ?
-    `, [bookingId]);
-
-    console.log("EARLY CHECKOUT: Booking updated successfully");
-
-    // SAFE ROOM UPDATE - wrapped separately
-    try {
-      await executeQuery(`
-        UPDATE rooms 
-        SET availability_status = 'Available',
-            last_status_update = NOW()
-        WHERE room_id = ?
-      `, [bookingData.room_id]);
-      console.log("EARLY CHECKOUT: Room updated successfully");
-    } catch (roomErr) {
-      console.error("ROOM UPDATE FAILED:", roomErr);
-      // Do NOT let room update failure break checkout
-    }
-
-    // NOTIFICATION REMOVED TEMPORARILY TO PREVENT CRASHES
-    // await notificationService.createNotification(...)
-
-    res.json({
-      success: true,
-      message: 'Booking completed early successfully',
-      data: {
-        bookingId: parseInt(bookingId),
-        completedAt: new Date().toISOString()
-      }
-    });
-
   } catch (error: any) {
     console.error("EARLY CHECKOUT ERROR:", error);
-
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message || "Unknown error",
       stack: error.stack
