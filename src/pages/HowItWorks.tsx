@@ -153,6 +153,78 @@ const HowItWorks = () => {
         guest: "የትራንሲት ክፍዎችን ያሰሱ",
         owner: "ንብረትዎን ይዘርዝሩ"
       }
+    },
+    om: {
+      title: "Akka Fayyadamu",
+      subtitle: "Etiyoophiyaa keessatti paanshenii gaarii barbaaduu dandeettii qabduu sadarkaa wardii",
+      guest: {
+        title: "Deeggartootaf",
+        subtitle: "Paanshenii of dandeessa ta'een barbaachuu fi buufuu",
+        steps: [
+          {
+            icon: <Search className="w-8 h-8" />,
+            title: "Paanshenii Barbaadi",
+            description: "Etiyoophiyaa keessatti argaman paansenota hedduu keessaa ilaali. Bakka jireenya, gatii, faca'iinsa fi kan kanaa ilaalitti filadhu."
+          },
+          {
+            icon: <Calendar className="w-8 h-8" />,
+            title: "Guyyaa Filadhu",
+            description: "Guyyaa galmeessuu fi baasuu filadhu. Jireenysa ammaa fi gatii ilaali."
+          },
+          {
+            icon: <Home className="w-8 h-8" />,
+            title: "Buu'aa Eegadhu",
+            description: "Buu'aa karaa interneetii ammaa eegadhu. Eegamaa walitti deebi'aa fi maqaa bu'uuf qabdu argadhu."
+          },
+          {
+            icon: <CheckCircle className="w-8 h-8" />,
+            title: "Eegadhu",
+            description: "Paanshenii keessatti deemuu fi dandeessii gaarii deemu. Deegartoo ta'ee booda deebiin kennadhu."
+          }
+        ]
+      },
+      owner: {
+        title: "Qabeenya Qabattootaf",
+        subtitle: "Qabeenyi keessanii qubachiisi fi kaffaltii argachuu jalqabi",
+        steps: [
+          {
+            icon: <Building2 className="w-8 h-8" />,
+            title: "Qabeenyi Keessanii Qubachiisi",
+            description: "Maqaa uumuu fi paansenii keessanii qubachiisi. Qabeenyaa keessaa, faca'iinsa fi suuraawwanii beeksisi."
+          },
+          {
+            icon: <Star className="w-8 h-8" />,
+            title: "Eegamaa Argadhu",
+            description: "Waadaan keenya qabeenyaa keessanii eega. Kun dandeessiin fi yaada deeggartoota hedduuf taasisa."
+          },
+          {
+            icon: <Users className="w-8 h-8" />,
+            title: "Eegamaa Bu'aa Argadhu",
+            description: "Siyaasaawwan deeggartoota irraa eegamaa bu'aa argadhu. Jireenya fi eegamaa bu'aa siffachuu dandeessa."
+          },
+          {
+            icon: <CheckCircle className="w-8 h-8" />,
+            title: "Kaffaltii Argadhu",
+            description: "Qabeenyaa keessaa kaffaltii argadhu. Eegamaa bu'aa tokkoon tokkoo irraa kaffaltii ammaa argadhu."
+          }
+        ]
+      },
+      benefits: {
+        title: "Akka Qirb Alga Filattu?",
+        items: [
+          "Etiyoophiyaa keessatti eegamamii paansenota hedduu filannoo bal'aa",
+          "Eegamaa bu'aa interneeii fi kaffaltii ammaa sirna dandeettii qabuu",
+          "24/7 gargaarsa dargaggummaa",
+          "Gatii cimaa kan hin qabne faca'iinsa dirqama",
+          "Jireenysa ammaa fi eegamaa walitti deebi'aa",
+          "Deeggartoota deebiin fi darajii waliin walitti deebi'uu"
+        ]
+      },
+      cta: {
+        title: "Jalqabaaf Gammadduu?",
+        guest: "Paansenota Filadhu",
+        owner: "Qabeenyi Keessanii Qubachiisi"
+      }
     }
   };
 

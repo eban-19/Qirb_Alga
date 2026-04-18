@@ -132,6 +132,10 @@ export const Dashboard: React.FC = () => {
   const [expensesData, setExpensesData] = useState<any[]>([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   
+  // Staff Bulk Upload State (local since not in useDashboard hook)
+  const [showStaffBulkUploadModal, setShowStaffBulkUploadModal] = useState(false);
+  const [staffBulkUpload, setStaffBulkUpload] = useState({ file: null, data: [], preview: [] });
+  
   // Walk-In Booking Modal State
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState({
@@ -512,7 +516,7 @@ export const Dashboard: React.FC = () => {
       const pensionsArray = Array.isArray(pensionsData) ? pensionsData : [];
       
       // 2. Find user's pension
-      const userId = user?.id || user?.user_id || user?.userId;
+      const userId = String(user?.id);
       
       const foundUserPension = pensionsArray.find(p => 
         p.owner_id === userId || 
@@ -838,10 +842,12 @@ export const Dashboard: React.FC = () => {
     setNewStaff({
       full_name: member.full_name || '',
       role: member.role || '',
-      department: member.department || '',
-      email: member.email || '',
       phone: member.phone || '',
       salary: member.salary ? member.salary.toString() : '',
+      pension_id: member.pension_id || '',
+      owner_id: member.owner_id || '',
+      department: member.department || '',
+      email: member.email || '',
       status: member.status ? member.status.toLowerCase() : 'active'
     });
     setShowAddStaffModal(true);
@@ -850,7 +856,7 @@ export const Dashboard: React.FC = () => {
   const handleSaveStaff = async () => {
     const currentPension = selectedPensionId 
       ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
-      : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+      : pensions.find(p => p.owner_id === (user?.id));
       
     if (!currentPension) {
       alert('Please create a pension first!');
@@ -862,7 +868,7 @@ export const Dashboard: React.FC = () => {
       const staffData = {
         ...newStaff,
         pension_id: currentPension.pension_id || currentPension.id,
-        owner_id: user?.id || user?.user_id
+        owner_id: user?.id
       };
 
       if (editingStaff) {
@@ -903,7 +909,7 @@ export const Dashboard: React.FC = () => {
       await apiService.deleteStaff(parseInt(id));
       const currentPension = selectedPensionId 
         ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
-        : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+        : pensions.find(p => p.owner_id === (user?.id));
       if (currentPension) {
         const response = await apiService.getStaff(currentPension.pension_id || currentPension.id);
         const mappedStaff = response.data.map((s: any) => ({
@@ -1014,7 +1020,7 @@ export const Dashboard: React.FC = () => {
       
       // Debug logging
       console.log('🔍 Update pension profile - Full user object:', user);
-      console.log('🔍 Update pension profile - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+      console.log('🔍 Update pension profile - Looking for pension with userId:', user?.id, 'type:', typeof user?.id);
       console.log('🔍 Update pension profile - Available pensions:', pensions.map(p => ({ 
         id: p.id, 
         pension_id: p.pension_id, 
@@ -1025,7 +1031,7 @@ export const Dashboard: React.FC = () => {
       
       // Check if user has their own pension
       const foundPension = pensions.find(p => 
-        p.owner_id === (user?.id || user?.user_id)
+        p.owner_id === user?.id
       );
       
       console.log('🔍 Update pension profile - Found pension:', foundPension ? foundPension.name : 'None');
@@ -1136,10 +1142,9 @@ export const Dashboard: React.FC = () => {
         
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${this.baseURL}/uploads/single`, {
+          const response = await fetch(`http://localhost:3005/api/uploads/single`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'multipart/form-data',
               ...(token && { Authorization: `Bearer ${token}` }),
             },
             body: formData,
@@ -1165,7 +1170,7 @@ export const Dashboard: React.FC = () => {
       }
       
       // Update business profile in backend
-      const response = await apiService.updateUserProfile(user?.id || user?.user_id, {
+      const response = await apiService.updateUserProfile(user?.id, {
         businessName: businessProfile.businessName,
         businessEmail: businessProfile.businessEmail,
         businessPhone: businessProfile.businessPhone,
@@ -1177,7 +1182,7 @@ export const Dashboard: React.FC = () => {
       setBusinessLicenseFile(null);
       
       // Show appropriate message based on status change
-      if (response.statusChanged) {
+      if ((response as any).statusChanged) {
         console.log('🔍 Business profile updated - status changed to pending');
         alert('Business profile updated successfully! Your changes are pending admin review.');
       } else {
@@ -1283,7 +1288,7 @@ export const Dashboard: React.FC = () => {
       if (newPackage.name && newPackage.price && newPackage.description) {
         // Debug logging
         console.log('🔍 Package creation - Full user object:', user);
-        console.log('🔍 Package creation - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+        console.log('🔍 Package creation - Looking for pension with userId:', user?.id, 'type:', typeof (user?.id));
         console.log('🔍 Package creation - Available pensions:', pensions.map(p => ({ 
           id: p.id, 
           pension_id: p.pension_id, 
@@ -1295,7 +1300,7 @@ export const Dashboard: React.FC = () => {
         // Get the currently selected pension
         const currentPension = selectedPensionId 
           ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
-          : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+          : pensions.find(p => p.owner_id === (user?.id));
         
         console.log('🔍 Package creation - Found pension:', currentPension ? currentPension.name : 'None');
         
@@ -1358,7 +1363,7 @@ export const Dashboard: React.FC = () => {
             setPackages(updatedPackages);
           }
           
-          setNewPackage({ name: '', price: '', description: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
+          setNewPackage({ name: '', name_en: '', name_am: '', name_om: '', price: '', description: '', description_en: '', description_am: '', description_om: '', services: ['WiFi', 'Clean Room', 'Basic Amenities'], isMostPopular: false, image: '', customService: '', imageType: 'Normal' });
           setShowAddPackageModal(false);
           setShowSaveSuccess(true);
           setTimeout(() => setShowSaveSuccess(false), 3000);
@@ -1404,7 +1409,7 @@ export const Dashboard: React.FC = () => {
       // Get the currently selected pension
       const currentPension = selectedPensionId 
         ? pensions.find(p => String(p.pension_id || p.id) === String(selectedPensionId))
-        : pensions.find(p => p.owner_id === (user?.id || user?.user_id));
+        : pensions.find(p => p.owner_id === (user?.id));
       
       console.log('🔍 Found pension:', currentPension ? currentPension.name : 'None');
       
@@ -1448,7 +1453,7 @@ export const Dashboard: React.FC = () => {
     // Show confirmation dialog
     if (confirm(`Are you sure you want to delete room ${roomId}?`)) {
       try {
-        const response = await apiService.deleteRoom(parseInt(roomId));
+        const response = await apiService.deleteRoom(Number(roomId));
         
         if (response.success) {
           // Remove the room from local state
@@ -1488,7 +1493,7 @@ export const Dashboard: React.FC = () => {
       
       // Get user's pension (same logic as other functions)
       console.log('🔍 Toggle Most Popular - Full user object:', user);
-      console.log('🔍 Toggle Most Popular - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+      console.log('🔍 Toggle Most Popular - Looking for pension with userId:', user?.id, 'type:', typeof (user?.id));
       console.log('🔍 Toggle Most Popular - Available pensions:', pensions.map(p => ({ 
         id: p.id, 
         pension_id: p.pension_id, 
@@ -1498,7 +1503,7 @@ export const Dashboard: React.FC = () => {
       })));
       
       const foundPension = pensions.find(p => 
-        p.owner_id === (user?.id || user?.user_id)
+        p.owner_id === (user?.id)
       );
       
       console.log('🔍 Toggle Most Popular - Found pension:', foundPension ? foundPension.name : 'None');
@@ -1595,20 +1600,54 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Staff bulk upload handlers (local since not in useDashboard hook)
+  const handleStaffBulkFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setStaffBulkUpload(prev => ({ ...prev, file }));
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        const data = lines.slice(1).filter(line => line.trim()).map(line => {
+          const values = line.split(',').map(v => v.trim());
+          const obj: any = {};
+          headers.forEach((header, index) => {
+            obj[header] = values[index] || '';
+          });
+          return obj;
+        });
+        setStaffBulkUpload(prev => ({ ...prev, data, preview: data.slice(0, 5) }));
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleStaffBulkUploadConfirm = () => {
+    setShowStaffBulkUploadModal(false);
+    setStaffBulkUpload({ file: null, data: [], preview: [] });
+  };
+
+  const downloadStaffTemplate = () => {
+    const csvContent = "name,role,department,email,phone,salary,status\nJohn Doe,Manager,Front Desk,john@example.com,+251911234567,5000,active";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'staff_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const {
     viewModes,
-    showStaffBulkUploadModal,
-    staffBulkUpload,
     showRoomsBulkUploadModal,
     roomsBulkUpload,
     toggleViewMode,
-    setShowStaffBulkUploadModal,
     setShowRoomsBulkUploadModal,
-    handleStaffBulkFileUpload,
-    handleStaffBulkUploadConfirm,
     handleRoomsBulkFileUpload,
     handleRoomsBulkUploadConfirm,
-    downloadStaffTemplate,
     downloadRoomsTemplate
   } = useDashboard();
 
@@ -1636,7 +1675,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Pension Selection - Sidebar Top */}
-          {isPensionOwner() && pensions.filter(p => p.owner_id === (user?.id || user?.user_id)).length > 1 && (
+          {isPensionOwner() && pensions.filter(p => p.owner_id === (user?.id)).length > 1 && (
             <div className="px-4 py-3 border-b border-slate-100">
               <Select value={selectedPensionId} onValueChange={handlePensionSelectionChange}>
                 <SelectTrigger className="w-full h-9 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all">
@@ -1644,7 +1683,7 @@ export const Dashboard: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="w-64 max-h-60 overflow-y-auto">
                   {pensions
-                    .filter(p => p.owner_id === (user?.id || user?.user_id))
+                    .filter(p => p.owner_id === (user?.id))
                     .map((pension) => (
                       <SelectItem 
                         key={pension.pension_id || pension.id} 
@@ -2182,10 +2221,12 @@ export const Dashboard: React.FC = () => {
                         setNewStaff({
                           full_name: '',
                           role: '',
-                          department: '',
-                          email: '',
                           phone: '',
                           salary: '',
+                          pension_id: '',
+                          owner_id: '',
+                          department: '',
+                          email: '',
                           status: 'active'
                         });
                         setShowAddStaffModal(true);
@@ -2939,12 +2980,12 @@ export const Dashboard: React.FC = () => {
                       <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <AlertCircle className={`h-5 w-5 ${businessProfile.approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`} />
+                            <AlertCircle className={`h-5 w-5 ${approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`} />
                             <span className="text-sm font-medium">
-                              Business Profile Status: <span className={`font-bold ${businessProfile.approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`}>{businessProfile.approvalStatus || 'Pending'}</span>
+                              Business Profile Status: <span className={`font-bold ${approvalStatus === 'Approved' ? 'text-green-600' : 'text-yellow-600'}`}>{approvalStatus || 'Pending'}</span>
                             </span>
                           </div>
-                          {businessProfile.approvalStatus === 'Pending' && (
+                          {approvalStatus === 'Pending' && (
                             <span className="text-xs text-slate-500">Waiting for admin approval</span>
                           )}
                         </div>
@@ -3276,7 +3317,7 @@ export const Dashboard: React.FC = () => {
                         name: p.name,
                         owner_id_type: typeof p.owner_id
                       })));
-                      console.log('🔍 Room creation - Looking for pension with userId:', user?.id || user?.user_id, 'type:', typeof (user?.id || user?.user_id));
+                      console.log('🔍 Room creation - Looking for pension with userId:', user?.id, 'type:', typeof user?.id);
                       
                       // Get the selected pension
                       const currentPension = selectedPensionId 
@@ -3376,6 +3417,7 @@ export const Dashboard: React.FC = () => {
                           // Reset form
                           setNewRoom({
                             type: '',
+                            floor: '',
                             price: '',
                             status: 'Available',
                             capacity: '',
