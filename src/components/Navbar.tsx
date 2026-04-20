@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Globe, Search, CheckCircle, XCircle, FileSearch, Calendar, Building, BedDouble } from "lucide-react";
+import { MapPin, Globe, Search, CheckCircle, XCircle, FileSearch, Calendar, Building, BedDouble, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -68,7 +68,7 @@ const Navbar = () => {
           </span>
         </a>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-nowrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground" aria-label={t.navbar.languageLabel}>
@@ -105,8 +105,8 @@ const Navbar = () => {
           </Button>
           
           {isAuthenticated ? (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               className="hidden sm:inline-flex text-muted-foreground"
               onClick={() => {
@@ -117,10 +117,10 @@ const Navbar = () => {
               Logout
             </Button>
           ) : (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              className="hidden lg:inline-flex text-muted-foreground"
+              className="text-muted-foreground flex-shrink-0"
               onClick={() => navigate("/login")}
             >
               Login

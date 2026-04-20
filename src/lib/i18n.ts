@@ -198,6 +198,19 @@ export interface TranslationSchema {
         backToSite: string;
         logout: string;
     };
+    sidebar: {
+        overview: string;
+        bookings: string;
+        rooms: string;
+        guests: string;
+        pensionProfile: string;
+        staffHr: string;
+        transactions: string;
+        reports: string;
+        settings: string;
+        businessProfile: string;
+        security: string;
+    };
     notFound: {
         message: string;
         backHome: string;
@@ -436,6 +449,19 @@ export const translations: Record<Language, TranslationSchema> = {
             backToSite: "Back to Site",
             logout: "Log Out",
         },
+        sidebar: {
+            overview: "Overview",
+            bookings: "Bookings",
+            rooms: "Rooms",
+            guests: "Guests",
+            pensionProfile: "Pension Profile",
+            staffHr: "Staff & HR",
+            transactions: "Transactions",
+            reports: "Reports",
+            settings: "Settings",
+            businessProfile: "Business Profile",
+            security: "Security",
+        },
     },
     om: {
         navbar: {
@@ -621,6 +647,7 @@ export const translations: Record<Language, TranslationSchema> = {
             fullName: "Maqaa Guutuu",
             phone: "Lakkoofsa Bilbilaa",
             email: "Iimeelii",
+            password: "Jecha Darbeessaa",
             role: "Gahee Kee",
             roleOwner: "Abbaa Qabeenyaa",
             roleManager: "Hojii Raawwachiisaa",
@@ -666,6 +693,19 @@ export const translations: Record<Language, TranslationSchema> = {
             },
             backToSite: "Gara Weebsaayitiitti Deebi'i",
             logout: "Ba'i",
+        },
+        sidebar: {
+            overview: "Hubannoo Waliigalaa",
+            bookings: "Bukiingii",
+            rooms: "Kutoota",
+            guests: "Keessummoota",
+            pensionProfile: "Profaayilii Pensiinii",
+            staffHr: "Tajaajila & HR",
+            transactions: "Tajaajiloota",
+            reports: "Gabaasa",
+            settings: "Sajataa",
+            businessProfile: "Profaayilii Daldalaa",
+            security: "Nageenyaa",
         },
     },
     am: {
@@ -877,25 +917,38 @@ export const translations: Record<Language, TranslationSchema> = {
             title: "የባለቤት ዳሽቦርድ",
             overview: "አጠቃላይ እይታ",
             rooms: "ክፍሎች",
-            bookings: "ቡኪንግ",
+            bookings: "ቦታ ማስያዣ",
             guests: "እንግዶች",
             revenue: "ገቢ",
             settings: "ቅንብሮች",
             stats: {
-                totalRooms: "አጠቃላይ ክፍሎች",
-                activeBookings: "ንቁ ቡኪንግ",
+                totalRooms: "ጠቅላላ ክፍሎች",
+                activeBookings: "ንቁም ቦታ ማስያዣ",
                 occupancyRate: "የመያዝ መጠን",
                 totalRevenue: "ጠቅላላ ገቢ",
             },
-            recentBookings: "የቅርብ ጊዜ ቡኪንግ",
+            recentBookings: "የቅርብ ጊዜ ቦታ ማስያዣ",
             roomStatus: "የክፍል ሁኔታ",
             actions: {
-                addRoom: "አዲስ ክፍል ጨምር",
-                updateAvailability: "ባዶ መሆኑን አዘምን",
-                viewAll: "ሁሉንም እይ",
+                addRoom: "አዲስ ክፍል ይጨምሩ",
+                updateAvailability: "መገለጫ ያሻሽሉ",
+                viewAll: "ሁሉም ይመልከቱ",
             },
             backToSite: "ወደ ድረ-ገጽ ተመለስ",
             logout: "ውጣ",
+        },
+        sidebar: {
+            overview: "አጠቃላይ እይታ",
+            bookings: "ቦታ ማስያዣ",
+            rooms: "ክፍሎች",
+            guests: "እንግዶች",
+            pensionProfile: "የፔንሽን ፕሮፋይል",
+            staffHr: "ሰራተኞች እና HR",
+            transactions: "ግብይቶች",
+            reports: "ሪፖርቶች",
+            settings: "ቅንብሮች",
+            businessProfile: "የንግድ ፕሮፋይል",
+            security: "ደህንነት",
         },
     },
 };

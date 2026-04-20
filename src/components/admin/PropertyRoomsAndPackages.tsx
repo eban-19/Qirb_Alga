@@ -28,6 +28,8 @@ interface Package {
   services?: string[];
   isMostPopular?: boolean;
   availableRooms?: number;
+  name_ml?: { en?: string; am?: string; om?: string };
+  description_ml?: { en?: string; am?: string; om?: string };
 }
 
 export const PropertyRoomsAndPackages: React.FC<PropertyRoomsAndPackagesProps> = ({
@@ -75,7 +77,9 @@ export const PropertyRoomsAndPackages: React.FC<PropertyRoomsAndPackagesProps> =
         description: pkg.description,
         services: pkg.services || pkg.features || [],
         isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
-        availableRooms: normalizedRooms.filter(room => room.status === 'Available').length
+        availableRooms: normalizedRooms.filter(room => room.status === 'Available').length,
+        name_ml: pkg.name_ml,
+        description_ml: pkg.description_ml
       })) : [];
 
       setRooms(normalizedRooms);
@@ -197,7 +201,7 @@ export const PropertyRoomsAndPackages: React.FC<PropertyRoomsAndPackagesProps> =
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-bold text-purple-700">{pkg.name}</h4>
+                        <h4 className="font-bold text-purple-700">{pkg.name_ml?.en || pkg.name}</h4>
                         {pkg.isMostPopular && (
                           <Badge className="bg-purple-100 text-purple-700 text-xs">
                             <Star className="h-3 w-3 mr-1" />
@@ -205,9 +209,9 @@ export const PropertyRoomsAndPackages: React.FC<PropertyRoomsAndPackagesProps> =
                           </Badge>
                         )}
                       </div>
-                      {pkg.description && (
-                        <p className="text-sm text-gray-600 mb-2">{pkg.description}</p>
-                      )}
+                      {pkg.description_ml?.en || pkg.description ? (
+                        <p className="text-sm text-gray-600 mb-2">{pkg.description_ml?.en || pkg.description}</p>
+                      ) : null}
                       {pkg.services && pkg.services.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {pkg.services.map((service: string, index: number) => (

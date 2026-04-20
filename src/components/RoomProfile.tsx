@@ -73,6 +73,16 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
     [room.packages],
   );
 
+  const [activeTab, setActiveTab] = useState(sortedPackages.find(p => p.isMostPopular)?.name || room?.packages[1]?.name || room?.packages[0]?.name || '');
+
+  const handleTabChange = (newValue: string) => {
+    const scrollY = window.scrollY;
+    setActiveTab(newValue);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
+  };
+
   return (
     <div className="w-full bg-background pt-24 pb-16 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8">
@@ -83,7 +93,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
-            <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{room.name}</h1>
+            <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{tr(room.name_ml || room.name)}</h1>
             <div className="flex items-center gap-2 mt-3 text-muted-foreground">
               <MapPin className="w-5 h-5 text-primary" />
               <a href={mapsUrl} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors underline-offset-4 hover:underline text-lg">
@@ -108,7 +118,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             </div>
             
             <div className="bg-card border border-border p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
-              <p className="text-lg leading-relaxed text-muted-foreground">{tr(room.description)}</p>
+              <p className="text-lg leading-relaxed text-muted-foreground">{tr(room.description_ml || room.description)}</p>
               
               <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-border">
                 <div>
@@ -116,36 +126,36 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                     <ShieldCheck className="w-5 h-5 text-primary" />
                     {t.rooms.ownerInfoTitle}
                   </h3>
-                  <p className="text-muted-foreground">{tr(room.ownerInfo)}</p>
+                  <p className="text-muted-foreground">{tr(room.owner_info_ml || room.ownerInfo)}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-foreground mb-2 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-primary" />
                     {t.rooms.roomDetailsTitle}
                   </h3>
-                  <p className="text-muted-foreground">{tr(room.roomDetails)}</p>
+                  <p className="text-muted-foreground">{tr(room.room_details_ml || room.roomDetails)}</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Packages Tabs */}
-          <section className="space-y-8" id="packages">
+          <section className="space-y-8" style={{ scrollBehavior: 'auto' }}>
             <div className="space-y-4 text-center md:text-left">
               <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
               <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
             </div>
 
-            <Tabs defaultValue={sortedPackages.find(p => p.isMostPopular)?.name || sortedPackages[1]?.name || sortedPackages[0]?.name} className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               
               <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-8 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
                 {sortedPackages.map((pkg) => (
-                  <TabsTrigger 
-                    key={pkg.name} 
-                    value={pkg.name} 
-                    className="flex-1 px-8 py-3.5 text-base md:text-lg font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all"
+                  <TabsTrigger
+                    key={pkg.name}
+                    value={pkg.name}
+                    className="flex-shrink-0 px-8 py-3.5 text-base md:text-lg font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all"
                   >
-                    {tr(pkg.name)}
+                    {tr(pkg.name_ml || pkg.name)}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -153,7 +163,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               {sortedPackages.map((pkg) => {
                 const isPopular = pkg.isMostPopular;
                 return (
-                  <TabsContent key={pkg.name} value={pkg.name} className="mt-0 focus-visible:outline-none">
+                  <TabsContent key={pkg.name} value={pkg.name} className="mt-0 focus-visible:outline-none scroll-mt-0">
                     <div className={`grid lg:grid-cols-2 gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isPopular ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
                       
                       {/* Package Details */}
@@ -161,7 +171,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                         <div className="flex items-start justify-between mb-4 gap-4">
                           <h3 className="text-3xl font-bold font-heading flex items-center gap-3 text-foreground">
                             <PackageOpen className={`w-8 h-8 ${isPopular ? 'text-primary' : 'text-muted-foreground'}`} />
-                            {tr(pkg.name)}
+                            {tr(pkg.name_ml || pkg.name)}
                           </h3>
                           {isPopular && (
                             <span className="shrink-0 text-xs font-bold px-4 py-1.5 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
@@ -191,21 +201,25 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
 
                         <div className="flex-grow space-y-5">
                           <h4 className="text-xl font-semibold flex items-center gap-2 text-foreground">
-                            <Sparkles className="w-5 h-5 text-primary" /> 
+                            <Sparkles className="w-5 h-5 text-primary" />
                             {t.rooms.includedServices || "Included Services"}
                           </h4>
-                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {pkg.services?.map((service, idx) => (
-                              <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
-                                <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
-                                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </div>
-                                <span className="font-medium">{tr(service)}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {pkg.services && pkg.services.length > 0 ? (
+                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {pkg.services.filter(service => service && service.trim() !== '').map((service, idx) => (
+                                <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
+                                  <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
+                                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                  <span className="font-medium">{tr(service)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-muted-foreground text-sm">No services specified by owner</p>
+                          )}
                         </div>
 
                         <div className="mt-10 pt-8 border-t border-border">

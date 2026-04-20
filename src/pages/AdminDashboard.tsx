@@ -387,7 +387,7 @@ export default function AdminDashboard() {
 
 
 
-        fetch('http://localhost:3005/api/admin-approvals/pensions/all', {
+        fetch('http://localhost:3005/api/admin/pensions/all', {
 
 
 

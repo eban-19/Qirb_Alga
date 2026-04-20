@@ -365,12 +365,12 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                     <div key={pkg.id || pkg.package_id} className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200 hover:border-purple-300 transition-all duration-300">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-bold text-purple-700">{pkg.name}</h4>
+                          <h4 className="font-bold text-purple-700">{pkg.name_ml?.en || pkg.name}</h4>
                           {pkg.isMostPopular && (
                             <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">{pkg.description}</p>
+                        <p className="text-sm text-slate-600 mb-2">{pkg.description_ml?.en || pkg.description}</p>
                         <div className="flex items-center justify-between">
                           <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
                         </div>

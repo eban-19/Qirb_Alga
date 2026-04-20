@@ -157,7 +157,7 @@ export default function AdminDashboard() {
           console.error('Alerts API error:', err);
           return { data: [] as SystemAlert[] };
         }),
-        fetch('http://localhost:3005/api/admin-approvals/pensions/all', {
+        fetch('http://localhost:3005/api/admin/pensions/all', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
       case 'properties':
         return <PropertiesTab properties={properties} onPropertyAction={handlePropertyDetailsAction} />;
       case 'approvals':
-        return <PensionApprovalInline pensions={pensions} />;
+        return <PensionApprovalInline />;
       case 'bookings':
         return <BookingsTab bookings={bookings} properties={properties} onBookingAction={handleBookingAction} />;
       case 'alerts':
@@ -462,7 +462,7 @@ export default function AdminDashboard() {
       
       {/* Property Details Modal */}
       <PropertyDetailsModal
-        propertyId={selectedPropertyId}
+        property={properties.find(p => p.id === selectedPropertyId) || null}
         isOpen={isPropertyModalOpen}
         onClose={() => setIsPropertyModalOpen(false)}
       />

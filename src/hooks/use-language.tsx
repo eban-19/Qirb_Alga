@@ -5,7 +5,7 @@ interface LanguageContextValue {
   language: Language;
   setLanguage: (language: Language) => void;
   t: TranslationSchema;
-  tr: (text: string) => string;
+  tr: (text: string | { en?: string; am?: string; om?: string }) => string;
   trAsync: (text: string) => Promise<string>;
   options: Array<{ value: Language; label: string }>;
 }
@@ -37,11 +37,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       language,
       setLanguage,
       t: translations[language],
-      tr: (text: string) => {
-        // Synchronous fallback - returns original text
+      tr: (text: string | { en?: string; am?: string; om?: string }): string => {
+        // Handle multilingual objects (name_ml, description_ml)
+        if (typeof text === 'object' && text !== null) {
+          return (text[language] || text.en || '') as string;
+        }
+        // Handle string fallback - returns original text
         // Use trAsync for actual translation
-        if (language === 'en') return text;
-        return text;
+        return text as string;
       },
       trAsync: async (text: string) => {
         // Asynchronous backend translation

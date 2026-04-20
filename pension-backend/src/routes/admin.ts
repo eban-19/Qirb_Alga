@@ -1,6 +1,7 @@
 import * as express from 'express';
 import { executeQuery } from '../config/database';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
+import notificationService from '../services/notificationService';
 
 const router = express.Router();
 
@@ -131,6 +132,31 @@ router.put('/owners/:ownerId/approve', authenticateToken as any, requireAdmin as
 
     console.log(`✅ Owner ${ownerId} approved in both users and ownerprofiles tables`);
 
+    // Send email notification to owner
+    try {
+      const ownerQuery = await executeQuery(
+        'SELECT u.email, u.full_name, op.business_name FROM users u LEFT JOIN ownerprofiles op ON u.user_id = op.owner_id WHERE u.user_id = ?',
+        [ownerId]
+      );
+
+      if (ownerQuery.length > 0) {
+        const owner = ownerQuery[0];
+        const ownerEmail = owner.email;
+        const businessName = owner.business_name || owner.full_name || 'Your Business';
+
+        await notificationService.sendEmailNotification({
+          user_id: ownerId,
+          subject: 'Your Business Has Been Approved',
+          message: `Congratulations! Your business "${businessName}" has been approved by the admin.\n\nYou can now access your dashboard and create your pension listing on the platform.\n\nThank you for joining our platform!`
+        });
+
+        console.log(`✅ Email notification sent to owner ${ownerId} at ${ownerEmail}`);
+      }
+    } catch (notificationError: any) {
+      console.error('⚠️ Failed to send approval email notification:', notificationError);
+      // Don't fail the approval if email fails
+    }
+
     res.json({
       success: true,
       message: 'Owner approved successfully'
@@ -162,6 +188,31 @@ router.put('/owners/:ownerId/reject', authenticateToken as any, requireAdmin as 
     );
 
     console.log(`✅ Owner ${ownerId} rejected in both users and ownerprofiles tables`);
+
+    // Send email notification to owner
+    try {
+      const ownerQuery = await executeQuery(
+        'SELECT u.email, u.full_name, op.business_name FROM users u LEFT JOIN ownerprofiles op ON u.user_id = op.owner_id WHERE u.user_id = ?',
+        [ownerId]
+      );
+
+      if (ownerQuery.length > 0) {
+        const owner = ownerQuery[0];
+        const ownerEmail = owner.email;
+        const businessName = owner.business_name || owner.full_name || 'Your Business';
+
+        await notificationService.sendEmailNotification({
+          user_id: ownerId,
+          subject: 'Your Business Registration Has Been Rejected',
+          message: `We regret to inform you that your business "${businessName}" registration has been rejected by the admin.\n\nPlease review the requirements and submit a new registration with the necessary corrections.\n\nIf you have any questions, please contact support.`
+        });
+
+        console.log(`✅ Email notification sent to owner ${ownerId} at ${ownerEmail}`);
+      }
+    } catch (notificationError: any) {
+      console.error('⚠️ Failed to send rejection email notification:', notificationError);
+      // Don't fail the rejection if email fails
+    }
 
     res.json({
       success: true,
@@ -431,6 +482,35 @@ router.put('/pensions/:pensionId/approve', authenticateToken as any, requireAdmi
 
     console.log(`✅ Pension ${pensionId} approved by admin ${req.user.userId}`);
 
+    // Get pension details for notification
+    const pensionQuery = await executeQuery(
+      'SELECT p.name, p.owner_id FROM pensions p WHERE p.pension_id = ?',
+      [pensionId]
+    );
+
+    if (pensionQuery.length > 0) {
+      const pension = pensionQuery[0];
+      const ownerId = pension.owner_id;
+      const pensionName = pension.name;
+
+      // Create in-app notification for owner
+      await notificationService.createNotification({
+        user_id: ownerId,
+        title: 'Pension Approved',
+        message: `Your pension "${pensionName}" has been approved and is now live on the platform.`,
+        type: 'pension_approved'
+      });
+
+      // Send email notification to owner
+      await notificationService.sendEmailNotification({
+        user_id: ownerId,
+        subject: 'Your Pension Has Been Approved',
+        message: `Congratulations! Your pension "${pensionName}" has been approved by the admin and is now live on the platform.\n\nYou can start receiving bookings from customers.`
+      });
+
+      console.log(`✅ Notification sent to owner ${ownerId} for approved pension ${pensionId}`);
+    }
+
     res.json({
       success: true,
       message: 'Pension approved successfully'
@@ -449,24 +529,79 @@ router.put('/pensions/:pensionId/reject', authenticateToken as any, requireAdmin
   try {
     const { pensionId } = req.params;
     const { rejectionReason } = req.body;
-    
-    // Update pension status to rejected
+
+    console.log('🔍 Reject pension request:', {
+      pensionId,
+      rejectionReason,
+      user: req.user,
+      userId: req.user?.userId
+    });
+
+    if (!req.user || !req.user.userId) {
+      console.error('❌ User not authenticated or userId missing');
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    // Update pension status to inactive (rejected)
     await executeQuery(
-      'UPDATE pensions SET status = "rejected", rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW() WHERE pension_id = ?',
+      'UPDATE pensions SET status = "inactive", rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW() WHERE pension_id = ?',
       [rejectionReason, req.user.userId, pensionId]
     );
 
-    console.log(`❌ Pension ${pensionId} rejected by admin ${req.user.userId}`);
+    console.log(`✅ Pension ${pensionId} rejected by admin ${req.user.userId}`);
+
+    // Get pension details for notification
+    try {
+      const pensionQuery = await executeQuery(
+        'SELECT p.name, p.owner_id FROM pensions p WHERE p.pension_id = ?',
+        [pensionId]
+      );
+
+      if (pensionQuery.length > 0) {
+        const pension = pensionQuery[0];
+        const ownerId = pension.owner_id;
+        const pensionName = pension.name;
+
+        // Create in-app notification for owner
+        await notificationService.createNotification({
+          user_id: ownerId,
+          title: 'Pension Rejected',
+          message: `Your pension "${pensionName}" has been rejected. Reason: ${rejectionReason}`,
+          type: 'pension_rejected'
+        });
+
+        // Send email notification to owner
+        await notificationService.sendEmailNotification({
+          user_id: ownerId,
+          subject: 'Your Pension Has Been Rejected',
+          message: `Your pension "${pensionName}" has been rejected by the admin.\n\nReason: ${rejectionReason}\n\nPlease review the rejection reason and make necessary changes before resubmitting.`
+        });
+
+        console.log(`✅ Notification sent to owner ${ownerId} for rejected pension ${pensionId}`);
+      }
+    } catch (notificationError: any) {
+      console.error('⚠️ Failed to send notification:', notificationError);
+      // Don't fail the rejection if notification fails
+    }
 
     res.json({
       success: true,
       message: 'Pension rejected successfully'
     });
   } catch (error: any) {
-    console.error('Reject pension error:', error);
+    console.error('❌ Reject pension error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to reject pension'
+      message: 'Failed to reject pension',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

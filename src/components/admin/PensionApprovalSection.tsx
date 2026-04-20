@@ -35,16 +35,17 @@ const PensionApprovalSection: React.FC = () => {
   const fetchPensions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin-approvals/pensions/${filter === 'all' ? 'all' : filter}`, {
+      const response = await fetch(`http://localhost:3005/api/admin/pensions/all`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      if (response.success) {
-        setPensions(response.data);
+      const data = await response.json();
+      if (data.success) {
+        setPensions(data.data);
       } else {
-        console.error('Failed to fetch pensions:', response);
+        console.error('Failed to fetch pensions:', data);
       }
     } catch (error) {
       console.error('Error fetching pensions:', error);
@@ -61,20 +62,21 @@ const PensionApprovalSection: React.FC = () => {
   const handleApprove = async (pensionId: number) => {
     setActionLoading('approve');
     try {
-      const response = await fetch(`/api/admin-approvals/pensions/${pensionId}/approve`, {
-        method: 'POST',
+      const response = await fetch(`http://localhost:3005/api/admin/pensions/${pensionId}/approve`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.success) {
+      const data = await response.json();
+      if (data.success) {
         alert('Pension approved successfully!');
         fetchPensions(); // Refresh list
         setSelectedPension(null);
       } else {
-        alert('Failed to approve pension: ' + response.message);
+        alert('Failed to approve pension: ' + data.message);
       }
     } catch (error) {
       console.error('Error approving pension:', error);
@@ -88,8 +90,8 @@ const PensionApprovalSection: React.FC = () => {
   const handleReject = async (pensionId: number, reason: string) => {
     setActionLoading('reject');
     try {
-      const response = await fetch(`/api/admin-approvals/pensions/${pensionId}/reject`, {
-        method: 'POST',
+      const response = await fetch(`http://localhost:3005/api/admin/pensions/${pensionId}/reject`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -97,12 +99,13 @@ const PensionApprovalSection: React.FC = () => {
         body: JSON.stringify({ rejectionReason: reason })
       });
 
-      if (response.success) {
+      const data = await response.json();
+      if (data.success) {
         alert('Pension rejected successfully!');
         fetchPensions(); // Refresh list
         setSelectedPension(null);
       } else {
-        alert('Failed to reject pension: ' + response.message);
+        alert('Failed to reject pension: ' + data.message);
       }
     } catch (error) {
       console.error('Error rejecting pension:', error);
@@ -138,7 +141,7 @@ const PensionApprovalSection: React.FC = () => {
         <CardContent>
           {/* Filters */}
           <div className="flex gap-4 mb-6">
-            <Select value={filter} onValueChange={setFilter}>
+            <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
               <SelectTrigger className="w-[180px]">
                 Filter: {filter === 'all' ? 'All Pensions' : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Pensions`}
               </SelectTrigger>
@@ -224,7 +227,7 @@ const PensionApprovalSection: React.FC = () => {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => handleReject(pension.pension_id)}
+                                  onClick={() => setSelectedPension(pension)}
                                   disabled={actionLoading === 'reject'}
                                 >
                                   {actionLoading === 'reject' ? 'Rejecting...' : 'Reject'}
@@ -320,7 +323,7 @@ const PensionApprovalSection: React.FC = () => {
                       alert('Please select an action and provide rejection reason if rejecting');
                     }
                   }}
-                  disabled={actionLoading}
+                  disabled={actionLoading !== null}
                 >
                   {actionLoading ? 'Processing...' : 'Submit Decision'}
                 </Button>

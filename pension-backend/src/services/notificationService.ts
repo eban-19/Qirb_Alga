@@ -82,18 +82,26 @@ class NotificationService {
 
       // Load email template
       const templatePath = path.join(__dirname, '../../emails/notification.html');
-      let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+      let emailContent: string;
 
-      // Replace placeholders
-      emailTemplate = emailTemplate.replace('{{subject}}', emailNotification.subject);
-      emailTemplate = emailTemplate.replace('{{message}}', emailNotification.message);
-      emailTemplate = emailTemplate.replace('{{year}}', new Date().getFullYear().toString());
+      try {
+        let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+        // Replace placeholders
+        emailTemplate = emailTemplate.replace('{{subject}}', emailNotification.subject);
+        emailTemplate = emailTemplate.replace('{{message}}', emailNotification.message);
+        emailTemplate = emailTemplate.replace('{{year}}', new Date().getFullYear().toString());
+        emailContent = emailTemplate;
+      } catch (templateError: any) {
+        console.warn('⚠️ Email template not found, sending plain text email');
+        emailContent = emailNotification.message;
+      }
 
       await transporter.sendMail({
         from: process.env.SMTP_EMAIL,
         to: userEmail,
         subject: emailNotification.subject,
-        html: emailTemplate
+        text: emailNotification.message,
+        html: emailContent.includes('<') ? emailContent : undefined
       });
 
       if (emailNotification.email_id) {

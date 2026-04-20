@@ -66,9 +66,9 @@ export function useRooms() {
         
         return mappedRooms;
       } catch (error) {
-        console.log('🔍 useRooms - Error, falling back to mock data:', error);
-        // Fallback to mock data
-        return await getRooms();
+        console.log('🔍 useRooms - Error, returning empty array:', error);
+        // Return empty array instead of mock data to avoid showing mock services
+        return [];
       }
     },
   });

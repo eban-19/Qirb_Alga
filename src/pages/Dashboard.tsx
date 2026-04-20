@@ -83,7 +83,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { refreshAllPackages } = useRefreshPackages();
   const { user, logout, isAdmin, isPensionOwner, isAuthenticated } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
@@ -94,13 +94,28 @@ export const Dashboard: React.FC = () => {
   const [showCreatePension, setShowCreatePension] = useState(false);
   const [newPension, setNewPension] = useState({
     name: '',
+    name_en: '',
+    name_am: '',
+    name_om: '',
     description: '',
+    description_en: '',
+    description_am: '',
+    description_om: '',
     address: '',
+    address_en: '',
+    address_am: '',
+    address_om: '',
     phone: '',
     email: '',
     capacity: '',
     owner_info: '',
+    owner_info_en: '',
+    owner_info_am: '',
+    owner_info_om: '',
     room_details: '',
+    room_details_en: '',
+    room_details_am: '',
+    room_details_om: '',
     image_url: ''
   });
   const [pensionImageFile, setPensionImageFile] = useState<File | null>(null);
@@ -365,12 +380,12 @@ export const Dashboard: React.FC = () => {
   const handleCreatePension = async () => {
     try {
       let imageUrl = '';
-      
+
       // Upload image if selected
       if (pensionImageFile) {
         const formData = new FormData();
         formData.append('image', pensionImageFile);
-        
+
         try {
           const token = localStorage.getItem('token');
           const uploadResponse = await fetch('http://localhost:3005/api/uploads/single', {
@@ -380,7 +395,7 @@ export const Dashboard: React.FC = () => {
             },
             body: formData,
           });
-          
+
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json();
             imageUrl = uploadResult.data?.url || '';
@@ -391,17 +406,91 @@ export const Dashboard: React.FC = () => {
           console.error('Error uploading image:', uploadError);
         }
       }
-      
-      // Create pension with image URL
+
+      // Get the primary language values (the ones the user entered)
+      const primaryName = newPension.name_en || newPension.name;
+      const primaryDescription = newPension.description_en || newPension.description;
+      const primaryAddress = newPension.address_en || newPension.address;
+      const primaryOwnerInfo = newPension.owner_info_en || newPension.owner_info;
+      const primaryRoomDetails = newPension.room_details_en || newPension.room_details;
+
+      // Construct multilingual JSON objects with fallbacks
+      // If a language field is empty, use the primary language as fallback
+      const name_ml = {
+        en: newPension.name_en || primaryName,
+        am: newPension.name_am || primaryName,
+        om: newPension.name_om || primaryName
+      };
+
+      const description_ml = {
+        en: newPension.description_en || primaryDescription,
+        am: newPension.description_am || primaryDescription,
+        om: newPension.description_om || primaryDescription
+      };
+
+      const address_ml = {
+        en: newPension.address_en || primaryAddress,
+        am: newPension.address_am || primaryAddress,
+        om: newPension.address_om || primaryAddress
+      };
+
+      const owner_info_ml = {
+        en: newPension.owner_info_en || primaryOwnerInfo,
+        am: newPension.owner_info_am || primaryOwnerInfo,
+        om: newPension.owner_info_om || primaryOwnerInfo
+      };
+
+      const room_details_ml = {
+        en: newPension.room_details_en || primaryRoomDetails,
+        am: newPension.room_details_am || primaryRoomDetails,
+        om: newPension.room_details_om || primaryRoomDetails
+      };
+
+      // Create pension with image URL and multilingual data
       const pensionData = {
         ...newPension,
-        image_url: imageUrl
+        image_url: imageUrl,
+        name: primaryName,
+        description: primaryDescription,
+        address: primaryAddress,
+        owner_info: primaryOwnerInfo,
+        room_details: primaryRoomDetails,
+        name_ml,
+        description_ml,
+        address_ml,
+        owner_info_ml,
+        room_details_ml
       };
-      
+
       const response = await apiService.createPension(pensionData);
       if (response.success) {
         setShowCreatePension(false);
-        setNewPension({ name: '', description: '', address: '', phone: '', email: '', capacity: '', owner_info: '', room_details: '', image_url: '' });
+        setNewPension({
+          name: '',
+          name_en: '',
+          name_am: '',
+          name_om: '',
+          description: '',
+          description_en: '',
+          description_am: '',
+          description_om: '',
+          address: '',
+          address_en: '',
+          address_am: '',
+          address_om: '',
+          phone: '',
+          email: '',
+          capacity: '',
+          owner_info: '',
+          owner_info_en: '',
+          owner_info_am: '',
+          owner_info_om: '',
+          room_details: '',
+          room_details_en: '',
+          room_details_am: '',
+          room_details_om: '',
+          image_url: ''
+        });
         setPensionImageFile(null);
         loadRealData(); // Refresh data
       }
@@ -1307,18 +1396,23 @@ export const Dashboard: React.FC = () => {
         if (currentPension) {
           // Wait a moment for image state to update if needed
           await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Construct multilingual JSON objects
+
+          // Get the primary language value (the one the user entered)
+          const primaryName = newPackage.name_en || newPackage.name;
+          const primaryDescription = newPackage.description_en || newPackage.description;
+
+          // Construct multilingual JSON objects with fallbacks
+          // If a language field is empty, use the primary language as fallback
           const name_ml = {
-            en: newPackage.name_en || newPackage.name,
-            am: newPackage.name_am,
-            om: newPackage.name_om
+            en: newPackage.name_en || primaryName,
+            am: newPackage.name_am || primaryName,
+            om: newPackage.name_om || primaryName
           };
-          
+
           const description_ml = {
-            en: newPackage.description_en || newPackage.description,
-            am: newPackage.description_am,
-            om: newPackage.description_om
+            en: newPackage.description_en || primaryDescription,
+            am: newPackage.description_am || primaryDescription,
+            om: newPackage.description_om || primaryDescription
           };
           
           const packageData = {
@@ -1713,7 +1807,7 @@ export const Dashboard: React.FC = () => {
           <nav className="flex-1 space-y-1.5 px-3 py-6">
             {sidebarLinks.map((link) => {
               const Icon = getIcon(link.icon);
-              const isActive = activeTab === link.id || (link.id === "settings" && activeTab.startsWith("settings-")) || 
+              const isActive = activeTab === link.id || (link.id === "settings" && activeTab.startsWith("settings-")) ||
                      (link.id === "settings" && link.sublinks && activeTab === `settings-${link.sublinks.find((sub: any) => sub.id === activeTab.split("-")[1])?.id}`);
 
               if (link.id === "settings" && link.sublinks) {
@@ -1730,10 +1824,10 @@ export const Dashboard: React.FC = () => {
                         }`}
                     >
                       <Icon className="h-4 w-4" />
-                      {link.label}
+                      {t.sidebar[link.labelKey]}
                       <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${settingsExpanded ? "rotate-180" : ""}`} />
                     </button>
-                    
+
                     {settingsExpanded && (
                       <div className="ml-2 space-y-0.5">
                         {link.sublinks.map((sub) => {
@@ -1752,7 +1846,7 @@ export const Dashboard: React.FC = () => {
                                 }`}
                             >
                               <SubIcon className="h-3.5 w-3.5" />
-                              {sub.label}
+                              {t.sidebar[sub.labelKey]}
                             </button>
                           );
                         })}
@@ -1777,7 +1871,7 @@ export const Dashboard: React.FC = () => {
                     }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {link.label}
+                  {t.sidebar[link.labelKey]}
                 </button>
               );
             })}
@@ -2049,19 +2143,43 @@ export const Dashboard: React.FC = () => {
                           <Label htmlFor="name">Pension Name *</Label>
                           <Input
                             id="name"
-                            value={newPension.name}
-                            onChange={(e) => setNewPension({...newPension, name: e.target.value})}
-                            placeholder="Enter pension name"
+                            value={language === 'en' ? newPension.name_en : language === 'am' ? newPension.name_am : newPension.name_om}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (language === 'en') {
+                                setNewPension({ ...newPension, name_en: value, name: value });
+                              } else if (language === 'am') {
+                                setNewPension({ ...newPension, name_am: value });
+                              } else {
+                                setNewPension({ ...newPension, name_om: value });
+                              }
+                            }}
+                            placeholder={language === 'en' ? "Enter pension name" : language === 'am' ? "ጥቅል ስም (አማርኛ)" : "Maqaan Qabxii (Afaan Oromoo)"}
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Switch language to enter name in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                          </p>
                         </div>
                         <div>
                           <Label htmlFor="address">Address *</Label>
                           <Input
                             id="address"
-                            value={newPension.address}
-                            onChange={(e) => setNewPension({...newPension, address: e.target.value})}
-                            placeholder="Enter address"
+                            value={language === 'en' ? newPension.address_en : language === 'am' ? newPension.address_am : newPension.address_om}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (language === 'en') {
+                                setNewPension({ ...newPension, address_en: value, address: value });
+                              } else if (language === 'am') {
+                                setNewPension({ ...newPension, address_am: value });
+                              } else {
+                                setNewPension({ ...newPension, address_om: value });
+                              }
+                            }}
+                            placeholder={language === 'en' ? "Enter address" : language === 'am' ? "አድራሻ (አማርኛ)" : "Dirree (Afaan Oromoo)"}
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Switch language to enter address in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                          </p>
                         </div>
                         <div>
                           <Label htmlFor="image">Pension Image</Label>
@@ -2088,10 +2206,22 @@ export const Dashboard: React.FC = () => {
                           <Label htmlFor="description">Description</Label>
                           <Input
                             id="description"
-                            value={newPension.description}
-                            onChange={(e) => setNewPension({...newPension, description: e.target.value})}
-                            placeholder="Enter description"
+                            value={language === 'en' ? newPension.description_en : language === 'am' ? newPension.description_am : newPension.description_om}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (language === 'en') {
+                                setNewPension({ ...newPension, description_en: value, description: value });
+                              } else if (language === 'am') {
+                                setNewPension({ ...newPension, description_am: value });
+                              } else {
+                                setNewPension({ ...newPension, description_om: value });
+                              }
+                            }}
+                            placeholder={language === 'en' ? "Enter description" : language === 'am' ? "ትዕርር (አማርኛ)" : "Ibsa (Afaan Oromoo)"}
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Switch language to enter description in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                          </p>
                         </div>
                         <div>
                           <Label htmlFor="phone">Phone</Label>
@@ -2126,21 +2256,45 @@ export const Dashboard: React.FC = () => {
                           <Label htmlFor="owner_info">Owner Information</Label>
                           <textarea
                             id="owner_info"
-                            value={newPension.owner_info}
-                            onChange={(e) => setNewPension({...newPension, owner_info: e.target.value})}
-                            placeholder="Tell customers about yourself, your experience, and what makes your pension special"
+                            value={language === 'en' ? newPension.owner_info_en : language === 'am' ? newPension.owner_info_am : newPension.owner_info_om}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (language === 'en') {
+                                setNewPension({ ...newPension, owner_info_en: value, owner_info: value });
+                              } else if (language === 'am') {
+                                setNewPension({ ...newPension, owner_info_am: value });
+                              } else {
+                                setNewPension({ ...newPension, owner_info_om: value });
+                              }
+                            }}
+                            placeholder={language === 'en' ? "Tell customers about yourself, your experience, and what makes your pension special" : language === 'am' ? "ደንበኞችን ስለ እርስዎ ይንገሩ (አማርኛ)" : "Maqaan Qabxii (Afaan Oromoo)"}
                             className="w-full h-16 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-none"
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Switch language to enter owner info in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                          </p>
                         </div>
                         <div>
                           <Label htmlFor="room_details">Room Details</Label>
                           <textarea
                             id="room_details"
-                            value={newPension.room_details}
-                            onChange={(e) => setNewPension({...newPension, room_details: e.target.value})}
-                            placeholder="Describe your rooms, amenities, facilities, and what guests can expect"
+                            value={language === 'en' ? newPension.room_details_en : language === 'am' ? newPension.room_details_am : newPension.room_details_om}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (language === 'en') {
+                                setNewPension({ ...newPension, room_details_en: value, room_details: value });
+                              } else if (language === 'am') {
+                                setNewPension({ ...newPension, room_details_am: value });
+                              } else {
+                                setNewPension({ ...newPension, room_details_om: value });
+                              }
+                            }}
+                            placeholder={language === 'en' ? "Describe your rooms, amenities, facilities, and what guests can expect" : language === 'am' ? "ክፍሎችን ይገልጹ (አማርኛ)" : "Maqaan Qabxii (Afaan Oromoo)"}
                             className="w-full h-16 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-none"
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Switch language to enter room details in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                          </p>
                         </div>
                         <div className="flex gap-2 pt-2">
                           <Button 
@@ -2150,11 +2304,36 @@ export const Dashboard: React.FC = () => {
                           >
                             Create Pension
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             onClick={() => {
                               setShowCreatePension(false);
-                              setNewPension({ name: '', description: '', address: '', phone: '', email: '', capacity: '', owner_info: '', room_details: '', image_url: '' });
+                              setNewPension({
+                                name: '',
+                                name_en: '',
+                                name_am: '',
+                                name_om: '',
+                                description: '',
+                                description_en: '',
+                                description_am: '',
+                                description_om: '',
+                                address: '',
+                                address_en: '',
+                                address_am: '',
+                                address_om: '',
+                                phone: '',
+                                email: '',
+                                capacity: '',
+                                owner_info: '',
+                                owner_info_en: '',
+                                owner_info_am: '',
+                                owner_info_om: '',
+                                room_details: '',
+                                room_details_en: '',
+                                room_details_am: '',
+                                room_details_om: '',
+                                image_url: ''
+                              });
                               setPensionImageFile(null);
                             }}
                             className="flex-1"
@@ -3512,33 +3691,25 @@ export const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Package Name (English)</Label>
+                <Label className="text-sm font-bold text-slate-700">Package Name</Label>
                 <Input
-                  value={newPackage.name_en}
-                  onChange={(e) => setNewPackage({ ...newPackage, name_en: e.target.value, name: e.target.value })}
-                  placeholder="e.g., Luxury Double, Luxury Family, Economy Single"
+                  value={language === 'en' ? newPackage.name_en : language === 'am' ? newPackage.name_am : newPackage.name_om}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (language === 'en') {
+                      setNewPackage({ ...newPackage, name_en: value, name: value });
+                    } else if (language === 'am') {
+                      setNewPackage({ ...newPackage, name_am: value });
+                    } else {
+                      setNewPackage({ ...newPackage, name_om: value });
+                    }
+                  }}
+                  placeholder={language === 'en' ? "e.g., Luxury Double, Luxury Family, Economy Single" : language === 'am' ? "ጥቅል ስም (አማርኛ)" : "Maqaan Qabxii (Afaan Oromoo)"}
                   className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Package Name (Amharic)</Label>
-                <Input
-                  value={newPackage.name_am}
-                  onChange={(e) => setNewPackage({ ...newPackage, name_am: e.target.value })}
-                  placeholder="ጥቅል ስም (አማርኛ)"
-                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Package Name (Afaan Oromo)</Label>
-                <Input
-                  value={newPackage.name_om}
-                  onChange={(e) => setNewPackage({ ...newPackage, name_om: e.target.value })}
-                  placeholder="Maqaan Qabxii (Afaan Oromoo)"
-                  className="h-10 border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 transition-all duration-300"
-                />
+                <p className="text-xs text-slate-500">
+                  Switch language to enter name in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -3553,36 +3724,26 @@ export const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Description (English)</Label>
+                <Label className="text-sm font-bold text-slate-700">Description</Label>
                 <textarea
-                  value={newPackage.description_en}
-                  onChange={(e) => setNewPackage({ ...newPackage, description_en: e.target.value, description: e.target.value })}
-                  placeholder="Describe what's included in this package..."
+                  value={language === 'en' ? newPackage.description_en : language === 'am' ? newPackage.description_am : newPackage.description_om}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (language === 'en') {
+                      setNewPackage({ ...newPackage, description_en: value, description: value });
+                    } else if (language === 'am') {
+                      setNewPackage({ ...newPackage, description_am: value });
+                    } else {
+                      setNewPackage({ ...newPackage, description_om: value });
+                    }
+                  }}
+                  placeholder={language === 'en' ? "Describe what's included in this package..." : language === 'am' ? "ትዕርር ያካትታል (አማርኛ)" : "Ibsa (Afaan Oromoo)"}
                   rows={2}
                   className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Description (Amharic)</Label>
-                <textarea
-                  value={newPackage.description_am}
-                  onChange={(e) => setNewPackage({ ...newPackage, description_am: e.target.value })}
-                  placeholder="ትዕርር ያካትታል (አማርኛ)"
-                  rows={2}
-                  className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-700">Description (Afaan Oromo)</Label>
-                <textarea
-                  value={newPackage.description_om}
-                  onChange={(e) => setNewPackage({ ...newPackage, description_om: e.target.value })}
-                  placeholder="Ibsa (Afaan Oromoo)"
-                  rows={2}
-                  className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
-                />
+                <p className="text-xs text-slate-500">
+                  Switch language to enter description in {language === 'en' ? 'Amharic or Afaan Oromo' : language === 'am' ? 'English or Afaan Oromo' : 'English or Amharic'}
+                </p>
               </div>
               
               <div className="space-y-2">

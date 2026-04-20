@@ -13,6 +13,7 @@ const HowItWorks = () => {
     en: {
       title: "How It Works",
       subtitle: "Simple steps to find your perfect pension in Ethiopia",
+      step: "Step",
       guest: {
         title: "For Guests",
         subtitle: "Find and book comfortable pensions with ease",
@@ -85,6 +86,7 @@ const HowItWorks = () => {
     am: {
       title: "እንዴት ይሰራል",
       subtitle: "በኢትዮጵያ ምርጥ ትራንሲት ክፍዎችን ለማግኘት ቀላል ደረጃዎች",
+      step: "ደረጃ",
       guest: {
         title: "ለጉሟኞች",
         subtitle: "ትራንሲት ክፍዎችን በቀላሉ ማግኘት እና ማስወጣት",
@@ -157,6 +159,7 @@ const HowItWorks = () => {
     om: {
       title: "Akka Fayyadamu",
       subtitle: "Etiyoophiyaa keessatti paanshenii gaarii barbaaduu dandeettii qabduu sadarkaa wardii",
+      step: "Sadarkaa",
       guest: {
         title: "Deeggartootaf",
         subtitle: "Paanshenii of dandeessa ta'een barbaachuu fi buufuu",
@@ -229,6 +232,7 @@ const HowItWorks = () => {
   };
 
   const data = content[language as keyof typeof content] || content.en;
+  console.log('Language:', language, 'Data keys:', Object.keys(content), 'Selected data:', data);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -257,7 +261,7 @@ const HowItWorks = () => {
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
                     {step.icon}
                   </div>
-                  <div className="text-sm font-semibold text-primary mb-2">Step {index + 1}</div>
+                  <div className="text-sm font-semibold text-primary mb-2">{data.step} {index + 1}</div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">{step.title}</h3>
                   <p className="text-sm text-slate-600">{step.description}</p>
                 </CardContent>
@@ -281,7 +285,7 @@ const HowItWorks = () => {
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
                       {step.icon}
                     </div>
-                    <div className="text-sm font-semibold text-primary mb-2">Step {index + 1}</div>
+                    <div className="text-sm font-semibold text-primary mb-2">{data.step} {index + 1}</div>
                     <h3 className="text-lg font-semibold text-slate-900 mb-2">{step.title}</h3>
                     <p className="text-sm text-slate-600">{step.description}</p>
                   </CardContent>

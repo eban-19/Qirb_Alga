@@ -7,6 +7,7 @@ interface PropertyCardProps {
   image_url: string;
   name: string;
   address: string;
+  address_ml?: { en?: string; am?: string; om?: string };
   distance: string;
   price: number;
   rating: number;
@@ -17,13 +18,14 @@ const PropertyCard = ({
   image_url,
   name,
   address,
+  address_ml,
   distance,
   price,
   rating,
   roomsLeft,
 }: PropertyCardProps) => {
   const isLow = roomsLeft <= 2;
-  const { t } = useLanguage();
+  const { t, tr } = useLanguage();
 
   // Convert pension image URL using the same function as package images
   const fullImageUrl = getFullImageUrl(image_url);
@@ -43,7 +45,7 @@ const PropertyCard = ({
           loading="lazy"
           onError={(e) => {
             console.error('❌ PropertyCard image failed to load:', fullImageUrl, e);
-            e.target.src = '/src/assets/room-1.png'; // Fallback to default image
+            (e.target as HTMLImageElement).src = '/src/assets/room-1.png'; // Fallback to default image
           }}
         />
         <Badge
@@ -70,7 +72,7 @@ const PropertyCard = ({
 
         <div className="flex items-center gap-1 text-muted-foreground text-sm mb-3">
           <MapPin className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{address}</span>
+          <span className="truncate">{tr(address_ml || address)}</span>
         </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-border">

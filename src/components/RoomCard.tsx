@@ -40,7 +40,7 @@ const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
           loading="lazy"
           onError={(e) => {
             console.error('❌ RoomCard image failed to load:', fullImageUrl, e);
-            e.target.src = '/src/assets/room-1.png'; // Fallback
+            (e.target as HTMLImageElement).src = '/src/assets/room-1.png'; // Fallback
           }}
         />
         {isDeal && (
@@ -56,10 +56,10 @@ const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
       <div className="p-5 flex flex-col h-full">
         <div className="space-y-1 mb-4 flex-grow">
           <h3 className="font-heading font-bold text-card-foreground text-xl leading-tight line-clamp-1" title={room.name}>
-            {room.name}
+            {tr(room.name_ml || room.name)}
           </h3>
           <p className="text-sm text-muted-foreground line-clamp-2 mt-1 mb-2">
-            {tr(room.description)}
+            {tr(room.description_ml || room.description)}
           </p>
           <a
             href={mapsUrl}

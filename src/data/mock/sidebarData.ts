@@ -14,66 +14,66 @@ import {
 export const sidebarLinks = [
   {
     id: "overview",
-    label: "Overview",
+    labelKey: "overview",
     icon: "LayoutDashboard",
     href: "/dashboard"
   },
   {
     id: "bookings",
-    label: "Bookings",
+    labelKey: "bookings",
     icon: "CalendarCheck",
     href: "/bookings"
   },
   {
     id: "rooms",
-    label: "Rooms",
+    labelKey: "rooms",
     icon: "BedDouble",
     href: "/rooms"
   },
   {
     id: "guests",
-    label: "Guests",
+    labelKey: "guests",
     icon: "Users",
     href: "/guests"
   },
   {
     id: "pension-profile",
-    label: "Pension Profile",
+    labelKey: "pensionProfile",
     icon: "Building",
     href: "/pension-profile"
   },
   {
     id: "staff",
-    label: "Staff & HR",
+    labelKey: "staffHr",
     icon: "Users",
     href: "/staff"
   },
   {
     id: "transactions",
-    label: "Transactions",
+    labelKey: "transactions",
     icon: "CreditCard",
     href: "/transactions"
   },
   {
     id: "reports",
-    label: "Reports",
+    labelKey: "reports",
     icon: "BarChart3",
     href: "/reports"
   },
   {
     id: "settings",
-    label: "Settings",
+    labelKey: "settings",
     icon: "Settings",
     href: "/settings",
     sublinks: [
       {
         id: "business-profile",
-        label: "Business Profile",
+        labelKey: "businessProfile",
         icon: "Building"
       },
       {
         id: "security",
-        label: "Security",
+        labelKey: "security",
         icon: "Shield"
       }
     ]

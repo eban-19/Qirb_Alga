@@ -30,15 +30,23 @@ export interface RoomPackage {
   availableRooms: number;
   isMostPopular?: boolean;
   imageType?: string;
+  name_ml?: { en?: string; am?: string; om?: string };
+  description_ml?: { en?: string; am?: string; om?: string };
 }
 
 export interface Room {
   id: string;
   name: string;
+  name_ml?: { en?: string; am?: string; om?: string };
   description: string;
+  description_ml?: { en?: string; am?: string; om?: string };
   ownerInfo: string;
+  owner_info_ml?: { en?: string; am?: string; om?: string };
   roomDetails: string;
+  room_details_ml?: { en?: string; am?: string; om?: string };
   locationName: string;
+  address?: string;
+  address_ml?: { en?: string; am?: string; om?: string };
   city: string;
   area: string;
   latitude: number;
