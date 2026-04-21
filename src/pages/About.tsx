@@ -44,12 +44,6 @@ const About = () => {
           content: "We foster a community of travelers and property owners connected by shared experiences."
         }
       ],
-      stats: [
-        { number: "500+", label: "Pensions Listed" },
-        { number: "10,000+", label: "Happy Travelers" },
-        { number: "50+", label: "Cities Covered" },
-        { number: "24/7", label: "Support Available" }
-      ],
       team: [
         {
           name: "Team Qirb Alga",
@@ -91,12 +85,6 @@ const About = () => {
           content: "በጋራ ልምዶች የተገናኙ ጉሟኞች እና ንብረት ባለቤቶች ማህበር እንሰርባለን።"
         }
       ],
-      stats: [
-        { number: "500+", label: "የተዘረዙ ክፍዎች" },
-        { number: "10,000+", label: "ደስተኞች ጉሟኞች" },
-        { number: "50+", label: "የተሸፉ ከተማዎች" },
-        { number: "24/7", label: "የአገልግሎት ድጋፍ" }
-      ],
       team: [
         {
           name: "ቡድን ቂርብ አልጋ",
@@ -137,12 +125,6 @@ const About = () => {
           title: "Jamaa",
           content: "Siyaafaa fi abbootii qabeenyaa walitti dhiyaannu jamaa cimaa uumuu."
         }
-      ],
-      stats: [
-        { number: "500+", label: "Pensiinoota Galmeessame" },
-        { number: "10,000+", label: "Siyaafaa Nagaa Qabani" },
-        { number: "50+", label: "Magaalotaatin Harkaa'ame" },
-        { number: "24/7", label: "Gargaarsa Jiru" }
       ],
       team: [
         {
@@ -209,20 +191,6 @@ const About = () => {
                     <p className="text-sm text-slate-600">{value.content}</p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics */}
-        <div className="bg-primary text-primary-foreground py-16">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid md:grid-cols-4 gap-8 text-center">
-              {content.stats.map((stat, index) => (
-                <div key={index}>
-                  <div className="text-4xl md:text-5xl font-bold mb-2">{stat.number}</div>
-                  <div className="text-lg opacity-90">{stat.label}</div>
-                </div>
               ))}
             </div>
           </div>
