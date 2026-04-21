@@ -204,20 +204,32 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             <Sparkles className="w-5 h-5 text-primary" />
                             {t.rooms.includedServices || "Included Services"}
                           </h4>
-                          {pkg.services && pkg.services.length > 0 ? (
-                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              {pkg.services.filter(service => service && service.trim() !== '').map((service, idx) => (
-                                <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
-                                  <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
-                                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                      <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                  </div>
-                                  <span className="font-medium">{tr(service)}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
+                          {pkg.services && pkg.services.length > 0 ? (() => {
+                            // Filter out known mock/default services
+                            const mockServices = ['Clean Room', 'Basic Amenities', 'Standard WiFi', 'Shared Bathroom', 'Daily Cleaning', 'High-speed WiFi', 'Private Bathroom', 'Breakfast Included', 'Free Parking', 'Premium WiFi', 'Private Balcony', '3 Meals Included', 'Airport Pickup', 'Laundry Service'];
+                            const filteredServices = pkg.services.filter(service => 
+                              service && 
+                              service.trim() !== '' && 
+                              !mockServices.includes(service)
+                            );
+                            
+                            return filteredServices.length > 0 ? (
+                              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {filteredServices.map((service, idx) => (
+                                  <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
+                                    <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
+                                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </div>
+                                    <span className="font-medium">{tr(service)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-muted-foreground text-sm">No services specified by owner</p>
+                            );
+                          })() : (
                             <p className="text-muted-foreground text-sm">No services specified by owner</p>
                           )}
                         </div>

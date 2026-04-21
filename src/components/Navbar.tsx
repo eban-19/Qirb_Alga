@@ -68,7 +68,7 @@ const Navbar = () => {
           </span>
         </a>
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-nowrap">
+        <div className="flex items-center gap-2 sm:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground" aria-label={t.navbar.languageLabel}>
@@ -120,7 +120,7 @@ const Navbar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground flex-shrink-0"
+              className="text-muted-foreground whitespace-nowrap"
               onClick={() => navigate("/login")}
             >
               Login

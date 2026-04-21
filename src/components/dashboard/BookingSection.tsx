@@ -592,7 +592,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       {viewMode === "table" && (
         <div className="space-y-2">
           {bookings.map((booking) => (
-            <InlineMessageComponent key={`msg-${booking.id}`} bookingId={booking.id || booking.booking_id} />
+            <InlineMessageComponent key={`msg-${booking.id || booking.booking_id}`} bookingId={booking.id || booking.booking_id} />
           ))}
         </div>
       )}

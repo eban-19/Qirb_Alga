@@ -11,6 +11,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
+// Helper function to construct full URLs for images (same as in RoomProfile)
+const getFullImageUrl = (imagePath: string | undefined | null): string => {
+  if (!imagePath) {
+    return '/src/assets/room-1.png';
+  }
+  
+  // If it's already a full URL (starts with http), return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // If it's a frontend asset path (/src/assets/), return as-is
+  if (imagePath.startsWith('/src/assets/')) {
+    return imagePath;
+  }
+  
+  // If it's an uploaded file path (/uploads/), prepend the backend URL
+  if (imagePath.startsWith('/uploads/')) {
+    return `http://localhost:3005${imagePath}`;
+  }
+  
+  // Default: assume it's a backend file
+  return `http://localhost:3005${imagePath}`;
+};
+
 const Booking = () => {
   const { id = "" } = useParams();
   const [searchParams] = useSearchParams();
@@ -308,6 +333,7 @@ const Booking = () => {
                       name="rooms" 
                       required 
                       value={formData.rooms} 
+                     
                       onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
                       className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -475,10 +501,15 @@ const Booking = () => {
             <div className="sticky top-24 space-y-6">
               {/* Room Card */}
               <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Home className="w-16 h-16 text-primary/30" />
-                  </div>
+                <div className="aspect-video relative">
+                  <img
+                    src={getFullImageUrl(selectedPackage.image)}
+                    alt={selectedPackage.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/src/assets/room-1.png';
+                    }}
+                  />
                 </div>
                 <div className="p-6 space-y-4">
                   <div>

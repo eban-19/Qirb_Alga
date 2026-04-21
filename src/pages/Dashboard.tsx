@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
 import apiService from '@/services/api';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
@@ -92,6 +94,19 @@ export const Dashboard: React.FC = () => {
 
   // All state must be declared before any early returns (React hooks rule)
   const [showCreatePension, setShowCreatePension] = useState(false);
+  
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (showCreatePension) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCreatePension]);
+  
   const [newPension, setNewPension] = useState({
     name: '',
     name_en: '',
@@ -156,7 +171,9 @@ export const Dashboard: React.FC = () => {
   const [walkInForm, setWalkInForm] = useState({
     guestName: '',
     phoneNumber: '',
-    packageId: ''
+    packageId: '',
+    checkIn: new Date().toISOString().split('T')[0], // Default to today
+    checkOut: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Default to tomorrow
   });
   const [walkInPackages, setWalkInPackages] = useState<any[]>([]);
 
@@ -186,15 +203,22 @@ export const Dashboard: React.FC = () => {
 
   // Walk-In booking handler
   const handleWalkInSubmit = async () => {
-    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId) {
-      alert('Please fill in all required fields');
+    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId || !walkInForm.checkIn || !walkInForm.checkOut) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     try {
-      const selectedPackage = walkInPackages.find(pkg => pkg.package_id === walkInForm.packageId);
+      console.log('=== WALK-IN BOOKING DEBUG ===');
+      console.log('walkInForm.packageId:', walkInForm.packageId, 'type:', typeof walkInForm.packageId);
+      console.log('walkInPackages:', walkInPackages);
+      console.log('walkInPackages length:', walkInPackages.length);
+      
+      const selectedPackage = walkInPackages.find(pkg => pkg.id == walkInForm.packageId);
+      console.log('selectedPackage:', selectedPackage);
+      
       if (!selectedPackage) {
-        alert('Please select a valid package');
+        toast.error('Please select a valid package');
         return;
       }
 
@@ -208,16 +232,22 @@ export const Dashboard: React.FC = () => {
           packageName: selectedPackage.name,
           guestName: walkInForm.guestName,
           phoneNumber: walkInForm.phoneNumber,
-          checkIn: new Date().toISOString().split('T')[0], // Today
-          checkOut: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
+          checkIn: walkInForm.checkIn,
+          checkOut: walkInForm.checkOut,
         }),
       });
 
       const result = await response.json();
       if (result.success) {
         setShowWalkInModal(false);
-        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '' });
-        alert('Walk-in booking created successfully!');
+        setWalkInForm({ 
+          guestName: '', 
+          phoneNumber: '', 
+          packageId: '',
+          checkIn: new Date().toISOString().split('T')[0],
+          checkOut: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        });
+        toast.success('Walk-in booking created successfully!');
         // Refresh bookings
         if (userPension) {
           const allBookingsResponse = await apiService.getBookings();
@@ -228,11 +258,11 @@ export const Dashboard: React.FC = () => {
           setBookings(filteredBookings);
         }
       } else {
-        alert('Failed to create booking: ' + result.message);
+        toast.error('Failed to create booking: ' + result.message);
       }
     } catch (error) {
       console.error('Error creating walk-in booking:', error);
-      alert('Failed to create booking');
+      toast.error('Failed to create booking');
     }
   };
 
@@ -539,9 +569,9 @@ export const Dashboard: React.FC = () => {
   // Derive Guests and Transactions from Bookings
   const guestsData = bookings.map(b => ({
     id: b.id,
-    name: b.user_name || 'Guest',
+    name: b.walk_in_guest_name || b.user_name || 'Guest',
     email: b.user_email || '',
-    phone: b.user_phone || '',
+    phone: b.walk_in_guest_phone || b.user_phone || '',
     checkIn: b.check_in_date,
     checkOut: b.check_out_date,
     room: b.room_number || b.room_name || 'N/A',
@@ -556,7 +586,7 @@ export const Dashboard: React.FC = () => {
   const recentTransactions = bookings.map(b => ({
     id: b.id,
     date: new Date(b.created_at || Date.now()).toISOString().split('T')[0],
-    description: `Booking - ${b.user_name || 'Guest'} (${b.room_name || 'Room'})`,
+    description: `Booking - ${b.walk_in_guest_name || b.user_name || 'Guest'} (${b.room_name || 'Room'})`,
     type: b.type || 'income',
     amount: parseFloat(b.total_price) || 0,
     status: b.status // Keep original booking status, don't auto-convert
@@ -1746,14 +1776,15 @@ export const Dashboard: React.FC = () => {
   } = useDashboard();
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50">
-      {/* Mobile Sidebar Overlay */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+    <>
+      <div className="flex min-h-screen bg-slate-50/50">
+        {/* Mobile Sidebar Overlay */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
 
       {/* Sidebar */}
       <aside className={`fixed left-0 top-0 h-screen w-64 border-r bg-white shadow-sm z-50 transform transition-transform duration-300 ease-in-out flex-shrink-0 overflow-hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -2132,9 +2163,9 @@ export const Dashboard: React.FC = () => {
                 )}
 
                 {/* Create Pension Modal */}
-                {showCreatePension && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                {showCreatePension && createPortal(
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={() => setShowCreatePension(false)}>
+                    <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg">Create New Pension</CardTitle>
                       </CardHeader>
@@ -2343,7 +2374,8 @@ export const Dashboard: React.FC = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  </div>
+                  </div>,
+                  document.body
                 )}
 
                 {/* Stats Cards */}
@@ -4057,6 +4089,28 @@ export const Dashboard: React.FC = () => {
               </div>
               
               <div>
+                <label className="block text-sm font-medium mb-1">Check-in Date</label>
+                <input
+                  type="date"
+                  value={walkInForm.checkIn}
+                  onChange={(e) => setWalkInForm(prev => ({ ...prev, checkIn: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Check-out Date</label>
+                <input
+                  type="date"
+                  value={walkInForm.checkOut}
+                  onChange={(e) => setWalkInForm(prev => ({ ...prev, checkOut: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  min={walkInForm.checkIn || new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium mb-1">Package</label>
                 <select
                   value={walkInForm.packageId}
@@ -4065,8 +4119,8 @@ export const Dashboard: React.FC = () => {
                 >
                   <option value="">Select a package</option>
                   {walkInPackages.map(pkg => (
-                    <option key={pkg.package_id} value={pkg.package_id}>
-                      {pkg.name} - ETB {pkg.price_per_night}
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} - ETB {pkg.price}
                     </option>
                   ))}
                 </select>
@@ -4088,6 +4142,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

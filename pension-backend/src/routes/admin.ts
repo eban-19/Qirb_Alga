@@ -340,11 +340,11 @@ router.get('/test-debug', async (req: express.Request, res: express.Response) =>
   try {
     console.log('🔍 Debug: Testing admin routes without auth...');
     
-    // Get counts
+    // Get counts - exclude walk-in bookings from totalBookings
     const [ownersCount, propertiesCount, bookingsCount, pendingCount] = await Promise.all([
       executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner"'),
       executeQuery('SELECT COUNT(*) as count FROM pensions'),
-      executeQuery('SELECT COUNT(*) as count FROM bookings'),
+      executeQuery('SELECT COUNT(*) as count FROM bookings WHERE booking_source = "App"'),
       executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner" AND approved != 1')
     ]);
 
@@ -645,11 +645,11 @@ router.get('/pensions-debug', authenticateToken as any, requireAdmin as any, asy
 // Get admin metrics
 router.get('/metrics', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
-    // Get counts
+    // Get counts - exclude walk-in bookings from totalBookings
     const [ownersCount, propertiesCount, bookingsCount, pendingCount, pendingPensionsCount] = await Promise.all([
       executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner"'),
       executeQuery('SELECT COUNT(*) as count FROM pensions'),
-      executeQuery('SELECT COUNT(*) as count FROM bookings'),
+      executeQuery('SELECT COUNT(*) as count FROM bookings WHERE booking_source = "App"'),
       executeQuery('SELECT COUNT(*) as count FROM users WHERE role = "Owner" AND approved != 1'),
       executeQuery('SELECT COUNT(*) as count FROM pensions WHERE status = "pending"')
     ]);

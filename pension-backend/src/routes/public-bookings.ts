@@ -335,16 +335,20 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       });
     }
 
-    if (checkInDate <= new Date()) {
+    // For walk-in bookings, allow same-day check-in (today)
+    // Only prevent check-in dates in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (checkInDate < today) {
       return res.status(400).json({
         success: false,
-        message: 'Check-in date must be in future'
+        message: 'Check-in date cannot be in the past'
       });
     }
 
     // Check if pension exists and is approved
     const pensionCheck = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ? AND status = "Approved"',
+      'SELECT * FROM pensions WHERE pension_id = ? AND status = "active"',
       [pensionId]
     );
 
@@ -372,20 +376,20 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
     
     // Use package original price without commission
-    const totalPrice = packageData.price_per_night * nights;
+    const totalPrice = packageData.price * nights;
 
     // Find available room
     const availableRoom = await executeQuery(`
       SELECT r.* FROM rooms r
       LEFT JOIN bookings b ON r.room_id = b.room_id
-      WHERE r.pension_id = ? AND r.is_available = TRUE
+      WHERE r.pension_id = ? AND r.availability_status = 'Available'
       AND (
         b.room_id IS NULL OR
         b.status NOT IN ('Confirmed', 'Pending') OR
         (b.check_in_date > ? OR b.check_out_date < ?)
       )
       LIMIT 1
-    `, [pensionId, checkOut, checkIn, checkIn, checkOut]);
+    `, [pensionId, checkOut, checkIn]);
 
     if (availableRoom.length === 0) {
       return res.status(400).json({
@@ -397,7 +401,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     // Create walk-in booking (no user account needed)
     const bookingResult = await executeQuery(`
       INSERT INTO bookings (room_id, check_in_date, check_out_date, total_price, special_requests, status, created_at, walk_in_guest_name, walk_in_guest_phone, booking_source)
-      VALUES (?, ?, ?, ?, ?, 'Pending', NOW(), ?, ?, ?, 'Walk-In')
+      VALUES (?, ?, ?, ?, ?, 'Pending', NOW(), ?, ?, 'Walk-In')
     `, [availableRoom[0].room_id, checkIn, checkOut, totalPrice, null, guestName, phoneNumber]);
 
     const bookingId = bookingResult.insertId;
