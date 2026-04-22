@@ -139,13 +139,28 @@ export function useRoomById(id: string) {
               };
             });
             
+            // Map image_url to images array for RoomProfile compatibility (same as useRooms)
+            const imageUrl = response.data.image_url || response.data.imageUrl || response.data.image || response.data.ImageUrl;
+            const hasImage = !!imageUrl;
+            const finalImages = hasImage ? [imageUrl] : ['/src/assets/room-1.png'];
+            
             return {
               ...response.data,
+              images: finalImages,
               packages: updatedPackages
             };
           }
         }
-        return response.data;
+        
+        // Map image_url to images array for RoomProfile compatibility (same as useRooms)
+        const imageUrl = response.data.image_url || response.data.imageUrl || response.data.image || response.data.ImageUrl;
+        const hasImage = !!imageUrl;
+        const finalImages = hasImage ? [imageUrl] : ['/src/assets/room-1.png'];
+        
+        return {
+          ...response.data,
+          images: finalImages
+        };
       } catch (error) {
         console.error('Error fetching room:', error);
         // Return empty data instead of mock to avoid wrong availability

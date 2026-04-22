@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Pension {
   pension_id: number;
@@ -34,6 +35,9 @@ const PensionApprovalInline: React.FC = () => {
   const [selectedPension, setSelectedPension] = useState<Pension | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [selectedPensionIds, setSelectedPensionIds] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -174,6 +178,61 @@ const PensionApprovalInline: React.FC = () => {
     filter === 'all' || pension.status === filter
   );
 
+  // Handle individual row selection
+  const handleRowSelect = (pensionId: number, checked: boolean) => {
+    setSelectedPensionIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(pensionId);
+      } else {
+        newSet.delete(pensionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle select all/deselect all
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPensionIds(new Set(filteredPensions.map(p => p.pension_id || p.id)));
+    } else {
+      setSelectedPensionIds(new Set());
+    }
+  };
+
+  // Calculate header checkbox state
+  const allSelected = filteredPensions.length > 0 && selectedPensionIds.size === filteredPensions.length;
+  const someSelected = selectedPensionIds.size > 0 && selectedPensionIds.size < filteredPensions.length;
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPensions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPensions = filteredPensions.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedPensionIds(new Set()); // Clear selection when changing pages
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedPensionIds(new Set());
+  }, [filter]);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -207,6 +266,14 @@ const PensionApprovalInline: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all pensions"
+                      className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
@@ -215,8 +282,16 @@ const PensionApprovalInline: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPensions.map((pension) => (
+                {paginatedPensions.map((pension) => (
                   <TableRow key={pension.pension_id || pension.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedPensionIds.has(pension.pension_id || pension.id)}
+                        onCheckedChange={(checked) => handleRowSelect(pension.pension_id || pension.id, checked as boolean)}
+                        aria-label={`Select pension ${pension.name}`}
+                        className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{pension.name}</TableCell>
                     <TableCell>{pension.owner_name}</TableCell>
                     <TableCell>{getStatusBadge(pension.status)}</TableCell>
@@ -257,6 +332,64 @@ const PensionApprovalInline: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Pagination */}
+          {filteredPensions.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-slate-600">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredPensions.length)} of {filteredPensions.length} pensions
+                </span>
+                <Select value={itemsPerPage.toString()} onValueChange={(value: any) => {
+                  setItemsPerPage(parseInt(value));
+                  setCurrentPage(1);
+                }}>
+                  <SelectTrigger className="w-24 h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 per page</SelectItem>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="20">20 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className="h-8 px-3"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className={`h-8 w-8 ${currentPage === page ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="h-8 px-3"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

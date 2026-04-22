@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import { executeQuery, executeTransaction, pool } from '../config/database';
 import upload from '../middleware/upload';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -522,48 +522,123 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
       
       console.log('Found package:', foundPackage);
 
-      // Calculate available rooms for this package type
-      const availableRoomsResult = await executeQuery(`
-        SELECT COUNT(*) as availableRoomsCount
-        FROM rooms 
-        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
-      `, [pensionId, foundPackage.package_id]);
-
-      const availableRooms = availableRoomsResult[0].availableRoomsCount || 0;
-      console.log(`Available rooms for ${packageName}: ${availableRooms}`);
+      // Start transaction for atomic booking
+      const connection = await pool.getConnection();
+      let bookingId: number;
+      let roomNumber: string;
       
-      if (availableRooms < roomQuantity) {
-        return res.status(400).json({ 
+      try {
+        await connection.beginTransaction();
+
+        // 1. Check for date conflicts with existing bookings (same as walk-in booking)
+        const conflictCheck = await connection.query(`
+          SELECT COUNT(*) as conflictCount
+          FROM bookings b
+          JOIN rooms r ON b.room_id = r.room_id
+          WHERE r.pension_id = ? AND r.package_id = ?
+          AND b.status IN ('Confirmed', 'Pending')
+          AND (
+            (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+            (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+            (b.check_in_date >= ? AND b.check_out_date <= ?)
+          )
+        `, [pensionId, foundPackage.package_id, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut]);
+
+        const conflictCount = (conflictCheck[0] as any)[0].conflictCount;
+        console.log(`Date conflict check for package ${packageName}: ${conflictCount} conflicts`);
+
+        // Calculate available rooms considering both availability_status and date conflicts
+        const availableRoomsResult = await connection.query(`
+          SELECT COUNT(*) as availableRoomsCount
+          FROM rooms r
+          WHERE r.pension_id = ? AND r.package_id = ? AND r.availability_status = 'Available'
+          AND r.room_id NOT IN (
+            SELECT DISTINCT b.room_id
+            FROM bookings b
+            WHERE b.status IN ('Confirmed', 'Pending')
+            AND (
+              (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+              (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+              (b.check_in_date >= ? AND b.check_out_date <= ?)
+            )
+          )
+        `, [pensionId, foundPackage.package_id, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut]);
+
+        const availableRooms = (availableRoomsResult[0] as any)[0].availableRoomsCount || 0;
+        console.log(`Available rooms for ${packageName} after date check: ${availableRooms}`);
+        
+        if (availableRooms < roomQuantity) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Only ${availableRooms} room(s) available for these dates.` 
+          });
+        }
+
+        // 2. Get and lock the room using SELECT FOR UPDATE
+        const roomForBookingResult = await connection.query(`
+          SELECT room_id, room_number FROM rooms 
+          WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
+          AND room_id NOT IN (
+            SELECT DISTINCT b.room_id
+            FROM bookings b
+            WHERE b.status IN ('Confirmed', 'Pending')
+            AND (
+              (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+              (b.check_in_date <= ? AND b.check_out_date >= ?) OR
+              (b.check_in_date >= ? AND b.check_out_date <= ?)
+            )
+          )
+          LIMIT 1
+          FOR UPDATE
+        `, [pensionId, foundPackage.package_id, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut]);
+
+        const roomForBooking = (roomForBookingResult[0] as any);
+        
+        if (!roomForBooking || roomForBooking.length === 0) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: 'No rooms available for booking' 
+          });
+        }
+
+        const selectedRoom = roomForBooking[0];
+        
+        // 3. Create booking record (row is already locked by SELECT FOR UPDATE)
+        const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        const bookingResult = await connection.query(`
+          INSERT INTO bookings (room_id, room_number, customer_id, check_in_date, check_out_date, total_price, status, created_at, id_document_url, pass_code, booking_source)
+          VALUES (?, ?, ?, ?, ?, ?, 'Confirmed', NOW(), ?, ?, 'App')
+        `, [selectedRoom.room_id, selectedRoom.room_number, customerId, checkIn, checkOut, totalPrice, idDocumentUrl, passCode]);
+
+        bookingId = (bookingResult[0] as any).insertId;
+        roomNumber = selectedRoom.room_number;
+
+        // 4. Mark room as Occupied (booking is confirmed)
+        await connection.query(`
+          UPDATE rooms 
+          SET availability_status = 'Occupied', last_status_update = NOW()
+          WHERE room_id = ?
+        `, [selectedRoom.room_id]);
+
+        // Commit transaction
+        await connection.commit();
+        connection.release();
+        console.log(`✅ Transaction committed for booking ${bookingId}`);
+
+      } catch (transactionError: any) {
+        await connection.rollback();
+        connection.release();
+        console.error('❌ Transaction failed:', transactionError);
+        return res.status(500).json({ 
           success: false, 
-          message: `Only ${availableRooms} room(s) available for this package.` 
+          message: 'Failed to process booking: ' + transactionError.message 
         });
       }
-
-      // 3. Create booking record
-      const pricePerRoom = parseFloat(totalPrice) / roomQuantity;
-      
-      // Get the room_id and room_number for the booking
-      const roomForBooking = await executeQuery(`
-        SELECT room_id, room_number FROM rooms 
-        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
-        LIMIT ?
-      `, [pensionId, foundPackage.package_id, roomQuantity]);
-      
-      if (roomForBooking.length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No rooms available for booking' 
-        });
-      }
-      
-      const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      
-      const bookingResult = await executeQuery(`
-        INSERT INTO bookings (room_id, room_number, customer_id, check_in_date, check_out_date, total_price, status, created_at, id_document_url, pass_code)
-        VALUES (?, ?, ?, ?, ?, ?, 'Confirmed', NOW(), ?, ?)
-      `, [roomForBooking[0].room_id, roomForBooking[0].room_number, customerId, checkIn, checkOut, totalPrice, idDocumentUrl, passCode]);
-
-      const bookingId = bookingResult.insertId;
 
       // Send notification to pension owner
       try {
@@ -583,7 +658,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
           const owner = ownerResult[0];
           
           const notificationTitle = 'New Booking Received';
-          const notificationMessage = `${fullName} booked Room ${roomForBooking[0].room_number} for ${new Date(checkIn).toLocaleDateString()} to ${new Date(checkOut).toLocaleDateString()}`;
+          const notificationMessage = `${fullName} booked Room ${roomNumber} for ${new Date(checkIn).toLocaleDateString()} to ${new Date(checkOut).toLocaleDateString()}`;
           
           console.log('🔧 Creating notification:', {
             owner_id: owner.owner_id,
@@ -609,30 +684,8 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
         // Don't fail the booking if notification fails
       }
 
-      // 4. Update room availability - mark rooms as occupied
-      const roomsToBook = await executeQuery(`
-        SELECT room_id FROM rooms 
-        WHERE pension_id = ? AND package_id = ? AND availability_status = 'Available'
-        LIMIT ?
-      `, [pensionId, foundPackage.package_id, roomQuantity]);
-
-      if (roomsToBook.length < roomQuantity) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Only ${roomsToBook.length} room(s) available for this package.` 
-        });
-      }
-
-      // Mark rooms as occupied
-      for (const room of roomsToBook) {
-        await executeQuery(`
-          UPDATE rooms 
-          SET availability_status = 'Occupied', last_status_update = NOW()
-          WHERE room_id = ?
-        `, [room.room_id]);
-      }
-
-      console.log(`Marked ${roomsToBook.length} rooms as occupied for package ${packageName}`);
+      // Regenerate passCode for response (it was generated inside transaction)
+      const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       res.json({
         success: true,
@@ -649,7 +702,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
             totalPrice,
             packageName,
             passCode,
-            roomNumber: roomForBooking[0].room_number  // Add room number to response
+            roomNumber: roomNumber
           }
         }
       });
@@ -780,40 +833,71 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     // Use package original price without commission
     const totalPrice = packageData.price * nights;
 
-    // Find available room
-    const availableRoom = await executeQuery(`
-      SELECT r.* FROM rooms r
-      LEFT JOIN bookings b ON r.room_id = b.room_id
-      WHERE r.pension_id = ? AND r.availability_status = 'Available'
-      AND (
-        b.room_id IS NULL OR
-        b.status NOT IN ('Confirmed', 'Pending') OR
-        (b.check_in_date > ? OR b.check_out_date < ?)
-      )
-      LIMIT 1
-    `, [pensionId, checkOut, checkIn]);
+    // Start transaction for atomic booking
+    const connection = await pool.getConnection();
+    let bookingId: number;
+    let roomNumber: string;
+    
+    try {
+      await connection.beginTransaction();
 
-    if (availableRoom.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No available rooms for the selected dates'
+      // Find and lock available room using SELECT FOR UPDATE
+      const availableRoomResult = await connection.query(`
+        SELECT r.* FROM rooms r
+        LEFT JOIN bookings b ON r.room_id = b.room_id
+        WHERE r.pension_id = ? AND r.availability_status = 'Available'
+        AND (
+          b.room_id IS NULL OR
+          b.status NOT IN ('Confirmed', 'Pending') OR
+          (b.check_in_date > ? OR b.check_out_date < ?)
+        )
+        LIMIT 1
+        FOR UPDATE
+      `, [pensionId, checkOut, checkIn]);
+
+      const availableRoom = (availableRoomResult[0] as any);
+
+      if (!availableRoom || availableRoom.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: 'No available rooms for the selected dates'
+        });
+      }
+
+      const selectedRoom = availableRoom[0];
+
+      // Create walk-in booking (no user account needed) (row is already locked by SELECT FOR UPDATE)
+      const bookingResult = await connection.query(`
+        INSERT INTO bookings (room_id, room_number, check_in_date, check_out_date, total_price, status, created_at, walk_in_guest_name, walk_in_guest_phone, booking_source)
+        VALUES (?, ?, ?, ?, ?, 'Confirmed', NOW(), ?, ?, 'Walk-In')
+      `, [selectedRoom.room_id, selectedRoom.room_number, checkIn, checkOut, totalPrice, guestName, phoneNumber]);
+
+      bookingId = (bookingResult[0] as any).insertId;
+      roomNumber = selectedRoom.room_number;
+
+      // Mark room as Occupied (booking is confirmed)
+      await connection.query(`
+        UPDATE rooms 
+        SET availability_status = 'Occupied', last_status_update = NOW()
+        WHERE room_id = ?
+      `, [selectedRoom.room_id]);
+
+      // Commit transaction
+      await connection.commit();
+      connection.release();
+      console.log(`✅ Walk-in transaction committed for booking ${bookingId}`);
+
+    } catch (transactionError: any) {
+      await connection.rollback();
+      connection.release();
+      console.error('❌ Walk-in transaction failed:', transactionError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to process walk-in booking: ' + transactionError.message 
       });
     }
-
-    // Create walk-in booking (no user account needed)
-    const bookingResult = await executeQuery(`
-      INSERT INTO bookings (room_id, check_in_date, check_out_date, total_price, status, created_at, walk_in_guest_name, walk_in_guest_phone, booking_source)
-      VALUES (?, ?, ?, ?, 'Confirmed', NOW(), ?, ?, 'Walk-In')
-    `, [availableRoom[0].room_id, checkIn, checkOut, totalPrice, guestName, phoneNumber]);
-
-    const bookingId = bookingResult.insertId;
-
-    // Update room availability to Occupied
-    await executeQuery(`
-      UPDATE rooms 
-      SET availability_status = 'Occupied', last_status_update = NOW()
-      WHERE room_id = ?
-    `, [availableRoom[0].room_id]);
 
     console.log('✅ Walk-in booking created:', {
       bookingId,
@@ -831,6 +915,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       message: 'Walk-in booking created successfully',
       data: {
         bookingId,
+        roomNumber,
         pensionName: pensionCheck[0].name,
         packageName,
         checkIn,

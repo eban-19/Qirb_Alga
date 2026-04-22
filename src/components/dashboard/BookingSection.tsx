@@ -16,7 +16,8 @@ import {
   TrashIcon, 
   Search,
   CheckCircle,
-  Plus
+  Plus,
+  IdCard
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
@@ -42,7 +43,7 @@ interface InlineMessage {
   timestamp: number;
 }
 
-const BookingCard = ({ booking, onCompleteEarly, language }: { booking: any; onCompleteEarly: (id: string) => void; language: any }) => {
+const BookingCard = ({ booking, onCompleteEarly, language, onViewId }: { booking: any; onCompleteEarly: (id: string) => void; language: any; onViewId: (idUrl: string) => void }) => {
   // Debug: Log booking data to see available fields
   console.log('🔍 Owner Dashboard Booking data:', booking);
   console.log('🔍 Room fields available:', {
@@ -103,6 +104,16 @@ const BookingCard = ({ booking, onCompleteEarly, language }: { booking: any; onC
           <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
         </div>
         <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
+          {booking.id_document_url && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => onViewId(booking.id_document_url)} 
+              className="flex-1 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all"
+            >
+              <IdCard className="h-4 w-4 mr-1.5" /> <TranslationText text="View ID" language={language} />
+            </Button>
+          )}
           {(() => {
             const status = booking.status?.toLowerCase();
             const showButton = status === 'confirmed' && status !== 'completed';
@@ -144,6 +155,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [showEarlyCheckoutConfirm, setShowEarlyCheckoutConfirm] = useState(false);
   const [pendingEarlyCheckoutId, setPendingEarlyCheckoutId] = useState<string | number | null>(null);
   const [isProcessingEarlyCheckout, setIsProcessingEarlyCheckout] = useState(false);
+  const [showIdModal, setShowIdModal] = useState(false);
+  const [selectedIdUrl, setSelectedIdUrl] = useState<string | null>(null);
 
   // Scroll lock when modal is open
   useEffect(() => {
@@ -437,6 +450,103 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     setShowEarlyCheckoutConfirm(true);
   };
 
+  // Handler to show ID document
+  const handleViewId = (idUrl: string) => {
+    setSelectedIdUrl(idUrl);
+    setShowIdModal(true);
+  };
+
+  // Helper to get full image URL
+  const getFullImageUrl = (imagePath: string | undefined | null): string => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) return `http://localhost:3005${imagePath}`;
+    return imagePath;
+  };
+
+  // ID Document Modal Component
+  const IdDocumentModal = () => {
+    if (!showIdModal || !selectedIdUrl) return null;
+
+    const fullImageUrl = getFullImageUrl(selectedIdUrl);
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        setShowIdModal(false);
+        setSelectedIdUrl(null);
+      }
+    };
+
+    return ReactDOM.createPortal(
+      <div 
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4"
+        onClick={handleBackdropClick}
+      >
+        <div 
+          className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <IdCard className="h-5 w-5 text-purple-600" />
+              <TranslationText text="ID Document" language={language} />
+            </h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setShowIdModal(false);
+                setSelectedIdUrl(null);
+              }}
+              className="text-slate-500 hover:text-slate-700"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4 bg-slate-50 flex items-center justify-center">
+            {fullImageUrl ? (
+              <img 
+                src={fullImageUrl} 
+                alt="ID Document" 
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-lg"
+                onError={(e) => {
+                  console.error('Failed to load ID document:', e);
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="text-center text-slate-500">
+                <IdCard className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                <p><TranslationText text="Unable to load ID document" language={language} /></p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(fullImageUrl, '_blank')}
+              className="gap-2"
+            >
+              <TranslationText text="Open in New Tab" language={language} />
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowIdModal(false);
+                setSelectedIdUrl(null);
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <TranslationText text="Close" language={language} />
+            </Button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* View Toggle */}
@@ -477,6 +587,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               key={booking.id} 
               booking={booking} 
               onCompleteEarly={handleEarlyCheckoutClick}
+              onViewId={handleViewId}
               language={language}
             />
           ))}
@@ -557,6 +668,17 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                       </TableCell>
                       <TableCell>
                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                           {booking.id_document_url && (
+                             <Button 
+                               variant="outline" 
+                               size="sm" 
+                               onClick={() => handleViewId(booking.id_document_url)} 
+                               title="View ID Document" 
+                               className="hover:bg-purple-50 hover:border-purple-300 border-purple-200 text-purple-600 transition-all duration-300 px-2"
+                             >
+                               <IdCard className="h-4 w-4" />
+                             </Button>
+                           )}
                            <Button variant="outline" size="sm" onClick={() => onUpdateStatus(booking.id || booking.booking_id, 'cancelled')} title="Cancel Booking" className="hover:bg-red-50 hover:border-red-300 border-red-200 text-red-600 transition-all duration-300 px-2">
                              <X className="h-4 w-4" />
                            </Button>
@@ -599,6 +721,9 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
 
       {/* Early Checkout Confirmation Dialog */}
       <EarlyCheckoutConfirmDialog />
+
+      {/* ID Document Modal */}
+      <IdDocumentModal />
 
       {/* Walk-In Booking Modal */}
       {showWalkInModal && (

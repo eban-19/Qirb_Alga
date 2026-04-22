@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Input } from "@/components/ui/input";
 
@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { Badge } from "@/components/ui/badge";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +22,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-import { Search, Plus, Users, Shield, TrendingUp, Eye, Edit, Trash2, MoreHorizontal, ChevronDown, Check, X, AlertCircle } from "lucide-react";
+import { Search, Plus, Users, Shield, TrendingUp, Eye, Edit, Trash2, MoreHorizontal, ChevronDown, Check, X, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { OwnerCard } from "./OwnerCard";
 
@@ -97,6 +99,9 @@ export function OwnersTab({
   const [showForm, setShowForm] = useState(false);
 
   const [selectedOwner, setSelectedOwner] = useState<PensionOwner | undefined>();
+  const [selectedOwnerIds, setSelectedOwnerIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
 
 
@@ -115,6 +120,62 @@ export function OwnersTab({
     return matchesSearch && matchesStatus;
 
   });
+
+  // Handle individual row selection
+  const handleRowSelect = (ownerId: string, checked: boolean) => {
+    setSelectedOwnerIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(ownerId);
+      } else {
+        newSet.delete(ownerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle select all/deselect all
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOwnerIds(new Set(filteredOwners.map(o => o.id)));
+    } else {
+      setSelectedOwnerIds(new Set());
+    }
+  };
+
+  // Calculate header checkbox state
+  const allSelected = filteredOwners.length > 0 && selectedOwnerIds.size === filteredOwners.length;
+  const someSelected = selectedOwnerIds.size > 0 && selectedOwnerIds.size < filteredOwners.length;
+  const isIndeterminate = someSelected;
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOwners.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOwners = filteredOwners.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedOwnerIds(new Set()); // Clear selection when changing pages
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedOwnerIds(new Set());
+  }, [searchTerm, filterStatus]);
 
 
 
@@ -318,6 +379,14 @@ export function OwnersTab({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-slate-200">
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 w-12">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all owners"
+                        className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
+                      />
+                    </TableHead>
                     <TableHead className="font-bold text-slate-900 py-4 px-6">Owner</TableHead>
                     <TableHead className="font-bold text-slate-900 py-4 px-6">Business</TableHead>
                     <TableHead className="font-bold text-slate-900 py-4 px-6">Contact</TableHead>
@@ -328,8 +397,16 @@ export function OwnersTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOwners.map((owner) => (
+                  {paginatedOwners.map((owner) => (
                     <TableRow key={owner.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <TableCell className="py-4 px-6">
+                        <Checkbox
+                          checked={selectedOwnerIds.has(owner.id)}
+                          onCheckedChange={(checked) => handleRowSelect(owner.id, checked as boolean)}
+                          aria-label={`Select owner ${owner.ownerName}`}
+                          className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
+                        />
+                      </TableCell>
                       <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
@@ -475,6 +552,64 @@ export function OwnersTab({
                 <div className="text-center py-12">
                   <div className="text-slate-500 text-lg">No owners found</div>
                   <div className="text-slate-400 text-sm mt-2">Try adjusting your search or filter criteria</div>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {filteredOwners.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-slate-600">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredOwners.length)} of {filteredOwners.length} owners
+                    </span>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                      setItemsPerPage(parseInt(value));
+                      setCurrentPage(1);
+                    }}>
+                      <SelectTrigger className="w-24 h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 per page</SelectItem>
+                        <SelectItem value="10">10 per page</SelectItem>
+                        <SelectItem value="20">20 per page</SelectItem>
+                        <SelectItem value="50">50 per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="h-8 px-3"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className={`h-8 w-8 ${currentPage === page ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="h-8 px-3"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
