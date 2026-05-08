@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 
 const router = express.Router();
 
@@ -7,15 +7,18 @@ const router = express.Router();
 router.get('/pension/:pensionId/room-types', async (req: express.Request, res: express.Response) => {
   try {
     const { pensionId } = req.params;
+    const pId = parseInt(pensionId as string);
     
-    const roomTypes = await executeQuery(
-      'SELECT DISTINCT room_type FROM rooms WHERE pension_id = ? ORDER BY room_type',
-      [pensionId]
-    );
+    const rooms = await prisma.room.findMany({
+      where: { pension_id: pId },
+      distinct: ['room_type'],
+      select: { room_type: true },
+      orderBy: { room_type: 'asc' }
+    });
     
     res.json({
       success: true,
-      data: roomTypes.map((type: any) => type.room_type)
+      data: rooms.map((r: any) => r.room_type)
     });
   } catch (error: any) {
     console.error('Error fetching room types:', error);

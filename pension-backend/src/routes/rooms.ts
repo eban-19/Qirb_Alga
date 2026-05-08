@@ -1,19 +1,26 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
-import { getMultilingualText, updateMultilingualField } from '../utils/multilingual';
+import { getMultilingualText } from '../utils/multilingual';
+import { RoomStatus, Prisma } from '@prisma/client';
 
 const router = express.Router();
 
 // Get room types for a pension
 router.get('/pension/:pensionId/room-types', authenticateToken as any, async (req: express.Request, res: express.Response) => {
   try {
-    const { pensionId } = req.params;
+    const pensionId = parseInt(req.params.pensionId as string);
     
-    const roomTypes = await executeQuery(
-      'SELECT DISTINCT room_type FROM rooms WHERE pension_id = ? ORDER BY room_type',
-      [pensionId]
-    );
+    if (isNaN(pensionId)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
+    }
+
+    const roomTypes = await prisma.room.findMany({
+      where: { pension_id: pensionId },
+      distinct: ['room_type'],
+      select: { room_type: true },
+      orderBy: { room_type: 'asc' }
+    });
     
     res.json({
       success: true,
@@ -28,20 +35,25 @@ router.get('/pension/:pensionId/room-types', authenticateToken as any, async (re
 // Get rooms for a specific pension (public)
 router.get('/pension/:pensionId', async (req: express.Request, res: express.Response) => {
   try {
-    const { pensionId } = req.params;
+    const pensionId = parseInt(req.params.pensionId as string);
     const { page = 1, limit = 10, language = 'en' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    if (isNaN(pensionId)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
+    }
 
-    const rooms = await executeQuery(
-      'SELECT r.* FROM rooms r WHERE r.pension_id = ? ORDER BY r.created_at DESC LIMIT ? OFFSET ?',
-      [pensionId, parseInt(limit as string), offset]
-    );
+    const take = parseInt(limit as string);
+    const skip = (parseInt(page as string) - 1) * take;
 
-    const countResult = await executeQuery(
-      'SELECT COUNT(*) as total FROM rooms WHERE pension_id = ?',
-      [pensionId]
-    );
-    const total = countResult[0].total;
+    const [rooms, total] = await prisma.$transaction([
+      prisma.room.findMany({
+        where: { pension_id: pensionId },
+        orderBy: { created_at: 'desc' },
+        take,
+        skip
+      }),
+      prisma.room.count({ where: { pension_id: pensionId } })
+    ]);
 
     res.json({
       success: true,
@@ -49,14 +61,14 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
         items: rooms.map((r: any) => ({ 
           ...r, 
           id: r.room_id, 
-          type: getMultilingualText(r.room_type_ml, language as string) || r.room_type,
-          is_available: r.availability_status?.toLowerCase() === 'available'
+          type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
+          is_available: r.availability_status === RoomStatus.Available
         })),
         pagination: {
           page: parseInt(page as string),
-          limit: parseInt(limit as string),
+          limit: take,
           total,
-          totalPages: Math.ceil(total / parseInt(limit as string))
+          totalPages: Math.ceil(total / take)
         }
       }
     });
@@ -70,17 +82,26 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
 // Get room by ID (public)
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id as string);
     const { language = 'en' } = req.query;
 
-    const room = await executeQuery(`
-      SELECT r.*, p.name as pension_name, p.address as pension_address
-      FROM rooms r
-      JOIN pensions p ON r.pension_id = p.pension_id
-      WHERE r.room_id = ?
-    `, [id]);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid room ID' });
+    }
 
-    if (room.length === 0) {
+    const roomData = await prisma.room.findUnique({
+      where: { room_id: id },
+      include: {
+        pension: {
+          select: {
+            name: true,
+            address: true
+          }
+        }
+      }
+    });
+
+    if (!roomData) {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
@@ -88,10 +109,12 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
       success: true,
       data: {
         room: { 
-          ...room[0], 
-          id: room[0].room_id, 
-          type: getMultilingualText(room[0].room_type_ml, language as string) || room[0].room_type,
-          is_available: room[0].availability_status?.toLowerCase() === 'available'
+          ...roomData, 
+          id: roomData.room_id, 
+          pension_name: roomData.pension.name,
+          pension_address: roomData.pension.address,
+          type: getMultilingualText(roomData.room_type_ml as any, language as string) || roomData.room_type,
+          is_available: roomData.availability_status === RoomStatus.Available
         }
       }
     });
@@ -118,35 +141,38 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       room_type_ml
     } = req.body;
 
-    console.log('🔍 Room creation request:', {
-      pension_id, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number, room_type_ml
-    });
-
-    // Validation
     if (!pension_id || !room_type) {
       return res.status(400).json({ success: false, message: 'Pension ID and room type are required' });
     }
 
     // Check ownership
-    const pension = await executeQuery('SELECT * FROM pensions WHERE pension_id = ? AND owner_id = ?', [pension_id, userId]);
-    if (pension.length === 0) {
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
-
-    // Prepare multilingual field
-    const roomTypeMlJson = room_type_ml ? JSON.stringify(room_type_ml) : JSON.stringify({ en: room_type });
-
-    const result = await executeQuery(
-      `INSERT INTO rooms (pension_id, owner_id, room_type, capacity, price_per_night, number_of_beds, availability_status, package_id, room_number, room_type_ml, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [pension_id, userId, room_type, capacity || 1, price_per_night, number_of_beds || 1, availability_status, packageId, room_number, roomTypeMlJson]
-    );
-
-    console.log('🔍 Room insertion data:', {
-      pension_id, userId, room_type, capacity, price_per_night, number_of_beds, availability_status, packageId, room_number, roomTypeMlJson
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: parseInt(pension_id),
+        owner_id: userId
+      }
     });
 
-    res.status(201).json({ success: true, message: 'Room created successfully', data: { id: result.insertId } });
+    if (!pension) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or pension not found' });
+    }
+
+    const newRoom = await prisma.room.create({
+      data: {
+        pension_id: parseInt(pension_id),
+        owner_id: userId,
+        room_type,
+        capacity: parseInt(capacity) || 1,
+        price_per_night: new Prisma.Decimal(price_per_night),
+        number_of_beds: parseInt(number_of_beds) || 1,
+        availability_status: (availability_status as RoomStatus) || RoomStatus.Available,
+        package_id: packageId ? parseInt(packageId) : null,
+        room_number: room_number || null,
+        room_type_ml: room_type_ml || { en: room_type }
+      }
+    });
+
+    res.status(201).json({ success: true, message: 'Room created successfully', data: { id: newRoom.room_id } });
   } catch (error: any) {
     console.error('Create room error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
@@ -157,41 +183,38 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
 router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
     const { room_type, capacity, price_per_night, number_of_beds, availability_status, room_type_ml } = req.body;
 
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid room ID' });
+    }
+
     // Check ownership
-    const room = await executeQuery('SELECT r.*, p.owner_id FROM rooms r JOIN pensions p ON r.pension_id = p.pension_id WHERE r.room_id = ?', [id]);
-    if (room.length === 0) {
+    const room = await prisma.room.findUnique({
+      where: { room_id: id },
+      include: { pension: true }
+    });
+
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
-    if (room[0].owner_id !== userId) {
+    if (room.pension.owner_id !== userId && req.user.role !== 'Admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    // Prepare multilingual field update
-    let roomTypeMlJson;
-    if (room_type_ml) {
-      roomTypeMlJson = JSON.stringify(room_type_ml);
-    } else if (room[0].room_type_ml) {
-      // Keep existing multilingual field if not provided
-      roomTypeMlJson = room[0].room_type_ml;
-    } else {
-      roomTypeMlJson = JSON.stringify({ en: room_type || room[0].room_type });
-    }
-
-    await executeQuery(
-      `UPDATE rooms 
-       SET room_type = ?, capacity = ?, price_per_night = ?, number_of_beds = ?, availability_status = ?, room_type_ml = ?, last_status_update = NOW()
-       WHERE room_id = ?`,
-      [room_type || room[0].room_type, 
-       capacity || room[0].capacity, 
-       price_per_night || room[0].price_per_night, 
-       number_of_beds || room[0].number_of_beds,
-       availability_status || room[0].availability_status,
-       roomTypeMlJson,
-       id]
-    );
+    await prisma.room.update({
+      where: { room_id: id },
+      data: {
+        room_type: room_type || undefined,
+        capacity: capacity ? parseInt(capacity) : undefined,
+        price_per_night: price_per_night ? new Prisma.Decimal(price_per_night) : undefined,
+        number_of_beds: number_of_beds ? parseInt(number_of_beds) : undefined,
+        availability_status: (availability_status as RoomStatus) || undefined,
+        room_type_ml: room_type_ml || undefined,
+        last_status_update: availability_status ? new Date() : undefined
+      }
+    });
 
     res.json({ success: true, message: 'Room updated successfully' });
   } catch (error: any) {
@@ -204,13 +227,23 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
 router.delete('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
 
-    const room = await executeQuery('SELECT r.*, p.owner_id FROM rooms r JOIN pensions p ON r.pension_id = p.pension_id WHERE r.room_id = ?', [id]);
-    if (room.length === 0) return res.status(404).json({ success: false, message: 'Room not found' });
-    if (room[0].owner_id !== userId) return res.status(403).json({ success: false, message: 'Unauthorized' });
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid room ID' });
+    }
 
-    await executeQuery('DELETE FROM rooms WHERE room_id = ?', [id]);
+    const room = await prisma.room.findUnique({
+      where: { room_id: id },
+      include: { pension: true }
+    });
+
+    if (!room) return res.status(404).json({ success: false, message: 'Room not found' });
+    if (room.pension.owner_id !== userId && req.user.role !== 'Admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
+
+    await prisma.room.delete({
+      where: { room_id: id }
+    });
     res.json({ success: true, message: 'Room deleted successfully' });
   } catch (error: any) {
     console.error('Delete room error:', error);
@@ -223,30 +256,29 @@ router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.
   try {
     const userId = req.user.userId;
     const { pension_id, page = 1, limit = 10, language = 'en' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    const take = parseInt(limit as string);
+    const skip = (parseInt(page as string) - 1) * take;
 
-    let query = `
-      SELECT r.*, p.name as pension_name
-      FROM rooms r
-      JOIN pensions p ON r.pension_id = p.pension_id
-      WHERE p.owner_id = ?
-    `;
-    const params: any[] = [userId];
+    const rooms = await prisma.room.findMany({
+      where: {
+        pension: { owner_id: userId },
+        pension_id: pension_id ? parseInt(pension_id as string) : undefined
+      },
+      include: {
+        pension: { select: { name: true } }
+      },
+      orderBy: { created_at: 'desc' },
+      take,
+      skip
+    });
 
-    if (pension_id) {
-      query += ' AND r.pension_id = ?';
-      params.push(pension_id);
-    }
-
-    query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit as string), offset);
-
-    const rooms = await executeQuery(query, params);
     const normalizedRooms = rooms.map((r: any) => ({ 
       ...r, 
       id: r.room_id, 
-      type: getMultilingualText(r.room_type_ml, language as string) || r.room_type,
-      is_available: r.availability_status?.toLowerCase() === 'available'
+      pension_name: r.pension.name,
+      type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
+      is_available: r.availability_status === RoomStatus.Available
     }));
 
     res.json({ success: true, data: { items: normalizedRooms } });
@@ -259,21 +291,28 @@ router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.
 // Get room statistics for a pension
 router.get('/stats/:pensionId', async (req: express.Request, res: express.Response) => {
   try {
-    const { pensionId } = req.params;
+    const pensionId = parseInt(req.params.pensionId as string);
     
-    const roomStats = await executeQuery(`
-      SELECT 
-        COUNT(*) as totalRooms,
-        SUM(CASE WHEN availability_status = 'Available' THEN 1 ELSE 0 END) as availableRooms
-      FROM rooms 
-      WHERE pension_id = ?
-    `, [pensionId]);
+    if (isNaN(pensionId)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
+    }
+
+    const totalRooms = await prisma.room.count({
+      where: { pension_id: pensionId }
+    });
+
+    const availableRooms = await prisma.room.count({
+      where: { 
+        pension_id: pensionId,
+        availability_status: RoomStatus.Available
+      }
+    });
 
     res.json({
       success: true,
       data: {
-        totalRooms: roomStats[0].totalRooms || 0,
-        availableRooms: roomStats[0].availableRooms || 0
+        totalRooms,
+        availableRooms
       }
     });
   } catch (error: any) {

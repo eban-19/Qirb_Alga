@@ -1,11 +1,10 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 
 const router = express.Router();
 
 // Simple test endpoint to verify route is working
 router.get('/', (req: express.Request, res: express.Response) => {
-  console.log('=== PROPERTIES ROUTE TEST ===');
   res.json({
     success: true,
     message: 'Properties route is working!',
@@ -13,34 +12,34 @@ router.get('/', (req: express.Request, res: express.Response) => {
   });
 });
 
-// Get property by ID (minimal test version)
+// Get property by ID
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id as string);
 
-    console.log('=== GET PROPERTY BY ID ===');
-    console.log('Property ID:', id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid property ID' });
+    }
 
-    // Simple test query first
-    const testResult = await executeQuery('SELECT 1 as test');
-    console.log('Database test result:', testResult);
+    const property = await prisma.pension.findUnique({
+      where: { pension_id: id },
+      include: {
+        owner: {
+          select: {
+            full_name: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
 
-    // Get basic property info
-    const propertyResult = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [id]
-    );
-
-    console.log('Property result:', propertyResult);
-
-    if (propertyResult.length === 0) {
+    if (!property) {
       return res.status(404).json({
         success: false,
         message: 'Property not found'
       });
     }
-
-    const property = propertyResult[0];
 
     res.json({
       success: true,
@@ -53,9 +52,9 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
         packages: [],
         owner: {
           id: property.owner_id,
-          name: 'Property Owner',
-          email: 'owner@example.com',
-          phone: 'N/A'
+          name: property.owner.full_name || 'Property Owner',
+          email: property.owner.email || 'owner@example.com',
+          phone: property.owner.phone || 'N/A'
         },
         documents: [],
         images: property.image_url ? [property.image_url] : []

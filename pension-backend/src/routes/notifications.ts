@@ -1,7 +1,8 @@
 import * as express from 'express';
 import notificationService from '../services/notificationService';
 import { authenticateToken } from '../middleware/auth';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
+import { Role, PensionStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -16,20 +17,20 @@ router.get('/', authenticateToken as any, async (req: any, res: express.Response
     let unreadCount = 0;
     
     // Check if user is admin
-    if (userRole === 'admin' || userRole === 'Admin') {
+    if (userRole === 'admin' || userRole === Role.Admin) {
       // Return admin-specific notifications (pending owners, pending pensions)
       
       // Get pending owners as individual notification items
-      const pendingOwners = await executeQuery(
-        `SELECT u.user_id, u.full_name, u.email, u.created_at
-         FROM users u
-         WHERE u.role = 'Owner' AND u.approved != 1
-         ORDER BY u.created_at DESC
-         LIMIT ?`,
-        [limit]
-      );
+      const pendingOwners = await prisma.user.findMany({
+        where: { 
+          role: Role.Owner,
+          approved: { not: 1 }
+        },
+        orderBy: { created_at: 'desc' },
+        take: limit
+      });
 
-      pendingOwners.forEach((owner: any) => {
+      pendingOwners.forEach((owner) => {
         notifications.push({
           notification_id: `owner_${owner.user_id}`,
           user_id: userId,
@@ -42,22 +43,19 @@ router.get('/', authenticateToken as any, async (req: any, res: express.Response
       });
 
       // Get pending pensions as individual notification items
-      const pendingPensions = await executeQuery(
-        `SELECT p.pension_id, p.name, p.status, p.created_at, u.full_name as owner_name
-         FROM pensions p
-         LEFT JOIN users u ON p.owner_id = u.user_id
-         WHERE p.status = 'pending'
-         ORDER BY p.created_at DESC
-         LIMIT ?`,
-        [limit]
-      );
+      const pendingPensions = await prisma.pension.findMany({
+        where: { status: PensionStatus.pending },
+        include: { owner: { select: { full_name: true } } },
+        orderBy: { created_at: 'desc' },
+        take: limit
+      });
 
-      pendingPensions.forEach((pension: any) => {
+      pendingPensions.forEach((pension) => {
         notifications.push({
           notification_id: `pension_${pension.pension_id}`,
           user_id: userId,
           title: 'Pending Pension Approval',
-          message: `${pension.name} by ${pension.owner_name} is waiting for approval`,
+          message: `${pension.name} by ${pension.owner?.full_name || 'Unknown'} is waiting for approval`,
           type: 'pension_approval',
           is_read: 0,
           created_at: pension.created_at

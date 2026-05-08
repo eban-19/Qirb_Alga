@@ -1,6 +1,7 @@
 import * as jwt from 'jsonwebtoken';
-import { executeQuery } from '../config/database';
-import { Request, Response, NextFunction } from 'express';
+import prisma from '../lib/prisma';
+import { Response, NextFunction } from 'express';
+import { Role, UserStatus } from '@prisma/client';
 
 // Middleware to authenticate JWT token
 const authenticateToken = (req: any, res: Response, next: NextFunction) => {
@@ -33,25 +34,30 @@ const requireOwnerApproval = async (req: any, res: Response, next: NextFunction)
     const userId = req.user.userId;
     
     // Check if user is admin (admins bypass approval)
-    if (req.user.role === 'admin') {
+    if (req.user.role === 'admin' || req.user.role === Role.Admin) {
       return next();
     }
 
     // Check owner approval status
-    const ownerQuery = await executeQuery(
-      'SELECT approved FROM users WHERE user_id = ? AND role = "owner"',
-      [userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId }
+    });
 
-    if (ownerQuery.length === 0) {
+    if (!user) {
       return res.status(403).json({
         success: false,
-        message: 'Owner not found'
+        message: 'User not found'
       });
     }
 
-    const owner = ownerQuery[0];
-    if (owner.approved !== 1) {
+    if (user.role !== Role.Owner && req.user.role !== 'owner') {
+      return next(); // Not an owner, move on
+    }
+
+    // Check for approval (status enum or legacy approved flag)
+    const isApproved = user.status === UserStatus.Approved || user.approved === 1;
+
+    if (!isApproved) {
       return res.status(403).json({
         success: false,
         message: 'Owner account not approved',
@@ -80,7 +86,10 @@ const requireRole = (roles: string[]) => {
     }
 
     // Case-insensitive role check
-    if (!roles.map(role => role.toLowerCase()).includes(req.user.role?.toLowerCase())) {
+    const userRole = req.user.role?.toLowerCase();
+    const authorizedRoles = roles.map(role => role.toLowerCase());
+
+    if (!authorizedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions'

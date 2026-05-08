@@ -1,7 +1,8 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
+import { RoomStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -10,62 +11,66 @@ router.get('/pensions/:pensionId', authenticateToken as any, async (req: express
   try {
     const { pensionId } = req.params;
     const { language = 'en' } = req.query;
+    const pId = parseInt(pensionId as string);
     
     // Get packages and count available rooms for each
-    const packages = await executeQuery(`
-      SELECT pk.*, 
-             (SELECT COUNT(*) 
-              FROM rooms r 
-              WHERE r.pension_id = pk.pension_id 
-                AND r.room_type = pk.name 
-                AND r.availability_status = 'available') as availableRooms
-      FROM packages pk
-      WHERE pk.pension_id = ?
-      ORDER BY pk.price ASC
-    `, [pensionId]);
-    
-    // Parse JSON services and apply multilingual text
-    const formattedPackages = packages.map((pkg: any) => ({
+    const packages = await prisma.package.findMany({
+      where: { pension_id: pId },
+      include: {
+        _count: {
+          select: {
+            rooms: {
+              where: { availability_status: RoomStatus.Available }
+            }
+          }
+        }
+      }
+    });
+
+    const formattedPackages = packages.map(pkg => ({
       ...pkg,
       id: pkg.package_id,
-      name: getMultilingualText(pkg.name_ml, language as string) || pkg.name,
-      description: getMultilingualText(pkg.description_ml, language as string) || pkg.description,
-      services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || [])
+      name: getMultilingualText(pkg.name_ml as any, language as string) || pkg.name,
+      description: getMultilingualText(pkg.description_ml as any, language as string) || pkg.description,
+      availableRoomsCount: pkg._count.rooms,
+      isMostPopular: pkg.is_most_popular
     }));
-    
+
     res.json({
       success: true,
       data: formattedPackages
     });
   } catch (error: any) {
-    console.error('Get pension packages error:', error);
     next(error);
   }
 });
 
-// Get package by ID
+// Get single package details
 router.get('/:id', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
     const { language = 'en' } = req.query;
-    const packages = await executeQuery('SELECT * FROM packages WHERE package_id = ?', [id]);
-    
-    if (packages.length === 0) {
+    const pId = parseInt(id as string);
+
+    const pkg = await prisma.package.findUnique({
+      where: { package_id: pId }
+    });
+
+    if (!pkg) {
       return res.status(404).json({
         success: false,
         message: 'Package not found'
       });
     }
-    
-    const pkg = packages[0];
+
     res.json({
       success: true,
       data: {
         ...pkg,
         id: pkg.package_id,
-        name: getMultilingualText(pkg.name_ml, language as string) || pkg.name,
-        description: getMultilingualText(pkg.description_ml, language as string) || pkg.description,
-        services: typeof pkg.services === 'string' ? JSON.parse(pkg.services) : (pkg.services || [])
+        name: getMultilingualText(pkg.name_ml as any, language as string) || pkg.name,
+        description: getMultilingualText(pkg.description_ml as any, language as string) || pkg.description,
+        isMostPopular: pkg.is_most_popular
       }
     });
   } catch (error: any) {
@@ -74,32 +79,37 @@ router.get('/:id', authenticateToken as any, async (req: express.Request, res: e
 });
 
 // Create new package
-router.post('/pensions/:pensionId', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+router.post('/', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    const { pensionId } = req.params;
-    const { name, description, price, services, is_most_popular, image_url, name_ml, description_ml } = req.body;
-    
-    // Prepare multilingual fields
-    const nameMlJson = name_ml ? JSON.stringify(name_ml) : JSON.stringify({ en: name });
-    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : JSON.stringify({ en: description });
-    
-    const result = await executeQuery(
-      'INSERT INTO packages (pension_id, name, description, price, services, is_most_popular, image_url, name_ml, description_ml) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [pensionId, name, description, price, JSON.stringify(services || []), is_most_popular ? 1 : 0, image_url, nameMlJson, descriptionMlJson]
-    );
-    
-    res.status(201).json({
-      success: true,
+    const { pension_id, name, description, price, services, is_most_popular, image_url, name_ml, description_ml } = req.body;
+    const pId = parseInt(pension_id as string);
+
+    // If this package is marked as most popular, unset others for this pension
+    if (is_most_popular) {
+      await prisma.package.updateMany({
+        where: { pension_id: pId },
+        data: { is_most_popular: false }
+      });
+    }
+
+    const newPackage = await prisma.package.create({
       data: {
-        id: result.insertId,
-        pension_id: parseInt(pensionId as string),
+        pension_id: pId,
         name,
         description,
         price,
-        services: services || [],
-        is_most_popular,
-        availableRooms: 0
+        inclusions: services || [],
+        is_most_popular: !!is_most_popular,
+        image_url,
+        name_ml: name_ml || { en: name },
+        description_ml: description_ml || { en: description }
       }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Package created successfully',
+      data: { id: newPackage.package_id }
     });
   } catch (error: any) {
     next(error);
@@ -111,39 +121,40 @@ router.put('/:id', authenticateToken as any, async (req: express.Request, res: e
   try {
     const { id } = req.params;
     const { name, description, price, services, is_most_popular, image_url, name_ml, description_ml } = req.body;
+    const pkgId = parseInt(id as string);
     
-    // Get existing package to preserve multilingual fields if not provided
-    const existingPackage = await executeQuery('SELECT * FROM packages WHERE package_id = ?', [id]);
-    if (existingPackage.length === 0) {
+    const existingPackage = await prisma.package.findUnique({
+      where: { package_id: pkgId }
+    });
+
+    if (!existingPackage) {
       return res.status(404).json({
         success: false,
         message: 'Package not found'
       });
     }
     
-    // Prepare multilingual fields
-    const nameMlJson = name_ml ? JSON.stringify(name_ml) : (existingPackage[0].name_ml || JSON.stringify({ en: name || existingPackage[0].name }));
-    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : (existingPackage[0].description_ml || JSON.stringify({ en: description || existingPackage[0].description }));
-    
-    const result = await executeQuery(
-      'UPDATE packages SET name = ?, description = ?, price = ?, services = ?, is_most_popular = ?, image_url = ?, name_ml = ?, description_ml = ? WHERE package_id = ?',
-      [name || existingPackage[0].name, 
-       description || existingPackage[0].description, 
-       price, 
-       JSON.stringify(services || []), 
-       is_most_popular ? 1 : 0, 
-       image_url, 
-       nameMlJson, 
-       descriptionMlJson, 
-       id]
-    );
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Package not found'
+    // If this package is marked as most popular, unset others for this pension
+    if (is_most_popular) {
+      await prisma.package.updateMany({
+        where: { pension_id: existingPackage.pension_id },
+        data: { is_most_popular: false }
       });
     }
+
+    await prisma.package.update({
+      where: { package_id: pkgId },
+      data: {
+        name: name || existingPackage.name,
+        description: description || existingPackage.description,
+        price: price !== undefined ? price : existingPackage.price,
+        inclusions: services || existingPackage.inclusions,
+        is_most_popular: is_most_popular !== undefined ? !!is_most_popular : existingPackage.is_most_popular,
+        image_url: image_url || existingPackage.image_url,
+        name_ml: name_ml || existingPackage.name_ml,
+        description_ml: description_ml || existingPackage.description_ml
+      }
+    });
     
     res.json({
       success: true,
@@ -158,7 +169,12 @@ router.put('/:id', authenticateToken as any, async (req: express.Request, res: e
 router.delete('/:id', authenticateToken as any, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { id } = req.params;
-    await executeQuery('DELETE FROM packages WHERE package_id = ?', [id]);
+    const pkgId = parseInt(id as string);
+
+    await prisma.package.delete({
+      where: { package_id: pkgId }
+    });
+
     res.json({
       success: true,
       message: 'Package deleted successfully'

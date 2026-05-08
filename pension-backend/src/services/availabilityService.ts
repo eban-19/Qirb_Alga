@@ -1,5 +1,6 @@
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import notificationService from './notificationService';
+import { RoomStatus, BookingStatus, Prisma } from '@prisma/client';
 
 export interface CheckInData {
   bookingId: number;
@@ -19,7 +20,7 @@ export interface CheckOutData {
 
 export interface AvailabilityUpdateData {
   roomId: number;
-  newStatus: 'Available' | 'Occupied' | 'Maintenance' | 'Blocked';
+  newStatus: RoomStatus;
   reason?: string;
   staffId: number;
   bookingId?: number;
@@ -30,70 +31,80 @@ class AvailabilityService {
   async checkInGuest(data: CheckInData) {
     try {
       // Get booking details
-      const booking = await executeQuery(`
-        SELECT b.*, r.room_id, r.availability_status, r.pension_id
-        FROM bookings b
-        JOIN rooms r ON b.room_id = r.room_id
-        WHERE b.booking_id = ?
-      `, [data.bookingId]);
+      const booking = await prisma.booking.findUnique({
+        where: { booking_id: data.bookingId },
+        include: {
+          room: {
+            select: {
+              room_id: true,
+              availability_status: true,
+              pension_id: true,
+              room_type: true
+            }
+          }
+        }
+      });
 
-      if (booking.length === 0) {
+      if (!booking) {
         throw new Error('Booking not found');
       }
 
-      const bookingData = booking[0];
-
       // Validate booking status
-      if (bookingData.status !== 'Confirmed') {
+      if (booking.status !== BookingStatus.Confirmed) {
         throw new Error('Booking must be confirmed before check-in');
       }
 
       // Check if already checked in
-      if (bookingData.actual_check_in) {
+      if (booking.actual_check_in) {
         throw new Error('Guest already checked in');
       }
 
-      const now = data.actualCheckIn || new Date().toISOString().slice(0, 19).replace('T', ' ');
-      const isEarly = data.earlyCheckIn || (new Date(now) < new Date(bookingData.check_in_date));
+      const now = data.actualCheckIn ? new Date(data.actualCheckIn) : new Date();
+      const isEarly = data.earlyCheckIn ?? (booking.check_in_date ? now < booking.check_in_date : false);
 
-      // Update booking with check-in details
-      await executeQuery(`
-        UPDATE bookings 
-        SET actual_check_in = ?, 
-            early_check_in = ?,
-            check_in_by = ?,
-            status = 'Confirmed'
-        WHERE booking_id = ? AND room_id = (SELECT room_id FROM bookings WHERE booking_id = ?)
-      `, [now, isEarly ? 1 : 0, data.staffId, data.bookingId, data.bookingId]);
-
-      // Update room status
-      const oldStatus = bookingData.availability_status;
-      if (oldStatus !== 'Occupied') {
-        await executeQuery(`
-          UPDATE rooms 
-          SET availability_status = 'Occupied',
-              last_status_update = NOW()
-          WHERE room_id = ?
-        `, [bookingData.room_id]);
-
-        // Log availability change
-        await this.logAvailabilityChange({
-          roomId: bookingData.room_id,
-          oldStatus,
-          newStatus: 'Occupied',
-          changedBy: data.staffId,
-          reason: data.notes || `Guest check-in${isEarly ? ' (early)' : ''}`,
-          bookingId: data.bookingId
+      await prisma.$transaction(async (tx) => {
+        // Update booking
+        await tx.booking.update({
+          where: { booking_id: data.bookingId },
+          data: {
+            actual_check_in: now,
+            status: BookingStatus.Confirmed
+          }
         });
-      }
+
+        // Update room status
+        if (booking.room && booking.room.availability_status !== RoomStatus.Occupied) {
+          await tx.room.update({
+            where: { room_id: booking.room.room_id },
+            data: {
+              availability_status: RoomStatus.Occupied,
+              last_status_update: new Date()
+            }
+          });
+
+          // Log availability change
+          await tx.roomAvailabilityLog.create({
+            data: {
+              room_id: booking.room.room_id,
+              old_status: booking.room.availability_status,
+              new_status: RoomStatus.Occupied,
+              changed_by: data.staffId,
+              changed_at: new Date()
+            }
+          });
+        }
+      });
 
       // Send notification to pension owner
-      await notificationService.createNotification({
-        user_id: await this.getPensionOwnerId(bookingData.pension_id),
-        title: 'Guest Checked In',
-        message: `Guest has checked in to ${bookingData.room_type}${isEarly ? ' (early check-in)' : ''}`,
-        type: 'checkin'
-      });
+      if (booking.room) {
+        const ownerId = await this.getPensionOwnerId(booking.room.pension_id);
+        await notificationService.createNotification({
+          user_id: ownerId,
+          title: 'Guest Checked In',
+          message: `Guest has checked in to ${booking.room.room_type}${isEarly ? ' (early check-in)' : ''}`,
+          type: 'checkin'
+        });
+      }
 
       return {
         success: true,
@@ -114,71 +125,77 @@ class AvailabilityService {
   // Check-out guest
   async checkOutGuest(data: CheckOutData) {
     try {
-      // Get booking details
-      const booking = await executeQuery(`
-        SELECT b.*, r.room_id, r.availability_status, r.pension_id
-        FROM bookings b
-        JOIN rooms r ON b.room_id = r.room_id
-        WHERE b.booking_id = ?
-      `, [data.bookingId]);
+      const booking = await prisma.booking.findUnique({
+        where: { booking_id: data.bookingId },
+        include: {
+          room: {
+            select: {
+              room_id: true,
+              availability_status: true,
+              pension_id: true,
+              room_type: true
+            }
+          }
+        }
+      });
 
-      if (booking.length === 0) {
+      if (!booking) {
         throw new Error('Booking not found');
       }
 
-      const bookingData = booking[0];
-
-      // Validate booking status
-      if (!['Confirmed', 'Completed'].includes(bookingData.status)) {
+      if (booking.status !== BookingStatus.Confirmed && booking.status !== BookingStatus.Completed) {
         throw new Error('Invalid booking status for check-out');
       }
 
-      // Check if already checked out
-      if (bookingData.actual_check_out) {
+      if (booking.actual_check_out) {
         throw new Error('Guest already checked out');
       }
 
-      const now = data.actualCheckOut || new Date().toISOString().slice(0, 19).replace('T', ' ');
-      const isEarly = data.earlyCheckOut || (new Date(now) < new Date(bookingData.check_out_date));
+      const now = data.actualCheckOut ? new Date(data.actualCheckOut) : new Date();
+      const isEarly = data.earlyCheckOut ?? (booking.check_out_date ? now < booking.check_out_date : false);
 
-      // Update booking with check-out details
-      await executeQuery(`
-        UPDATE bookings 
-        SET actual_check_out = ?, 
-            early_check_out = ?,
-            check_out_by = ?,
-            status = 'Completed'
-        WHERE booking_id = ?
-      `, [now, isEarly ? 1 : 0, data.staffId, data.bookingId]);
+      await prisma.$transaction(async (tx) => {
+        // Update booking
+        await tx.booking.update({
+          where: { booking_id: data.bookingId },
+          data: {
+            actual_check_out: now,
+            status: BookingStatus.Completed
+          }
+        });
 
-      // Update room status to Available (no maintenance for now)
-      const oldStatus = bookingData.availability_status;
-      if (oldStatus !== 'Available') {
-        await executeQuery(`
-          UPDATE rooms 
-          SET availability_status = 'Available',
-              last_status_update = NOW()
-          WHERE room_id = ?
-        `, [bookingData.room_id]);
+        // Update room status
+        if (booking.room && booking.room.availability_status !== RoomStatus.Available) {
+          await tx.room.update({
+            where: { room_id: booking.room.room_id },
+            data: {
+              availability_status: RoomStatus.Available,
+              last_status_update: new Date()
+            }
+          });
 
-        // Log availability change
-        await this.logAvailabilityChange({
-          roomId: bookingData.room_id,
-          oldStatus,
-          newStatus: 'Available',
-          changedBy: data.staffId,
-          reason: data.notes || `Guest check-out${isEarly ? ' (early)' : ''}`,
-          bookingId: data.bookingId
+          // Log availability change
+          await tx.roomAvailabilityLog.create({
+            data: {
+              room_id: booking.room.room_id,
+              old_status: booking.room.availability_status,
+              new_status: RoomStatus.Available,
+              changed_by: data.staffId,
+              changed_at: new Date()
+            }
+          });
+        }
+      });
+
+      if (booking.room) {
+        const ownerId = await this.getPensionOwnerId(booking.room.pension_id);
+        await notificationService.createNotification({
+          user_id: ownerId,
+          title: 'Guest Checked Out',
+          message: `Guest has checked out from ${booking.room.room_type}${isEarly ? ' (early check-out)' : ''}`,
+          type: 'checkout'
         });
       }
-
-      // Send notification to pension owner
-      await notificationService.createNotification({
-        user_id: await this.getPensionOwnerId(bookingData.pension_id),
-        title: 'Guest Checked Out',
-        message: `Guest has checked out from ${bookingData.room_type}${isEarly ? ' (early check-out)' : ''}`,
-        type: 'checkout'
-      });
 
       return {
         success: true,
@@ -199,35 +216,35 @@ class AvailabilityService {
   // Manual availability update (admin override)
   async updateRoomAvailability(data: AvailabilityUpdateData) {
     try {
-      // Get current room status
-      const room = await executeQuery(`
-        SELECT room_id, availability_status, pension_id
-        FROM rooms
-        WHERE room_id = ?
-      `, [data.roomId]);
+      const room = await prisma.room.findUnique({
+        where: { room_id: data.roomId },
+        select: { room_id: true, availability_status: true }
+      });
 
-      if (room.length === 0) {
+      if (!room) {
         throw new Error('Room not found');
       }
 
-      const oldStatus = room[0].availability_status;
+      const oldStatus = room.availability_status;
 
-      // Update room status
-      await executeQuery(`
-        UPDATE rooms 
-        SET availability_status = ?,
-            last_status_update = NOW()
-        WHERE room_id = ?
-      `, [data.newStatus, data.roomId]);
+      await prisma.$transaction(async (tx) => {
+        await tx.room.update({
+          where: { room_id: data.roomId },
+          data: {
+            availability_status: data.newStatus,
+            last_status_update: new Date()
+          }
+        });
 
-      // Log availability change
-      await this.logAvailabilityChange({
-        roomId: data.roomId,
-        oldStatus,
-        newStatus: data.newStatus,
-        changedBy: data.staffId,
-        reason: data.reason || 'Manual admin override',
-        bookingId: data.bookingId
+        await tx.roomAvailabilityLog.create({
+          data: {
+            room_id: data.roomId,
+            old_status: oldStatus,
+            new_status: data.newStatus,
+            changed_by: data.staffId,
+            changed_at: new Date()
+          }
+        });
       });
 
       return {
@@ -249,18 +266,23 @@ class AvailabilityService {
   // Get availability history
   async getAvailabilityHistory(roomId: number, limit: number = 50) {
     try {
-      const history = await executeQuery(`
-        SELECT ah.*, u.full_name as changed_by_name
-        FROM availability_history ah
-        LEFT JOIN users u ON ah.changed_by = u.user_id
-        WHERE ah.room_id = ?
-        ORDER BY ah.created_at DESC
-        LIMIT ?
-      `, [roomId, limit]);
+      const history = await prisma.roomAvailabilityLog.findMany({
+        where: { room_id: roomId },
+        include: {
+          changer: {
+            select: { full_name: true }
+          }
+        },
+        orderBy: { changed_at: 'desc' },
+        take: limit
+      });
 
       return {
         success: true,
-        data: history
+        data: history.map(h => ({
+          ...h,
+          changed_by_name: h.changer?.full_name
+        }))
       };
 
     } catch (error: any) {
@@ -302,41 +324,48 @@ class AvailabilityService {
   // Get rooms needing attention (early check-ins, etc.)
   async getRoomsNeedingAttention(pensionId: number) {
     try {
-      const rooms = await executeQuery(`
-        SELECT 
-          r.room_id,
-          r.room_type,
-          r.availability_status,
-          r.pension_id,
-          b.booking_id,
-          b.customer_id,
-          b.check_in_date,
-          b.check_out_date,
-          b.actual_check_in,
-          b.actual_check_out,
-          b.early_check_in,
-          b.early_check_out,
-          u.full_name as customer_name,
-          DATEDIFF(b.check_in_date, CURDATE()) as days_until_checkin,
-          DATEDIFF(b.check_out_date, CURDATE()) as days_until_checkout
-        FROM rooms r
-        LEFT JOIN bookings b ON r.room_id = b.room_id 
-          AND b.status IN ('Confirmed', 'Completed')
-          AND b.actual_check_in IS NULL
-        LEFT JOIN users u ON b.customer_id = u.user_id
-        WHERE r.pension_id = ?
-        ORDER BY 
-          CASE 
-            WHEN b.check_in_date <= CURDATE() AND b.actual_check_in IS NULL THEN 1
-            WHEN b.check_out_date <= CURDATE() AND b.actual_check_out IS NULL THEN 2
-            ELSE 3
-          END,
-          b.check_in_date ASC
-      `, [pensionId]);
+      const rooms = await prisma.room.findMany({
+        where: { pension_id: pensionId },
+        include: {
+          bookings: {
+            where: {
+              status: { in: [BookingStatus.Confirmed, BookingStatus.Completed] },
+              actual_check_in: null
+            },
+            include: {
+              customer: { select: { full_name: true } }
+            },
+            orderBy: { check_in_date: 'asc' }
+          }
+        }
+      });
+
+      // Process and sort for "attention" logic
+      const processed = rooms.map(r => {
+        const primaryBooking = r.bookings[0];
+        return {
+          room_id: r.room_id,
+          room_type: r.room_type,
+          availability_status: r.availability_status,
+          pension_id: r.pension_id,
+          booking_id: primaryBooking?.booking_id,
+          customer_id: primaryBooking?.customer_id,
+          check_in_date: primaryBooking?.check_in_date,
+          check_out_date: primaryBooking?.check_out_date,
+          actual_check_in: primaryBooking?.actual_check_in,
+          actual_check_out: primaryBooking?.actual_check_out,
+          customer_name: primaryBooking?.customer?.full_name
+        };
+      });
 
       return {
         success: true,
-        data: rooms
+        data: processed.sort((a: any, b: any) => {
+          const aPriority = a.check_in_date && a.check_in_date <= new Date() ? 1 : 2;
+          const bPriority = b.check_in_date && b.check_in_date <= new Date() ? 1 : 2;
+          if (aPriority !== bPriority) return aPriority - bPriority;
+          return (a.check_in_date?.getTime() || 0) - (b.check_in_date?.getTime() || 0);
+        })
       };
 
     } catch (error: any) {
@@ -346,27 +375,13 @@ class AvailabilityService {
   }
 
   // Helper methods
-  private async logAvailabilityChange(data: {
-    roomId: number;
-    oldStatus: string;
-    newStatus: string;
-    changedBy: number;
-    reason: string;
-    bookingId?: number;
-  }) {
-    await executeQuery(`
-      INSERT INTO availability_history 
-      (room_id, old_status, new_status, changed_by, reason, booking_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [data.roomId, data.oldStatus, data.newStatus, data.changedBy, data.reason, data.bookingId]);
-  }
-
   private async getPensionOwnerId(pensionId: number): Promise<number> {
-    const result = await executeQuery(`
-      SELECT owner_id FROM pensions WHERE pension_id = ?
-    `, [pensionId]);
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: pensionId },
+      select: { owner_id: true }
+    });
     
-    return result[0]?.owner_id || 0;
+    return pension?.owner_id || 0;
   }
 }
 

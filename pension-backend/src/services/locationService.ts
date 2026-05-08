@@ -1,4 +1,5 @@
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
+import { PensionStatus, ApprovalStatus, Prisma } from '@prisma/client';
 
 // Coordinate interface
 export interface Coordinates {
@@ -55,39 +56,34 @@ class LocationService {
   // Get all pensions for map display
   async getMapPensions(): Promise<MapPension[]> {
     try {
-      const result = await executeQuery(`
-        SELECT 
-          p.pension_id,
-          p.name,
-          p.latitude,
-          p.longitude,
-          p.address,
-          p.city,
-          p.region,
-          p.image_url,
-          p.status,
-          op.approval_status
-        FROM pensions p
-        LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
-        WHERE p.status = 'active' 
-        AND op.approval_status = 'Approved'
-        AND p.latitude IS NOT NULL 
-        AND p.longitude IS NOT NULL
-        ORDER BY p.name
-      `);
+      const pensions = await prisma.pension.findMany({
+        where: {
+          status: PensionStatus.active,
+          owner: {
+            ownerProfile: {
+              approval_status: ApprovalStatus.Approved
+            }
+          },
+          latitude: { not: null },
+          longitude: { not: null }
+        },
+        orderBy: { name: 'asc' }
+      });
 
-      return result.map((p: any) => ({
+      const mapPensions = await Promise.all(pensions.map(async (p) => ({
         pension_id: p.pension_id,
         name: p.name,
-        latitude: parseFloat(p.latitude),
-        longitude: parseFloat(p.longitude),
+        latitude: p.latitude ? parseFloat(p.latitude.toString()) : 0,
+        longitude: p.longitude ? parseFloat(p.longitude.toString()) : 0,
         address: p.address || '',
         city: p.city || 'Unknown',
         region: p.region || 'Unknown',
-        image_url: p.image_url,
-        price_range: this.getPriceRange(p.pension_id),
+        image_url: p.image_url || undefined,
+        price_range: await this.getPriceRange(p.pension_id),
         rating: 0 // TODO: Calculate from reviews
-      }));
+      })));
+
+      return mapPensions;
     } catch (error) {
       console.error('Error getting map pensions:', error);
       throw error;
@@ -179,11 +175,16 @@ class LocationService {
   // Update pension coordinates
   async updatePensionCoordinates(pensionId: number, lat: number, lng: number, address?: Address): Promise<void> {
     try {
-      await executeQuery(`
-        UPDATE pensions 
-        SET latitude = ?, longitude = ?, city = ?, region = ?, country = ?
-        WHERE pension_id = ?
-      `, [lat, lng, address?.city, address?.region, address?.country, pensionId]);
+      await prisma.pension.update({
+        where: { pension_id: pensionId },
+        data: {
+          latitude: new Prisma.Decimal(lat),
+          longitude: new Prisma.Decimal(lng),
+          city: address?.city,
+          region: address?.region,
+          country: address?.country
+        }
+      });
     } catch (error) {
       console.error('Error updating pension coordinates:', error);
       throw error;
@@ -193,20 +194,26 @@ class LocationService {
   // Get price range for a pension (helper method)
   private async getPriceRange(pensionId: number): Promise<string> {
     try {
-      const result = await executeQuery(
-        'SELECT MIN(price) as min_price, MAX(price) as max_price FROM packages WHERE pension_id = ? AND is_active = 1',
-        [pensionId]
-      );
+      const aggregate = await prisma.package.aggregate({
+        where: { 
+          pension_id: pensionId,
+          is_active: true
+        },
+        _min: { price: true },
+        _max: { price: true }
+      });
       
-      if (result.length === 0 || !result[0].min_price) {
+      if (aggregate._min.price === null || aggregate._max.price === null) {
         return 'Price not available';
       }
       
-      const { min_price, max_price } = result[0];
-      if (min_price === max_price) {
-        return `${min_price} ETB`;
+      const minPrice = aggregate._min.price.toNumber();
+      const maxPrice = aggregate._max.price.toNumber();
+
+      if (minPrice === maxPrice) {
+        return `${minPrice} ETB`;
       }
-      return `${min_price} - ${max_price} ETB`;
+      return `${minPrice} - ${maxPrice} ETB`;
     } catch (error) {
       return 'Price not available';
     }

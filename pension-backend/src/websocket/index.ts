@@ -1,6 +1,6 @@
 import * as WebSocket from 'ws';
 import * as jwt from 'jsonwebtoken';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 
 interface NotificationData {
   user_id: number;
@@ -114,21 +114,23 @@ class WebSocketServer {
 
   async markNotificationRead(userId: number, notificationId: number) {
     try {
-      await executeQuery(
-        'UPDATE notifications SET is_read = 1 WHERE notification_id = ? AND user_id = ?',
-        [notificationId, userId]
-      );
+      await prisma.notification.updateMany({
+        where: {
+          notification_id: notificationId,
+          user_id: userId
+        },
+        data: { is_read: true }
+      });
       
       // Send updated unread count
-      const unreadCount = await executeQuery(
-        'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
-        [userId]
-      );
+      const unreadCount = await prisma.notification.count({
+        where: { user_id: userId, is_read: false }
+      });
 
       this.sendToClient(userId, {
         type: 'notification_read',
         notificationId,
-        unreadCount: unreadCount[0].count,
+        unreadCount,
         timestamp: new Date().toISOString()
       });
 
@@ -166,14 +168,13 @@ class WebSocketServer {
   // Update unread count for user
   async updateUnreadCount(userId: number) {
     try {
-      const result = await executeQuery(
-        'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
-        [userId]
-      );
+      const count = await prisma.notification.count({
+        where: { user_id: userId, is_read: false }
+      });
 
       this.sendToClient(userId, {
         type: 'unread_count',
-        count: result[0].count,
+        count,
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {

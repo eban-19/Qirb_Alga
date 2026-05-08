@@ -1,6 +1,7 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
+import { Prisma } from '@prisma/client';
 
 const router = express.Router();
 
@@ -16,36 +17,30 @@ router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, re
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId);
 
     // Verify ownership
-    const pension = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
-    if (pension.length === 0 && req.user.role?.toLowerCase() !== 'admin') {
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: pId,
+        owner_id: userId
+      }
+    });
+
+    if (!pension && req.user.role?.toLowerCase() !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const expenses = await executeQuery(
-      'SELECT * FROM expenses WHERE owner_id = ? ORDER BY expense_date DESC',
-      [pensionId]
-    );
+    const expenses = await prisma.expense.findMany({
+      where: { pension_id: pId },
+      orderBy: { expense_date: 'desc' }
+    });
     
-    // If no expenses found with owner_id, try with id
-    if (expenses.length === 0) {
-      const expensesById = await executeQuery(
-        'SELECT * FROM expenses WHERE owner_id = ? ORDER BY expense_date DESC',
-        [pensionId]
-      );
-      expenses.push(...expensesById);
-    }
-
-    const totalExpenses = expenses.reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0);
+    const totalExpenses = expenses.reduce((sum: number, e: any) => sum + parseFloat(e.amount.toString()), 0);
 
     res.json({ success: true, data: { items: expenses, totalExpenses } });
   } catch (error: any) {
     console.error('Get expenses error:', error);
-    console.error('Error details:', error.message);
     // Don't fail the entire load if expenses fail
     res.json({ 
       success: true, 
@@ -63,29 +58,38 @@ router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, r
     const { pensionId } = req.params;
     const { category, description, amount, expense_date }: ExpenseData = req.body;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId);
 
     if (!category || !amount || !expense_date) {
       return res.status(400).json({ success: false, message: 'Category, amount, and date are required' });
     }
 
     // Verify ownership
-    const pension = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
-    if (pension.length === 0 && req.user.role?.toLowerCase() !== 'admin') {
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: pId,
+        owner_id: userId
+      }
+    });
+
+    if (!pension && req.user.role?.toLowerCase() !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const result = await executeQuery(
-      'INSERT INTO expenses (pension_id, category, description, amount, expense_date) VALUES (?, ?, ?, ?, ?)',
-      [pensionId, category, description || '', amount, expense_date]
-    );
+    const expense = await prisma.expense.create({
+      data: {
+        pension_id: pId,
+        category,
+        description: description || '',
+        amount: new Prisma.Decimal(amount),
+        expense_date: new Date(expense_date)
+      }
+    });
 
     res.status(201).json({
       success: true,
       message: 'Expense added',
-      data: { expense_id: result.insertId }
+      data: { expense_id: expense.expense_id }
     });
   } catch (error: any) {
     console.error('Add expense error:', error);
@@ -98,19 +102,30 @@ router.delete('/:expenseId', authenticateToken as any, async (req: any, res: exp
   try {
     const { expenseId } = req.params;
     const userId = req.user.userId;
+    const eId = parseInt(expenseId);
 
-    // Verify ownership via join
-    const expense = await executeQuery(
-      `SELECT e.expense_id FROM expenses e 
-       JOIN pensions p ON e.pension_id = p.pension_id 
-       WHERE e.expense_id = ? AND p.owner_id = ?`,
-      [expenseId, userId]
-    );
-    if (expense.length === 0 && req.user.role?.toLowerCase() !== 'admin') {
+    // Verify ownership via relationship
+    const expense = await prisma.expense.findUnique({
+      where: { expense_id: eId },
+      include: {
+        pension: {
+          select: { owner_id: true }
+        }
+      }
+    });
+
+    if (!expense) {
+      return res.status(404).json({ success: false, message: 'Expense not found' });
+    }
+
+    if (expense.pension?.owner_id !== userId && req.user.role?.toLowerCase() !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    await executeQuery('DELETE FROM expenses WHERE expense_id = ?', [expenseId]);
+    await prisma.expense.delete({
+      where: { expense_id: eId }
+    });
+
     res.json({ success: true, message: 'Expense deleted' });
   } catch (error: any) {
     console.error('Delete expense error:', error);

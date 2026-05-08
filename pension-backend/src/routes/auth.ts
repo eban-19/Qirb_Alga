@@ -1,8 +1,9 @@
 import * as express from 'express';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
-import { executeQuery, executeTransaction } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
+import { Role, UserStatus, ApprovalStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.post('/register', async (req: any, res: any) => {
       password, 
       fullName, 
       phone, 
-      role = 'owner',
+      role = 'Owner',
       businessName,
       businessEmail,
       businessPhone,
@@ -32,12 +33,12 @@ router.post('/register', async (req: any, res: any) => {
     }
 
     // Check if user already exists
-    const existingUser = await executeQuery(
-      'SELECT user_id FROM users WHERE email = ?',
-      [email]
-    );
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { user_id: true }
+    });
 
-    if (existingUser.length > 0) {
+    if (existingUser) {
       return res.status(400).json({
         success: false,
         message: 'User with this email already exists'
@@ -48,104 +49,77 @@ router.post('/register', async (req: any, res: any) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user with pending approval status
-    const result = await executeQuery(
-      'INSERT INTO users (full_name, email, phone, password_hash, role, approved) VALUES (?, ?, ?, ?, ?, ?)',
-      [fullName, email, phone, hashedPassword, role, 0] // 0 = pending approval
-    );
+    // Map role string to enum
+    let userRole: Role = Role.Owner;
+    if (role.toLowerCase() === 'admin') userRole = Role.Admin;
+    if (role.toLowerCase() === 'customer') userRole = Role.Customer;
 
-    // Get created user
-    const newUser = await executeQuery(
-      'SELECT user_id, full_name, email, phone, role, approved, created_at FROM users WHERE user_id = ?',
-      [result.insertId]
-    );
-
-    if (!newUser || newUser.length === 0) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create user'
-      });
-    }
-
-    // Create owner profile for business owners
-    if ((role === 'owner' || role === 'Owner') && businessName) {
-      try {
-        console.log('🔍 Creating owner profile for user ID:', result.insertId, 'with business data:', {
-          businessName,
-          businessEmail,
-          businessPhone,
-          licenseNumber,
-          documentUrl
-        });
-        
-        const ownerProfileResult = await executeQuery(`
-          INSERT INTO ownerprofiles (owner_id, business_name, business_email, business_phone, license_number, id_document_url, approval_status, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())
-        `, [
-          result.insertId, // owner_id
-          businessName || '', // business_name
-          businessEmail || email || '', // business_email
-          businessPhone || phone || '', // business_phone
-          licenseNumber || '', // license_number
-          documentUrl || '' // id_document_url
-        ]);
-        
-        console.log('✅ Owner profile created with ID:', ownerProfileResult.insertId);
-        
-        // Verify the owner profile was created
-        const verifyProfile = await executeQuery(
-          'SELECT * FROM ownerprofiles WHERE owner_id = ?',
-          [result.insertId]
-        );
-        
-        if (verifyProfile.length === 0) {
-          console.warn('⚠️ Owner profile verification failed');
-        } else {
-          console.log('✅ Owner profile verified:', verifyProfile[0]);
+    // Create user with pending approval status and optional owner profile/pension in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create user
+      const newUser = await tx.user.create({
+        data: {
+          full_name: fullName,
+          email,
+          phone,
+          password_hash: hashedPassword,
+          role: userRole,
+          status: UserStatus.Pending,
+          approved: 0
         }
-      } catch (profileError: any) {
-        console.error('❌ Error creating owner profile:', profileError);
-        // Don't fail the whole registration if profile creation fails
-        // Just log the error and continue
-      }
-    }
+      });
 
-    // Create pension if data provided
-    if (pensionData && (role === 'owner' || role === 'Owner')) {
-      try {
-        console.log('🏠 Creating pension for user ID:', result.insertId, 'with pension data:', pensionData);
-        
-        const pensionResult = await executeQuery(
-          `INSERT INTO pensions (name, address, description, phone, email, capacity, owner_id, status, created_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())`,
-          [
-            pensionData.name,
-            pensionData.address,
-            pensionData.description,
-            pensionData.phone,
-            pensionData.email,
-            pensionData.capacity,
-            result.insertId
-          ]
-        );
-        
-        console.log('✅ Pension created with ID:', pensionResult.insertId);
-      } catch (pensionError: any) {
-        console.error('❌ Error creating pension:', pensionError);
-        // Don't fail the whole registration if pension creation fails
-        // Just log the error and continue
+      // Create owner profile for business owners
+      if ((userRole === Role.Owner) && businessName) {
+        await tx.ownerProfile.create({
+          data: {
+            owner_id: newUser.user_id,
+            business_name: businessName || '',
+            business_email: businessEmail || email || '',
+            business_phone: businessPhone || phone || '',
+            license_number: licenseNumber || '',
+            id_document_url: documentUrl || '',
+            approval_status: ApprovalStatus.Pending
+          }
+        });
       }
-    }
+
+      // Create pension if data provided
+      if (pensionData && (userRole === Role.Owner)) {
+        await tx.pension.create({
+          data: {
+            name: pensionData.name,
+            address: pensionData.address,
+            description: pensionData.description,
+            phone: pensionData.phone,
+            email: pensionData.email,
+            capacity: parseInt(pensionData.capacity) || 0,
+            owner_id: newUser.user_id,
+            status: 'pending' as any // Using literal because of enum/string mapping
+          }
+        });
+      }
+
+      return newUser;
+    });
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully. Please wait for admin approval.',
       data: {
-        user: newUser[0],
-        userId: result.insertId,
+        user: {
+          user_id: result.user_id,
+          full_name: result.full_name,
+          email: result.email,
+          phone: result.phone,
+          role: result.role,
+          approved: result.approved,
+          created_at: result.created_at
+        },
+        userId: result.user_id,
         email,
         fullName,
-        role,
+        role: result.role,
         status: 'pending'
       }
     });
@@ -174,30 +148,22 @@ router.post('/login', async (req: any, res: any) => {
     }
 
     // Find user
-    const users = await executeQuery(
-      'SELECT user_id, email, password_hash, full_name, phone, role, approved FROM users WHERE email = ?',
-      [email]
-    );
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
-    const user = users[0];
-
     // Debug logging
     console.log('🔍 Login attempt:', { email, role: user.role, approved: user.approved });
-    console.log('🔍 Approval check:', {
-      isAdmin: user.role?.toLowerCase() === 'admin',
-      isApproved: user.approved === 1,
-      shouldPass: user.role?.toLowerCase() === 'admin' || user.approved === 1
-    });
 
     // Check if user is approved (except admins)
-    if (user.role?.toLowerCase() !== 'admin' && user.approved !== 1) {
+    if (user.role !== Role.Admin && user.approved !== 1) {
       console.log('❌ Login rejected: Not approved');
       return res.status(401).json({
         success: false,
@@ -258,31 +224,18 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
 
-    const users = await executeQuery(
-      'SELECT user_id, email, full_name, phone, role, status, created_at FROM users WHERE user_id = ?',
-      [userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId },
+      include: {
+        ownerProfile: true
+      }
+    });
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
-    }
-
-    const user = users[0];
-
-    // Get owner profile if user is owner
-    let ownerProfile = null;
-    console.log('🔍 Get profile - User role:', user.role, 'User ID:', userId);
-    if (user.role === 'owner') {
-      const profiles = await executeQuery(
-        'SELECT * FROM ownerprofiles WHERE owner_id = ?',
-        [userId]
-      );
-      console.log('🔍 Get profile - Owner profiles query result:', profiles);
-      ownerProfile = profiles.length > 0 ? profiles[0] : null;
-      console.log('🔍 Get profile - Owner profile set to:', ownerProfile);
     }
 
     res.json({
@@ -297,7 +250,7 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
           status: user.status,
           created_at: user.created_at
         },
-        ownerProfile
+        ownerProfile: user.ownerProfile
       }
     });
 
@@ -312,121 +265,77 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
 
 // Update user profile
 router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
-  console.log('🔍 PUT /auth/profile - Request body:', req.body);
-  console.log('🔍 PUT /auth/profile - User role:', req.user.role);
-  console.log('🔍 PUT /auth/profile - User ID:', req.user.userId);
-  
   try {
     const userId = req.user.userId;
     const { fullName, phone, businessName, businessEmail, businessPhone, licenseNumber, licenseDocument } = req.body;
 
-    // Update basic user profile
-    if (fullName || phone) {
-      await executeQuery(
-        'UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?',
-        [fullName || req.body.fullName, phone || req.body.phone, userId]
-      );
-    }
-
-    // Update business profile if user is owner and business data provided
-    let statusChanged = false;
-    if ((businessName || businessEmail || businessPhone || licenseNumber || licenseDocument) && req.user.role.toLowerCase() === 'owner') {
-      // Check if owner profile exists
-      const existingProfile = await executeQuery(
-        'SELECT * FROM ownerprofiles WHERE owner_id = ?',
-        [userId]
-      );
-
-      // Check if any critical business fields are being changed
-      const criticalFieldsChanged = [];
-      if (existingProfile.length > 0) {
-        const current = existingProfile[0];
-        console.log('🔍 Update profile - Current profile:', current);
-        console.log('🔍 Update profile - New data:', { businessName, businessEmail, businessPhone, licenseNumber, licenseDocument });
-        
-        if (businessName && businessName !== current.business_name) criticalFieldsChanged.push('business_name');
-        if (businessEmail && businessEmail !== current.business_email) criticalFieldsChanged.push('business_email');
-        if (businessPhone && businessPhone !== current.business_phone) criticalFieldsChanged.push('business_phone');
-        if (licenseNumber && licenseNumber !== current.license_number) criticalFieldsChanged.push('license_number');
-        if (licenseDocument && licenseDocument !== current.id_document_url) criticalFieldsChanged.push('id_document_url');
-        
-        console.log('🔍 Update profile - Critical fields changed:', criticalFieldsChanged);
+    const result = await prisma.$transaction(async (tx) => {
+      // Update basic user profile
+      if (fullName || phone) {
+        await tx.user.update({
+          where: { user_id: userId },
+          data: {
+            full_name: fullName,
+            phone: phone
+          }
+        });
       }
 
-      // If critical fields changed, set status to Pending
-      if (criticalFieldsChanged.length > 0) {
-        statusChanged = true;
-        console.log('🔍 Critical business fields changed:', criticalFieldsChanged, 'Setting status to Pending');
-        
-        // Also update users table to set approved = 0 (pending)
-        await executeQuery(
-          'UPDATE users SET approved = 0 WHERE user_id = ?',
-          [userId]
-        );
-      }
+      let statusChanged = false;
+      if (req.user.role.toLowerCase() === 'owner') {
+        const existingProfile = await tx.ownerProfile.findUnique({
+          where: { owner_id: userId }
+        });
 
-      if (existingProfile.length > 0) {
-        // Update existing owner profile - only update non-empty fields
-        const updateFields = [];
-        const updateParams = [];
-        
-        if (businessName !== undefined && businessName !== '') {
-          updateFields.push('business_name = ?');
-          updateParams.push(businessName);
+        if (existingProfile) {
+          // Check for critical changes
+          if (
+            (businessName && businessName !== existingProfile.business_name) ||
+            (businessEmail && businessEmail !== existingProfile.business_email) ||
+            (businessPhone && businessPhone !== existingProfile.business_phone) ||
+            (licenseNumber && licenseNumber !== existingProfile.license_number) ||
+            (licenseDocument && licenseDocument !== existingProfile.id_document_url)
+          ) {
+            statusChanged = true;
+            await tx.user.update({
+              where: { user_id: userId },
+              data: { approved: 0 }
+            });
+          }
+
+          await tx.ownerProfile.update({
+            where: { owner_id: userId },
+            data: {
+              business_name: businessName || undefined,
+              business_email: businessEmail || undefined,
+              business_phone: businessPhone || undefined,
+              license_number: licenseNumber || undefined,
+              id_document_url: licenseDocument || undefined,
+              approval_status: statusChanged ? ApprovalStatus.Pending : undefined
+            }
+          });
+        } else if (businessName || businessEmail || businessPhone || licenseNumber || licenseDocument) {
+          await tx.ownerProfile.create({
+            data: {
+              owner_id: userId,
+              business_name: businessName,
+              business_email: businessEmail,
+              business_phone: businessPhone,
+              license_number: licenseNumber,
+              id_document_url: licenseDocument,
+              approval_status: ApprovalStatus.Pending
+            }
+          });
+          statusChanged = true;
         }
-        if (businessEmail !== undefined && businessEmail !== '') {
-          updateFields.push('business_email = ?');
-          updateParams.push(businessEmail);
-        }
-        if (businessPhone !== undefined && businessPhone !== '') {
-          updateFields.push('business_phone = ?');
-          updateParams.push(businessPhone);
-        }
-        // Only update license number if explicitly provided (not empty)
-        if (licenseNumber !== undefined && licenseNumber !== '') {
-          updateFields.push('license_number = ?');
-          updateParams.push(licenseNumber);
-        }
-        // Only update document if explicitly provided (not empty)
-        if (licenseDocument !== undefined && licenseDocument !== '') {
-          updateFields.push('id_document_url = ?');
-          updateParams.push(licenseDocument);
-        }
-        
-        updateFields.push('approval_status = ?');
-        updateParams.push(statusChanged ? 'Pending' : 'Approved');
-        updateParams.push(userId); // Add userId for WHERE clause
-        
-        const updateQuery = `UPDATE ownerprofiles SET ${updateFields.join(', ')} WHERE owner_id = ?`;
-        await executeQuery(updateQuery, updateParams);
-      } else {
-        // Create new owner profile
-        await executeQuery(`
-          INSERT INTO ownerprofiles 
-          SET owner_id = ?,
-              business_name = ?,
-              business_email = ?,
-              business_phone = ?,
-              license_number = ?,
-              id_document_url = ?,
-              expiry_date = ?,
-              approval_status = ?
-        `, [
-          userId,
-          businessName,
-          businessEmail,
-          businessPhone,
-          licenseNumber,
-          licenseDocument,
-          statusChanged ? 'Pending' : 'Approved'
-        ]);
       }
-    }
+      return { statusChanged };
+    });
 
     res.json({
       success: true,
-      message: 'Profile updated successfully' + (statusChanged ? ' and is pending admin review' : ''),
-      statusChanged: statusChanged
+      message: 'Profile updated successfully' + (result.statusChanged ? ' and is pending admin review' : ''),
+      statusChanged: result.statusChanged
     });
 
   } catch (error: any) {
@@ -445,21 +354,19 @@ router.put('/change-password', authenticateToken as any, async (req: any, res: a
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
 
-    // Get current user
-    const users = await executeQuery(
-      'SELECT password_hash FROM users WHERE user_id = ?',
-      [userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { password_hash: true }
+    });
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, users[0].password_hash);
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isValidPassword) {
       return res.status(400).json({
         success: false,
@@ -467,14 +374,12 @@ router.put('/change-password', authenticateToken as any, async (req: any, res: a
       });
     }
 
-    // Hash new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
-    // Update password
-    await executeQuery(
-      'UPDATE users SET password_hash = ? WHERE user_id = ?',
-      [hashedNewPassword, userId]
-    );
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { password_hash: hashedNewPassword }
+    });
 
     res.json({
       success: true,

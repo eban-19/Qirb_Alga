@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -18,14 +18,25 @@ router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, re
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId);
 
     // Check ownership
-    const pension = await executeQuery('SELECT * FROM pensions WHERE pension_id = ? AND owner_id = ?', [pensionId, userId]);
-    if (pension.length === 0 && req.user.role !== 'admin') {
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: pId,
+        owner_id: userId
+      }
+    });
+
+    if (!pension && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const staffResult = await executeQuery('SELECT * FROM staff WHERE pension_id = ? ORDER BY name', [pensionId]);
+    const staffResult = await prisma.staff.findMany({
+      where: { pension_id: pId },
+      orderBy: { name: 'asc' }
+    });
+
     const staff = staffResult.map((s: any) => ({ 
       ...s, 
       id: s.staff_id,
@@ -44,16 +55,12 @@ router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, r
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId);
     const { full_name, role, phone, salary, email, status } = req.body;
 
     // Map frontend field names to backend field names
     const name = full_name;
     const position = role; // Frontend sends 'role' instead of 'position'
-
-    // Debug: Log what we received
-    console.log('🔍 Add staff - Raw request body:', req.body);
-    console.log('🔍 Add staff - Mapped data:', { name, position, phone, salary, email, status });
-    console.log('🔍 Add staff - Request body keys:', Object.keys(req.body));
 
     // Validate required fields
     if (!name || name.trim() === '') {
@@ -64,17 +71,31 @@ router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, r
     }
 
     // Check ownership
-    const pension = await executeQuery('SELECT * FROM pensions WHERE pension_id = ? AND owner_id = ?', [pensionId, userId]);
-    if (pension.length === 0 && req.user.role !== 'admin') {
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: pId,
+        owner_id: userId
+      }
+    });
+
+    if (!pension && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const result = await executeQuery(
-      'INSERT INTO staff (pension_id, name, position, phone, salary, email, status, hire_date) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())',
-      [pensionId, name, position, phone, salary, email, status || 'active']
-    );
+    const staff = await prisma.staff.create({
+      data: {
+        pension_id: pId,
+        name,
+        position,
+        phone,
+        salary,
+        email,
+        status: status || 'active',
+        hire_date: new Date()
+      }
+    });
 
-    res.status(201).json({ success: true, message: 'Staff member added', data: { id: result.insertId } });
+    res.status(201).json({ success: true, message: 'Staff member added', data: { id: staff.staff_id } });
   } catch (error: any) {
     console.error('Add staff error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
@@ -86,6 +107,7 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const sId = parseInt(id);
     const { full_name, role, phone, salary, email, status } = req.body;
 
     // Map frontend field names to backend field names
@@ -101,18 +123,32 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
     }
 
     // Check ownership
-    const staffCheck = await executeQuery(
-      'SELECT s.* FROM staff s JOIN pensions p ON s.pension_id = p.pension_id WHERE s.staff_id = ? AND p.owner_id = ?',
-      [id, userId]
-    );
-    if (staffCheck.length === 0 && req.user.role !== 'admin') {
+    const staffCheck = await prisma.staff.findUnique({
+      where: { staff_id: sId },
+      include: {
+        pension: { select: { owner_id: true } }
+      }
+    });
+
+    if (!staffCheck) {
+      return res.status(404).json({ success: false, message: 'Staff member not found' });
+    }
+
+    if (staffCheck.pension?.owner_id !== userId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    await executeQuery(
-      'UPDATE staff SET name = ?, position = ?, phone = ?, salary = ?, email = ?, status = ? WHERE staff_id = ?',
-      [name, position, phone, salary, email, status, id]
-    );
+    await prisma.staff.update({
+      where: { staff_id: sId },
+      data: {
+        name: name !== undefined ? name : undefined,
+        position: position !== undefined ? position : undefined,
+        phone,
+        salary,
+        email,
+        status
+      }
+    });
 
     res.json({ success: true, message: 'Staff member updated' });
   } catch (error: any) {
@@ -126,16 +162,27 @@ router.delete('/:id', authenticateToken as any, async (req: any, res: express.Re
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const sId = parseInt(id);
 
-    const staffCheck = await executeQuery(
-      'SELECT s.* FROM staff s JOIN pensions p ON s.pension_id = p.pension_id WHERE s.staff_id = ? AND p.owner_id = ?',
-      [id, userId]
-    );
-    if (staffCheck.length === 0 && req.user.role !== 'admin') {
+    const staffCheck = await prisma.staff.findUnique({
+      where: { staff_id: sId },
+      include: {
+        pension: { select: { owner_id: true } }
+      }
+    });
+
+    if (!staffCheck) {
+      return res.status(404).json({ success: false, message: 'Staff member not found' });
+    }
+
+    if (staffCheck.pension?.owner_id !== userId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    await executeQuery('DELETE FROM staff WHERE staff_id = ?', [id]);
+    await prisma.staff.delete({
+      where: { staff_id: sId }
+    });
+
     res.json({ success: true, message: 'Staff member deleted' });
   } catch (error: any) {
     console.error('Delete staff error:', error);

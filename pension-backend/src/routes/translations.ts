@@ -1,6 +1,7 @@
 import express from 'express';
 import { translationService } from '../services/translationService';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
+import { TranslationMethod } from '@prisma/client';
 
 const router = express.Router();
 
@@ -156,8 +157,9 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const query = 'DELETE FROM translations WHERE translation_id = ?';
-    await executeQuery(query, [id]);
+    await prisma.translation.delete({
+      where: { translation_id: parseInt(id) }
+    });
 
     res.json({ 
       success: true,
@@ -206,33 +208,25 @@ router.get('/stats/summary', async (req, res) => {
     };
 
     // Get total translations by language
-    const langQuery = `
-      SELECT target_language, COUNT(*) as count 
-      FROM translations 
-      GROUP BY target_language
-    `;
-    const langResults = await executeQuery(langQuery);
+    const langResults = await prisma.translation.groupBy({
+      by: ['target_language'],
+      _count: true
+    });
     
-    if (langResults) {
-      for (const row of langResults) {
-        stats.translationsByLanguage[row.target_language] = row.count;
-        stats.totalTranslations += row.count;
-      }
+    for (const row of langResults) {
+      stats.translationsByLanguage[row.target_language] = row._count;
+      stats.totalTranslations += row._count;
     }
 
     // Get cache entry count
-    const cacheQuery = 'SELECT COUNT(*) as count FROM translation_cache WHERE expires_at > NOW()';
-    const cacheResults = await executeQuery(cacheQuery);
-    if (cacheResults && cacheResults.length > 0) {
-      stats.cacheEntries = cacheResults[0].count;
-    }
+    stats.cacheEntries = await prisma.translationCache.count({
+      where: { expires_at: { gt: new Date() } }
+    });
 
     // Get manual correction count
-    const manualQuery = "SELECT COUNT(*) as count FROM translations WHERE translation_method = 'manual'";
-    const manualResults = await executeQuery(manualQuery);
-    if (manualResults && manualResults.length > 0) {
-      stats.manualCorrections = manualResults[0].count;
-    }
+    stats.manualCorrections = await prisma.translation.count({
+      where: { translation_method: TranslationMethod.manual }
+    });
 
     res.json(stats);
   } catch (error) {

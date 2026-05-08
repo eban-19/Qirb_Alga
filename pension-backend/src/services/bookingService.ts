@@ -1,5 +1,6 @@
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import notificationService from './notificationService';
+import { BookingStatus, RoomStatus } from '@prisma/client';
 
 class BookingService {
   /**
@@ -15,15 +16,20 @@ class BookingService {
       console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT STARTED:`, { bookingId });
 
       // Get booking details with room and pension info
-      const booking = await executeQuery(`
-        SELECT b.*, r.room_id, r.availability_status, r.pension_id, p.owner_id
-        FROM bookings b
-        LEFT JOIN rooms r ON b.room_id = r.room_id
-        LEFT JOIN pensions p ON r.pension_id = p.pension_id
-        WHERE b.booking_id = ?
-      `, [bookingId]);
+      const bookingData = await prisma.booking.findUnique({
+        where: { booking_id: bookingId },
+        include: {
+          room: {
+            include: {
+              pension: {
+                select: { owner_id: true }
+              }
+            }
+          }
+        }
+      });
 
-      if (booking.length === 0) {
+      if (!bookingData) {
         console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT BLOCKED: Booking not found`);
         return {
           success: false,
@@ -31,75 +37,53 @@ class BookingService {
         };
       }
 
-      const bookingData = booking[0];
-      console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT BOOKING DATA:`, {
-        bookingId: bookingData.booking_id,
-        status: bookingData.status,
-        checkOutDate: bookingData.check_out_date,
-        actualCheckOut: bookingData.actual_check_out
+      // IDEMPOTENCY CHECK: If already completed or checked out, skip
+      if (bookingData.status === BookingStatus.Completed || bookingData.actual_check_out) {
+        console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT SKIPPED: Already completed or checked out`);
+        return {
+          success: true,
+          message: 'Booking already completed or checked out',
+          skipped: true
+        };
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Update booking
+        await tx.booking.update({
+          where: { booking_id: bookingId },
+          data: {
+            status: BookingStatus.Completed,
+            actual_check_out: new Date()
+          }
+        });
+
+        // Update room status
+        if (bookingData.room) {
+          await tx.room.update({
+            where: { room_id: bookingData.room.room_id },
+            data: {
+              availability_status: RoomStatus.Available,
+              last_status_update: new Date()
+            }
+          });
+        }
       });
 
-      // IDEMPOTENCY CHECK: If already completed, skip
-      if (bookingData.status === 'Completed') {
-        console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT SKIPPED: Booking already completed`);
-        return {
-          success: true,
-          message: 'Booking already completed',
-          skipped: true
-        };
-      }
-
-      // IDEMPOTENCY CHECK: If already checked out, skip
-      if (bookingData.actual_check_out) {
-        console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT SKIPPED: Already checked out`);
-        return {
-          success: true,
-          message: 'Already checked out',
-          skipped: true
-        };
-      }
-
-      // Update booking status and set actual checkout time
-      await executeQuery(`
-        UPDATE bookings 
-        SET status = 'Completed',
-            actual_check_out = NOW(),
-            updated_at = NOW()
-        WHERE booking_id = ?
-      `, [bookingId]);
-
-      console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT: Booking updated successfully`);
-
-      // Update room availability to Available
-      try {
-        await executeQuery(`
-          UPDATE rooms 
-          SET availability_status = 'Available',
-              last_status_update = NOW()
-          WHERE room_id = ?
-        `, [bookingData.room_id]);
-        console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT: Room updated successfully`);
-      } catch (roomErr) {
-        console.error(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT: Room update failed:`, roomErr);
-        // Do NOT let room update failure break checkout
-      }
+      console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT: Booking and room updated successfully`);
 
       // Send notification to pension owner (only for manual checkout to avoid spam)
-      if (!isAutomatic && bookingData.owner_id) {
+      if (!isAutomatic && bookingData.room?.pension.owner_id) {
         try {
           await notificationService.createNotification({
-            user_id: bookingData.owner_id,
+            user_id: bookingData.room.pension.owner_id,
             title: 'Booking Completed',
             message: `Booking #${bookingId} has been completed and room is now available`,
             type: 'checkout'
           });
         } catch (notifErr) {
           console.error('Notification failed:', notifErr);
-          // Do NOT let notification failure break checkout
         }
       }
-
-      console.log(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT COMPLETED SUCCESSFULLY`);
 
       return {
         success: true,
@@ -115,8 +99,7 @@ class BookingService {
       console.error(`${isAutomatic ? 'AUTOMATIC' : 'MANUAL'} CHECKOUT ERROR:`, error);
       return {
         success: false,
-        message: error.message || 'Checkout failed',
-        error: error.stack
+        message: error.message || 'Checkout failed'
       };
     }
   }
@@ -127,30 +110,38 @@ class BookingService {
    */
   async getOverdueCheckouts() {
     try {
-      const overdueBookings = await executeQuery(`
-        SELECT 
-          b.booking_id,
-          b.status,
-          b.check_out_date,
-          b.actual_check_out,
-          r.room_id,
-          r.availability_status,
-          p.pension_id,
-          p.name as pension_name
-        FROM bookings b
-        LEFT JOIN rooms r ON b.room_id = r.room_id
-        LEFT JOIN pensions p ON r.pension_id = p.pension_id
-        WHERE b.status IN ('Confirmed', 'Pending')
-          AND b.check_out_date < NOW()
-          AND b.actual_check_out IS NULL
-          AND b.actual_check_in IS NOT NULL
-        ORDER BY b.check_out_date ASC
-      `);
+      const overdueBookings = await prisma.booking.findMany({
+        where: {
+          status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+          check_out_date: { lt: new Date() },
+          actual_check_out: null,
+          actual_check_in: { not: null }
+        },
+        include: {
+          room: {
+            include: {
+              pension: { select: { pension_id: true, name: true } }
+            }
+          }
+        },
+        orderBy: { check_out_date: 'asc' }
+      });
+
+      const formattedBookings = overdueBookings.map(b => ({
+        booking_id: b.booking_id,
+        status: b.status,
+        check_out_date: b.check_out_date,
+        actual_check_out: b.actual_check_out,
+        room_id: b.room_id,
+        availability_status: b.room?.availability_status,
+        pension_id: b.room?.pension_id,
+        pension_name: b.room?.pension.name
+      }));
 
       return {
         success: true,
-        data: overdueBookings,
-        count: overdueBookings.length
+        data: formattedBookings,
+        count: formattedBookings.length
       };
     } catch (error: any) {
       console.error('Error fetching overdue checkouts:', error);

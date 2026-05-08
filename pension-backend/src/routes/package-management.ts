@@ -1,9 +1,9 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import upload from '../middleware/upload';
 import * as fs from 'fs';
-import * as path from 'path';
+import { RoomStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -29,37 +29,26 @@ interface UploadedFile {
  */
 const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
   try {
-    console.log('🔍 Upload attempt for file:', file.filename);
-    console.log('🔍 Cloudinary config check:');
-    console.log('  - CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? '✅ SET' : '❌ MISSING');
-    console.log('  - CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? '✅ SET' : '❌ MISSING');
-    console.log('  - CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? '✅ SET' : '❌ MISSING');
-    
     // Check if Cloudinary is configured
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.log('❌ Cloudinary not configured, returning local file path');
-      // Return a local file URL as fallback
       return `/uploads/${file.filename}`;
     }
 
     // Dynamic import for cloudinary (only when needed)
     const cloudinary = require('cloudinary').v2;
     
-    console.log('🚀 Uploading to Cloudinary...');
     const result = await cloudinary.uploader.upload(file.path, {
       folder: 'pension-management-system',
     });
     
     // Clean up local file
-    fs.unlinkSync(file.path);
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
     
-    console.log('✅ Cloudinary upload successful:', result.secure_url);
     return result.secure_url;
   } catch (error: any) {
     console.error('❌ Cloudinary upload failed, using local fallback:', error);
-    console.error('❌ Error details:', error.message);
-    console.error('❌ Stack trace:', error.stack);
-    // Return local file path as fallback
     return `/uploads/${file.filename}`;
   }
 };
@@ -69,40 +58,40 @@ router.get('/pensions/:pensionId/packages', authenticateToken as any, async (req
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId as string);
     
     // Verify ownership
-    const pensionCheck = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: pId, owner_id: userId }
+    });
     
-    if (pensionCheck.length === 0) {
+    if (!pension) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
     // Get packages from dedicated packages table
-    const packages = await executeQuery(`
-      SELECT p.*, 
-             (SELECT COUNT(*) 
-              FROM rooms r 
-              WHERE r.pension_id = p.pension_id 
-                AND r.room_type = p.name 
-                AND r.availability_status = 'Available') as availableRoomsCount
-      FROM packages p
-      WHERE p.pension_id = ?
-      ORDER BY p.created_at DESC
-    `, [pensionId]);
+    const packages = await prisma.package.findMany({
+      where: { pension_id: pId },
+      include: {
+        _count: {
+          select: {
+            rooms: {
+              where: { availability_status: RoomStatus.Available }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
     
-    console.log('🔍 Packages loaded from database:', packages.map((p: any) => ({
-      package_id: p.package_id,
-      name: p.name,
-      is_most_popular: p.is_most_popular,
-      is_most_popular_type: typeof p.is_most_popular
-    })));
+    const formattedPackages = packages.map(pkg => ({
+      ...pkg,
+      availableRoomsCount: (pkg as any)._count.rooms
+    }));
     
     res.json({
       success: true,
-      data: packages
+      data: formattedPackages
     });
   } catch (error: any) {
     console.error('Error fetching packages:', error);
@@ -116,51 +105,51 @@ router.post('/pensions/:pensionId/packages', authenticateToken as any, upload.si
     const { pensionId } = req.params;
     const userId = req.user.userId;
     const packageData: PackageData = req.body;
+    const pId = parseInt(pensionId as string);
 
     // Upload image locally if provided
     let imageUrl = '';
     if (req.file) {
-      console.log('📄 Uploading package image locally:', req.file.filename);
       imageUrl = await uploadToCloudinary(req.file);
-      console.log('✅ Package image saved locally:', imageUrl);
     }
 
     // Verify ownership
-    const pensionCheck = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: pId, owner_id: userId }
+    });
     
-    if (pensionCheck.length === 0) {
+    if (!pension) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
-    // If new package is popular, unset others
-    if (packageData.isMostPopular === true) {
-      await executeQuery(
-        'UPDATE packages SET is_most_popular = 0 WHERE pension_id = ?',
-        [pensionId]
-      );
-    }
+    // Use transaction if setting as most popular
+    const result = await prisma.$transaction(async (tx) => {
+      if (packageData.isMostPopular === true) {
+        await tx.package.updateMany({
+          where: { pension_id: pId },
+          data: { is_most_popular: false }
+        });
+      }
 
-    // Insert new package into packages table
-    const result = await executeQuery(`
-      INSERT INTO packages (pension_id, name, description, price, services, is_most_popular, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      pensionId,
-      packageData.name,
-      packageData.description,
-      packageData.price,
-      JSON.stringify(packageData.services || []),
-      packageData.isMostPopular ? 1 : 0,
-      imageUrl
-    ]);
+      return await tx.package.create({
+        data: {
+          pension_id: pId,
+          name: packageData.name,
+          description: packageData.description,
+          price: packageData.price,
+          inclusions: packageData.services || [],
+          is_most_popular: !!packageData.isMostPopular,
+          image_url: imageUrl,
+          name_ml: { en: packageData.name },
+          description_ml: { en: packageData.description }
+        }
+      });
+    });
 
     res.json({
       success: true,
       message: 'Package created successfully',
-      data: { id: result.insertId, ...packageData }
+      data: { id: result.package_id, ...packageData }
     });
   } catch (error: any) {
     console.error('Error creating package:', error);
@@ -174,127 +163,64 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any,
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
     const packageData: PackageData = req.body;
-
-    console.log('🔍 Package update request:', {
-      pensionId,
-      packageId,
-      userId,
-      packageData,
-      bodyKeys: Object.keys(req.body),
-      hasFile: !!req.file
-    });
+    const pId = parseInt(pensionId as string);
+    const pkgId = parseInt(packageId as string);
 
     // Verify ownership
-    const pensionCheck = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: pId, owner_id: userId }
+    });
     
-    if (pensionCheck.length === 0) {
-      console.error('❌ Access denied for pension:', pensionId, 'user:', userId);
+    if (!pension) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
     // Check if package exists and belongs to this pension
-    const packageCheck = await executeQuery(
-      'SELECT * FROM packages WHERE package_id = ? AND pension_id = ?',
-      [packageId, pensionId]
-    );
+    const existingPackage = await prisma.package.findUnique({
+      where: { package_id: pkgId, pension_id: pId }
+    });
     
-    if (packageCheck.length === 0) {
-      console.error('❌ Package not found:', packageId, 'for pension:', pensionId);
+    if (!existingPackage) {
       return res.status(404).json({ success: false, message: 'Package not found' });
     }
-
-    console.log('🔍 Package found in database:', packageCheck[0]);
     
     // Upload image to Cloudinary if provided
-    let imageUrl = packageCheck[0].image_url; // Keep existing image if no new one
-    console.log('🔍 Initial imageUrl from database:', imageUrl);
-    console.log('🔍 Request file exists:', !!req.file);
-    console.log('🔍 PackageData.image:', packageData.image);
-    
-    // Check if new image file was uploaded
+    let imageUrl = existingPackage.image_url;
     if (req.file) {
-      console.log('📄 Uploading package image for update:', req.file.filename);
       imageUrl = await uploadToCloudinary(req.file);
-      console.log('✅ Package image saved locally:', imageUrl);
-    } 
-    // Check if image URL was provided in JSON body (for cases where image was uploaded separately)
-    else if (packageData.image && packageData.image !== packageCheck[0].image_url) {
-      console.log('📄 Using image URL from request body:', packageData.image);
+    } else if (packageData.image && packageData.image !== existingPackage.image_url) {
       imageUrl = packageData.image;
     }
     
-    console.log('🔍 Final imageUrl to be saved:', imageUrl);
-    
-    // If package is being set as popular, unset others
-    if (packageData.isMostPopular === true) {
-      await executeQuery(
-        'UPDATE packages SET is_most_popular = 0 WHERE pension_id = ? AND package_id != ?',
-        [pensionId, packageId]
-      );
-    }
+    // Use transaction for updates
+    const result = await prisma.$transaction(async (tx) => {
+      // If package is being set as popular, unset others
+      if (packageData.isMostPopular === true) {
+        await tx.package.updateMany({
+          where: { pension_id: pId, package_id: { not: pkgId } },
+          data: { is_most_popular: false }
+        });
+      }
 
-    // Build dynamic update query - only update fields that are provided
-    const updateFields: string[] = [];
-    const updateValues: any[] = [];
-    
-    if (packageData.name !== undefined) {
-      updateFields.push('name = ?');
-      updateValues.push(packageData.name);
-    }
-    if (packageData.description !== undefined) {
-      updateFields.push('description = ?');
-      updateValues.push(packageData.description);
-    }
-    if (packageData.price !== undefined) {
-      updateFields.push('price = ?');
-      updateValues.push(packageData.price);
-    }
-    if (packageData.services !== undefined) {
-      updateFields.push('services = ?');
-      updateValues.push(JSON.stringify(packageData.services));
-    }
-    if (packageData.isMostPopular !== undefined) {
-      updateFields.push('is_most_popular = ?');
-      updateValues.push(packageData.isMostPopular ? 1 : 0);
-    }
-    if (imageUrl !== undefined) {
-      updateFields.push('image_url = ?');
-      updateValues.push(imageUrl);
-    }
-    
-    // Always add WHERE clause values
-    updateValues.push(packageId, pensionId);
-
-    console.log('🔍 Executing dynamic database update:', {
-      updateFields,
-      updateValues,
-      sqlQuery: `UPDATE packages SET ${updateFields.join(', ')} WHERE package_id = ? AND pension_id = ?`
+      return await tx.package.update({
+        where: { package_id: pkgId },
+        data: {
+          name: packageData.name !== undefined ? packageData.name : existingPackage.name,
+          description: packageData.description !== undefined ? packageData.description : existingPackage.description,
+          price: packageData.price !== undefined ? packageData.price : existingPackage.price,
+          inclusions: (packageData.services !== undefined ? packageData.services : existingPackage.inclusions) as any,
+          is_most_popular: packageData.isMostPopular !== undefined ? !!packageData.isMostPopular : existingPackage.is_most_popular,
+          image_url: imageUrl,
+          name_ml: (packageData.name !== undefined ? { en: packageData.name } : existingPackage.name_ml) as any,
+          description_ml: (packageData.description !== undefined ? { en: packageData.description } : existingPackage.description_ml) as any
+        }
+      });
     });
-
-    // Update package in packages table
-    await executeQuery(`
-      UPDATE packages 
-      SET ${updateFields.join(', ')}
-      WHERE package_id = ? AND pension_id = ?
-    `, updateValues);
-
-    console.log('✅ Package updated successfully in database');
-    
-    // Verify the update by reading the package back
-    const verifyPackage = await executeQuery(
-      'SELECT * FROM packages WHERE package_id = ? AND pension_id = ?',
-      [packageId, pensionId]
-    );
-    
-    console.log('🔍 Verification - Package in DB after update:', verifyPackage[0]);
 
     res.json({
       success: true,
       message: 'Package updated successfully',
-      data: { id: packageId, ...packageData }
+      data: { id: pkgId, ...packageData }
     });
   } catch (error: any) {
     console.error('Error updating package:', error);
@@ -307,32 +233,31 @@ router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken as a
   try {
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
+    const pId = parseInt(pensionId as string);
+    const pkgId = parseInt(packageId as string);
 
     // Verify ownership
-    const pensionCheck = await executeQuery(
-      'SELECT pension_id FROM pensions WHERE pension_id = ? AND owner_id = ?',
-      [pensionId, userId]
-    );
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: pId, owner_id: userId }
+    });
     
-    if (pensionCheck.length === 0) {
+    if (!pension) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
-    // Get package details before deletion
-    const packageToDelete = await executeQuery(
-      'SELECT * FROM packages WHERE package_id = ? AND pension_id = ?',
-      [packageId, pensionId]
-    );
+    // Check if package exists
+    const packageToDelete = await prisma.package.findUnique({
+      where: { package_id: pkgId, pension_id: pId }
+    });
     
-    if (packageToDelete.length === 0) {
+    if (!packageToDelete) {
       return res.status(404).json({ success: false, message: 'Package not found' });
     }
     
-    // Delete package from packages table
-    await executeQuery(
-      'DELETE FROM packages WHERE package_id = ? AND pension_id = ?',
-      [packageId, pensionId]
-    );
+    // Delete package
+    await prisma.package.delete({
+      where: { package_id: pkgId }
+    });
 
     res.json({
       success: true,

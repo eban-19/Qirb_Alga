@@ -1,0 +1,381 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Owner
+  Customer
+}
+
+enum UserStatus {
+  Pending
+  Approved
+  Blocked
+}
+
+model User {
+  user_id            Int                  @id @default(autoincrement())
+  full_name          String?              @db.VarChar(100)
+  email              String               @unique @db.VarChar(100)
+  email_verified     Int                  @default(0) @db.TinyInt
+  phone              String?              @db.VarChar(20)
+  password_hash      String               @db.VarChar(255)
+  role               Role
+  status             UserStatus           @default(Pending)
+  approved           Int                  @default(0)
+  created_at         DateTime?            @default(now()) @db.Timestamp(0)
+  
+  pensions           Pension[]
+  bookings           Booking[]
+  reviews            Review[]
+  notifications      Notification[]
+  ownerProfile       OwnerProfile?
+  emailNotifications EmailNotification[]
+  availabilityLogs   RoomAvailabilityLog[]
+  locationPreference UserLocationPreference?
+
+  @@map("users")
+}
+
+model Pension {
+  pension_id       Int       @id @default(autoincrement())
+  owner_id         Int
+  name             String    @db.VarChar(100)
+  phone            String?   @db.VarChar(20)
+  email            String?   @db.VarChar(255)
+  description      String?   @db.Text
+  owner_info       String?   @db.Text
+  room_details     String?   @db.Text
+  packages_json    Json?     @map("packages")
+  package_images   Json?
+  city             String?   @db.VarChar(100)
+  sub_city         String?   @db.VarChar(50)
+  latitude         Decimal?  @db.Decimal(10, 8)
+  longitude        Decimal?  @db.Decimal(11, 8)
+  region           String?   @db.VarChar(100)
+  country          String?   @default("Ethiopia") @db.VarChar(100)
+  address          String?   @db.Text
+  capacity         Int?      @default(0)
+  image_url        String?   @db.VarChar(255)
+  status           PensionStatus @default(active)
+  rejection_reason String?   @db.Text
+  reviewed_by      Int?
+  reviewed_at      DateTime? @db.Timestamp(0)
+  created_at       DateTime? @default(now()) @db.Timestamp(0)
+  updated_at       DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  
+  // Multilingual fields
+  name_ml          Json?
+  description_ml   Json?
+  owner_info_ml    Json?
+  room_details_ml  Json?
+
+  owner            User      @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
+  rooms            Room[]
+  reviews          Review[]
+  packages         Package[]
+  staff            Staff[]
+  expenses         Expense[]
+
+  @@map("pensions")
+}
+
+enum PensionStatus {
+  active
+  inactive
+  pending
+}
+
+model Room {
+  room_id             Int       @id @default(autoincrement())
+  pension_id          Int
+  owner_id            Int?
+  room_type           String?   @db.VarChar(100)
+  room_type_ml        Json?
+  number_of_beds      Int?
+  capacity            Int?
+  price_per_night     Decimal?  @db.Decimal(10, 2)
+  availability_status RoomStatus?
+  last_status_update  DateTime? @db.Timestamp(0)
+  created_at          DateTime? @default(now()) @db.Timestamp(0)
+  package_id          Int?
+  room_number         String?   @db.VarChar(50)
+
+  pension             Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  package             Package?  @relation("PackageRooms", fields: [package_id], references: [package_id])
+  bookings            Booking[]
+  availabilityLogs    RoomAvailabilityLog[]
+
+  @@map("rooms")
+}
+
+enum RoomStatus {
+  Available
+  Occupied
+  Maintenance
+  Blocked
+}
+
+model Booking {
+  booking_id      Int       @id @default(autoincrement())
+  room_id         Int?
+  customer_id     Int?
+  check_in_date   DateTime?
+  check_out_date  DateTime?
+  actual_check_out DateTime?
+  actual_check_in  DateTime?
+  total_price     Decimal?  @db.Decimal(10, 2)
+  status          BookingStatus?
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  id_document_url String?   @db.VarChar(255)
+  pass_code       String?   @db.VarChar(10)
+  room_number     String?   @db.VarChar(50)
+  notes           String?   @db.Text
+  is_walk_in      Boolean?  @default(false)
+  booking_source  BookingSource? @default(App)
+  walk_in_guest_name  String? @db.VarChar(100)
+  walk_in_guest_phone String? @db.VarChar(20)
+  walk_in_guest_email String? @db.VarChar(255)
+
+  room            Room?     @relation(fields: [room_id], references: [room_id], onDelete: SetNull)
+  customer        User?     @relation(fields: [customer_id], references: [user_id], onDelete: SetNull)
+  review          Review?
+
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  Pending
+  Confirmed
+  Cancelled
+  Completed
+}
+
+enum BookingSource {
+  App
+  Walk_In @map("Walk-In")
+}
+
+model Review {
+  review_id   Int       @id @default(autoincrement())
+  pension_id  Int
+  booking_id  Int       @unique
+  customer_id Int
+  rating      Int
+  comment     String?   @db.Text
+  is_approved Boolean   @default(false)
+  rejection_reason String? @db.Text
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  updated_at  DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension     Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  booking     Booking   @relation(fields: [booking_id], references: [booking_id], onDelete: Cascade)
+  customer    User      @relation(fields: [customer_id], references: [user_id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Notification {
+  notification_id Int       @id @default(autoincrement())
+  user_id         Int
+  title           String    @db.VarChar(255)
+  message         String    @db.Text
+  type            NotificationType? @default(system)
+  is_read         Boolean?  @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+
+  user            User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  new_booking
+  booking_confirmed
+  booking_cancelled
+  review_received
+  pension_approved
+  pension_rejected
+  checkout
+  system
+}
+
+model Package {
+  package_id      Int       @id @default(autoincrement())
+  pension_id      Int
+  name            String    @db.VarChar(100)
+  name_ml         Json?
+  description     String?   @db.Text
+  description_ml  Json?
+  price           Decimal   @db.Decimal(10, 2)
+  duration_days   Int?      @default(1)
+  inclusions      Json?
+  is_active       Boolean?  @default(true)
+  is_most_popular Boolean?  @default(false)
+  image_url       String?   @db.VarChar(255)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension         Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  rooms           Room[]    @relation("PackageRooms")
+
+  @@map("packages")
+}
+
+model Staff {
+  staff_id    Int       @id @default(autoincrement())
+  pension_id  Int
+  name        String    @db.VarChar(100)
+  email       String?   @db.VarChar(255)
+  phone       String?   @db.VarChar(20)
+  position    String?   @db.VarChar(50)
+  salary      Decimal?  @db.Decimal(10, 2)
+  hire_date   DateTime? @db.Date
+  status      StaffStatus? @default(active)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  updated_at  DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension     Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+
+  @@map("staff")
+}
+
+enum StaffStatus {
+  active
+  inactive
+}
+
+model Expense {
+  expense_id   Int       @id @default(autoincrement())
+  pension_id   Int?
+  amount       Decimal?  @db.Decimal(10, 2)
+  category     String?   @db.VarChar(50)
+  description  String?   @db.Text
+  expense_date DateTime?
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+
+  pension      Pension?  @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model OwnerProfile {
+  owner_id        Int       @id
+  business_name   String?   @db.VarChar(100)
+  business_email  String?   @db.VarChar(255)
+  business_phone  String?   @db.VarChar(20)
+  license_number  String?   @db.VarChar(100)
+  id_document_url String?   @db.VarChar(255)
+  approval_status ApprovalStatus? @default(Pending)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  expiry_date     DateTime? @db.Date
+
+  user            User      @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
+
+  @@map("ownerprofiles")
+}
+
+enum ApprovalStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+model EmailNotification {
+  email_id    Int       @id @default(autoincrement())
+  user_id     Int
+  subject     String?   @db.VarChar(150)
+  message     String?   @db.Text
+  status      EmailStatus? @default(Pending)
+  sent_at     DateTime? @db.Timestamp(0)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+
+  user        User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("emailnotifications")
+}
+
+enum EmailStatus {
+  Pending
+  Sent
+  Failed
+}
+
+model RoomAvailabilityLog {
+  log_id      Int       @id @default(autoincrement())
+  room_id     Int
+  changed_by  Int
+  old_status  RoomStatus?
+  new_status  RoomStatus?
+  changed_at  DateTime? @default(now()) @db.Timestamp(0)
+
+  room        Room      @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+  changer     User      @relation(fields: [changed_by], references: [user_id], onDelete: Cascade)
+
+  @@map("roomavailabilitylogs")
+}
+
+model Translation {
+  translation_id    Int       @id @default(autoincrement())
+  source_text       String    @db.VarChar(500)
+  translated_text   String    @db.Text
+  source_language   String?   @default("en") @db.VarChar(5)
+  target_language   String    @db.VarChar(5)
+  translation_method TranslationMethod? @default(google)
+  created_at        DateTime? @default(now()) @db.Timestamp(0)
+  updated_at        DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  @@unique([source_text, target_language])
+  @@map("translations")
+}
+
+enum TranslationMethod {
+  google
+  manual
+}
+
+model TranslationCache {
+  cache_id          Int       @id @default(autoincrement())
+  cache_key         String    @unique @db.VarChar(255)
+  translated_text   String    @db.Text
+  target_language   String    @db.VarChar(10)
+  created_at        DateTime? @default(now()) @db.Timestamp(0)
+  expires_at        DateTime? @db.Timestamp(0)
+
+  @@map("translation_cache")
+}
+
+model LocationCache {
+  cache_id       Int       @id @default(autoincrement())
+  user_lat       Decimal   @db.Decimal(10, 8)
+  user_lng       Decimal   @db.Decimal(11, 8)
+  radius_km      Int
+  cached_results Json
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  expires_at     DateTime? @db.Timestamp(0)
+
+  @@index([user_lat, user_lng, radius_km], name: "idx_location_cache_coords")
+  @@map("location_cache")
+}
+
+model UserLocationPreference {
+  preference_id      Int       @id @default(autoincrement())
+  user_id            Int       @unique
+  default_city       String?   @db.VarChar(100)
+  default_region     String?   @db.VarChar(100)
+  search_radius_km   Int?      @default(50)
+  location_sharing   Boolean?  @default(true)
+  created_at         DateTime? @default(now()) @db.Timestamp(0)
+  updated_at         DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  user               User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("user_location_preferences")
+}

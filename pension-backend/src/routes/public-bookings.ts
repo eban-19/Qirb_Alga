@@ -1,39 +1,21 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
+import { BookingStatus, BookingSource, RoomStatus, UserStatus, Role, Prisma } from '@prisma/client';
 
 const router = express.Router();
 
 // Create a new public booking
 router.post('/bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    console.log('=== BOOKING REQUEST DEBUG ===');
-    console.log('Request body:', req.body);
-    
     const { 
       pensionId, packageName, checkIn, checkOut, 
       fullName, phone, email, specialRequests, totalPrice, rooms: quantity 
     } = req.body;
 
-    console.log('Extracted values:', {
-      pensionId, packageName, checkIn, checkOut, 
-      fullName, phone, email, specialRequests, totalPrice, quantity
-    });
-
     if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || !phone || !quantity) {
-      console.log('Missing required fields:', {
-        pensionId: !!pensionId,
-        packageName: !!packageName,
-        checkIn: !!checkIn,
-        checkOut: !!checkOut,
-        fullName: !!fullName,
-        phone: !!phone,
-        quantity: !!quantity
-      });
-      
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields',
-        required: ['pensionId', 'packageName', 'checkIn', 'checkOut', 'fullName', 'phone', 'quantity']
+        message: 'Missing required fields'
       });
     }
 
@@ -42,159 +24,138 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
     const checkOutDate = new Date(checkOut);
     
     if (checkInDate >= checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-out date must be after check-in date'
-      });
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
 
     if (checkInDate <= new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-in date must be in the future'
-      });
+      return res.status(400).json({ success: false, message: 'Check-in date must be in the future' });
     }
 
-    // Check if pension exists
-    const pensionCheck = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ? AND status = "Approved"',
-      [pensionId]
-    );
+    const pId = parseInt(pensionId);
 
-    if (pensionCheck.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pension not found or not approved'
-      });
+    // Check if pension exists and is approved (using status active in this context based on previous refactor)
+    const pension = await prisma.pension.findFirst({
+      where: { 
+        pension_id: pId,
+        status: 'active'
+      }
+    });
+
+    if (!pension) {
+      return res.status(404).json({ success: false, message: 'Pension not found or not approved' });
     }
 
     // Check package exists for this pension
-    const packageCheck = await executeQuery(
-      'SELECT * FROM packages WHERE pension_id = ? AND name = ?',
-      [pensionId, packageName]
-    );
+    const pkg = await prisma.package.findFirst({
+      where: { 
+        pension_id: pId,
+        name: packageName
+      }
+    });
 
-    if (packageCheck.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Package not found for this pension'
-      });
+    if (!pkg) {
+      return res.status(404).json({ success: false, message: 'Package not found for this pension' });
     }
 
-    const packageData = packageCheck[0];
-
-    // Calculate total price if not provided
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const calculatedTotal = packageData.price_per_night * nights * quantity;
-    const finalTotal = totalPrice || calculatedTotal;
-
     // Check room availability
-    const availabilityCheck = await executeQuery(`
-      SELECT COUNT(*) as booked_rooms
-      FROM bookings b
-      LEFT JOIN rooms r ON b.room_id = r.room_id
-      WHERE r.pension_id = ? 
-      AND b.status IN ('Confirmed', 'Pending')
-      AND (
-        (b.check_in_date <= ? AND b.check_out_date >= ?) OR
-        (b.check_in_date <= ? AND b.check_out_date >= ?) OR
-        (b.check_in_date >= ? AND b.check_out_date <= ?)
-      )
-    `, [pensionId, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut]);
+    const bookedCount = await prisma.booking.count({
+      where: {
+        room: { pension_id: pId },
+        status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+        OR: [
+          { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
+          { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
+          { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
+        ]
+      }
+    });
 
-    const bookedRooms = availabilityCheck[0].booked_rooms;
-    const totalRooms = await executeQuery(
-      'SELECT COUNT(*) as total FROM rooms WHERE pension_id = ? AND is_available = TRUE',
-      [pensionId]
-    );
+    const totalRooms = await prisma.room.count({
+      where: { 
+        pension_id: pId,
+        availability_status: RoomStatus.Available
+      }
+    });
 
-    if (bookedRooms + quantity > totalRooms[0].total) {
+    if (bookedCount + parseInt(quantity) > totalRooms) {
       return res.status(400).json({
         success: false,
         message: 'Not enough rooms available for the selected dates',
-        available: totalRooms[0].total - bookedRooms,
+        available: totalRooms - bookedCount,
         requested: quantity
       });
     }
 
     // Create or get user
-    let userId: number;
+    let userId: number | null = null;
     if (email) {
-      // Check if user exists
-      const existingUser = await executeQuery(
-        'SELECT user_id FROM users WHERE email = ?',
-        [email]
-      );
-
-      if (existingUser.length > 0) {
-        userId = existingUser[0].user_id;
-      } else {
-        // Create new user
-        const newUser = await executeQuery(
-          'INSERT INTO users (email, full_name, phone, role, status, created_at) VALUES (?, ?, ?, "customer", "Active", NOW())',
-          [email, fullName, phone]
-        );
-        userId = newUser.insertId;
-      }
-    } else {
-      // For bookings without email, use a guest user ID (you might want to handle this differently)
-      userId = 0; // You might want to create a guest user or handle this case
+      const user = await prisma.user.upsert({
+        where: { email },
+        update: {},
+        create: {
+          email,
+          full_name: fullName,
+          phone,
+          role: Role.Customer,
+          status: UserStatus.Approved,
+          password_hash: 'SOCIAL_OR_GUEST_AUTH' // Placeholder
+        }
+      });
+      userId = user.user_id;
     }
 
     // Find available room
-    const availableRoom = await executeQuery(`
-      SELECT r.* FROM rooms r
-      LEFT JOIN bookings b ON r.room_id = b.room_id
-      WHERE r.pension_id = ? AND r.is_available = TRUE
-      AND (
-        b.room_id IS NULL OR
-        b.status NOT IN ('Confirmed', 'Pending') OR
-        (b.check_in_date > ? OR b.check_out_date < ?)
-      )
-      LIMIT 1
-    `, [pensionId, checkOut, checkIn]);
+    const availableRoom = await prisma.room.findFirst({
+      where: {
+        pension_id: pId,
+        availability_status: RoomStatus.Available,
+        bookings: {
+          none: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            OR: [
+              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
+              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
+              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
+            ]
+          }
+        }
+      }
+    });
 
-    if (availableRoom.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No available rooms found for the selected dates'
-      });
+    if (!availableRoom) {
+      return res.status(400).json({ success: false, message: 'No available rooms found for the selected dates' });
     }
 
+    // Calculate total price
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    const finalTotal = totalPrice ? new Prisma.Decimal(totalPrice) : pkg.price.mul(nights).mul(quantity);
+
     // Create booking
-    const bookingResult = await executeQuery(`
-      INSERT INTO bookings (customer_id, room_id, check_in_date, check_out_date, total_price, special_requests, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())
-    `, [userId, availableRoom[0].room_id, checkIn, checkOut, finalTotal, specialRequests]);
-
-    const bookingId = bookingResult.insertId;
-
-    console.log('✅ Booking created successfully:', {
-      bookingId,
-      userId,
-      pensionId,
-      packageName,
-      checkIn,
-      checkOut,
-      totalPrice: finalTotal
+    const newBooking = await prisma.booking.create({
+      data: {
+        customer_id: userId,
+        room_id: availableRoom.room_id,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        total_price: finalTotal,
+        notes: specialRequests,
+        status: BookingStatus.Pending,
+        booking_source: BookingSource.App
+      }
     });
 
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
       data: {
-        bookingId,
-        pensionName: pensionCheck[0].name,
+        bookingId: newBooking.booking_id,
+        pensionName: pension.name,
         packageName,
         checkIn,
         checkOut,
         totalPrice: finalTotal,
-        status: 'Pending',
-        customerInfo: {
-          fullName,
-          phone,
-          email
-        }
+        status: BookingStatus.Pending,
+        customerInfo: { fullName, phone, email }
       }
     });
 
@@ -203,7 +164,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
     res.status(500).json({
       success: false,
       message: 'Failed to create booking',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 });
@@ -214,234 +175,193 @@ router.get('/availability', async (req: express.Request, res: express.Response) 
     const { pensionId, checkIn, checkOut } = req.query;
 
     if (!pensionId || !checkIn || !checkOut) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters: pensionId, checkIn, checkOut'
-      });
+      return res.status(400).json({ success: false, message: 'Missing required parameters' });
     }
 
-    // Validate dates
+    const pId = parseInt(pensionId as string);
     const checkInDate = new Date(checkIn as string);
     const checkOutDate = new Date(checkOut as string);
 
     if (checkInDate >= checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-out date must be after check-in date'
-      });
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
 
-    // Get available rooms
-    const availableRooms = await executeQuery(`
-      SELECT r.*, 
-             (SELECT COUNT(*) FROM bookings b 
-              WHERE b.room_id = r.room_id 
-              AND b.status IN ('Confirmed', 'Pending')
-              AND (b.check_in_date <= ? AND b.check_out_date >= ?)
-             ) as booked_count
-      FROM rooms r
-      WHERE r.pension_id = ? AND r.is_available = TRUE
-      ORDER BY r.room_number
-    `, [checkOut, checkIn, pensionId]);
-
-    // Filter rooms that are not fully booked
-    const available = availableRooms.filter((room: any) => room.booked_count < 1);
+    const availableRooms = await prisma.room.findMany({
+      where: {
+        pension_id: pId,
+        availability_status: RoomStatus.Available,
+        bookings: {
+          none: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            OR: [
+              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
+              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
+              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
+            ]
+          }
+        }
+      },
+      orderBy: { room_number: 'asc' }
+    });
 
     res.json({
       success: true,
       data: {
-        availableRooms: available,
-        totalAvailable: available.length
+        availableRooms,
+        totalAvailable: availableRooms.length
       }
     });
 
   } catch (error: any) {
     console.error('❌ Availability check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check availability'
-    });
+    res.status(500).json({ success: false, message: 'Failed to check availability' });
   }
 });
 
 // Get booking status
 router.get('/bookings/:bookingId', async (req: express.Request, res: express.Response) => {
   try {
-    const { bookingId } = req.params;
+    const bookingId = parseInt(req.params.bookingId as string);
 
-    const booking = await executeQuery(`
-      SELECT b.*, p.name as pension_name, p.address as pension_address,
-             r.room_type, r.room_number, r.price_per_night,
-             u.full_name as customer_name, u.email as customer_email, u.phone as customer_phone
-      FROM bookings b
-      LEFT JOIN rooms r ON b.room_id = r.room_id
-      LEFT JOIN pensions p ON r.pension_id = p.pension_id
-      LEFT JOIN users u ON b.customer_id = u.user_id
-      WHERE b.booking_id = ?
-    `, [bookingId]);
+    const booking = await prisma.booking.findUnique({
+      where: { booking_id: bookingId },
+      include: {
+        room: { include: { pension: true } },
+        customer: true
+      }
+    });
 
-    if (booking.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found'
-      });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
     }
+
+    const formattedBooking = {
+      ...booking,
+      pension_name: booking.room?.pension.name,
+      pension_address: booking.room?.pension.address,
+      room_type: booking.room?.room_type,
+      room_number: booking.room?.room_number,
+      price_per_night: booking.room?.price_per_night,
+      customer_name: booking.customer?.full_name || booking.walk_in_guest_name,
+      customer_email: booking.customer?.email || booking.walk_in_guest_email,
+      customer_phone: booking.customer?.phone || booking.walk_in_guest_phone
+    };
 
     res.json({
       success: true,
-      data: booking[0]
+      data: formattedBooking
     });
 
   } catch (error: any) {
     console.error('❌ Get booking error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get booking'
-    });
+    res.status(500).json({ success: false, message: 'Failed to get booking' });
   }
 });
 
 // Walk-In Booking Endpoint
 router.post('/walk-in-bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    console.log('=== WALK-IN BOOKING REQUEST ===');
-    console.log('Request body:', req.body);
-    
     const { 
       pensionId, packageName, guestName, phoneNumber, checkIn, checkOut 
     } = req.body;
 
-    console.log('Walk-in booking data:', {
-      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut
-    });
-
-    // Validate required fields
     if (!pensionId || !packageName || !guestName || !phoneNumber || !checkIn || !checkOut) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-        required: ['pensionId', 'packageName', 'guestName', 'phoneNumber', 'checkIn', 'checkOut']
-      });
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    // Validate dates
+    const pId = parseInt(pensionId);
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     
     if (checkInDate >= checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-out date must be after check-in date'
-      });
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
 
-    // For walk-in bookings, allow same-day check-in (today)
-    // Only prevent check-in dates in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (checkInDate < today) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-in date cannot be in the past'
-      });
+      return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
     }
 
-    // Check if pension exists and is approved
-    const pensionCheck = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ? AND status = "active"',
-      [pensionId]
-    );
+    const pension = await prisma.pension.findUnique({
+      where: { 
+        pension_id: pId,
+        status: 'active'
+      }
+    });
 
-    if (pensionCheck.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pension not found or not approved'
-      });
+    if (!pension) {
+      return res.status(404).json({ success: false, message: 'Pension not found or not approved' });
     }
 
-    // Check package exists for this pension
-    const packageCheck = await executeQuery(
-      'SELECT * FROM packages WHERE pension_id = ? AND name = ?',
-      [pensionId, packageName]
-    );
+    const pkg = await prisma.package.findFirst({
+      where: { 
+        pension_id: pId,
+        name: packageName
+      }
+    });
 
-    if (packageCheck.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Package not found for this pension'
-      });
+    if (!pkg) {
+      return res.status(404).json({ success: false, message: 'Package not found for this pension' });
     }
 
-    const packageData = packageCheck[0];
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Use package original price without commission
-    const totalPrice = packageData.price * nights;
+    const totalPrice = pkg.price.mul(nights);
 
-    // Find available room
-    const availableRoom = await executeQuery(`
-      SELECT r.* FROM rooms r
-      LEFT JOIN bookings b ON r.room_id = b.room_id
-      WHERE r.pension_id = ? AND r.availability_status = 'Available'
-      AND (
-        b.room_id IS NULL OR
-        b.status NOT IN ('Confirmed', 'Pending') OR
-        (b.check_in_date > ? OR b.check_out_date < ?)
-      )
-      LIMIT 1
-    `, [pensionId, checkOut, checkIn]);
+    const availableRoom = await prisma.room.findFirst({
+      where: {
+        pension_id: pId,
+        availability_status: RoomStatus.Available,
+        bookings: {
+          none: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            OR: [
+              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
+              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
+              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
+            ]
+          }
+        }
+      }
+    });
 
-    if (availableRoom.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No available rooms for the selected dates'
-      });
+    if (!availableRoom) {
+      return res.status(400).json({ success: false, message: 'No available rooms for the selected dates' });
     }
 
-    // Create walk-in booking (no user account needed)
-    const bookingResult = await executeQuery(`
-      INSERT INTO bookings (room_id, check_in_date, check_out_date, total_price, special_requests, status, created_at, walk_in_guest_name, walk_in_guest_phone, booking_source)
-      VALUES (?, ?, ?, ?, ?, 'Pending', NOW(), ?, ?, 'Walk-In')
-    `, [availableRoom[0].room_id, checkIn, checkOut, totalPrice, null, guestName, phoneNumber]);
-
-    const bookingId = bookingResult.insertId;
-
-    console.log('✅ Walk-in booking created:', {
-      bookingId,
-      pensionId,
-      packageName,
-      guestName,
-      phoneNumber,
-      checkIn,
-      checkOut,
-      totalPrice
+    const newBooking = await prisma.booking.create({
+      data: {
+        room_id: availableRoom.room_id,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        total_price: totalPrice,
+        status: BookingStatus.Pending,
+        booking_source: BookingSource.Walk_In,
+        walk_in_guest_name: guestName,
+        walk_in_guest_phone: phoneNumber,
+        is_walk_in: true
+      }
     });
 
     res.status(201).json({
       success: true,
       message: 'Walk-in booking created successfully',
       data: {
-        bookingId,
-        pensionName: pensionCheck[0].name,
+        bookingId: newBooking.booking_id,
+        pensionName: pension.name,
         packageName,
         checkIn,
         checkOut,
         totalPrice,
-        status: 'Pending',
-        guestInfo: {
-          guestName,
-          phoneNumber
-        },
+        status: BookingStatus.Pending,
+        guestInfo: { guestName, phoneNumber },
         bookingSource: 'Walk-In'
       }
     });
 
   } catch (error: any) {
     console.error('❌ Walk-in booking error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create walk-in booking'
-    });
+    res.status(500).json({ success: false, message: 'Failed to create walk-in booking' });
   }
 });
 

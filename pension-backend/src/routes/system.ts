@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import fs from 'fs';
 import path from 'path';
 
@@ -56,7 +56,7 @@ const getSystemStatus = async (): Promise<SystemStatus> => {
 
 const checkDatabase = async (): Promise<boolean> => {
   try {
-    await executeQuery('SELECT 1');
+    await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
     return false;

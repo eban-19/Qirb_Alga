@@ -1,8 +1,9 @@
 import * as express from 'express';
-import { executeQuery, executeTransaction } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken, requireAdmin, requireOwnerApproval } from '../middleware/auth';
 import geocodingService from '../services/geocoding';
 import { getMultilingualText } from '../utils/multilingual';
+import { Prisma } from '@prisma/client';
 
 const router = express.Router();
 
@@ -26,25 +27,47 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
     console.log('=== GET PENSIONS FOR USER ===');
     console.log('User ID:', userId);
     
-    const pensions = await executeQuery(`
-      SELECT p.pension_id as id, p.name, p.address, p.description, p.phone, p.email, p.capacity, p.image_url, p.owner_id,
-             p.name_ml, p.description_ml, p.owner_info_ml, p.room_details_ml,
-             op.business_name, op.business_email, op.business_phone, op.license_number, op.approval_status
-      FROM pensions p
-      LEFT JOIN ownerprofiles op ON p.owner_id = op.owner_id
-      WHERE p.owner_id = ?
-    `, [userId]);
+    const pensions = await prisma.pension.findMany({
+      where: { owner_id: userId },
+      include: {
+        owner: {
+          select: {
+            ownerProfile: {
+              select: {
+                business_name: true,
+                business_email: true,
+                business_phone: true,
+                license_number: true,
+                approval_status: true
+              }
+            }
+          }
+        }
+      }
+    });
+
     console.log('Found pensions:', pensions.length);
-    console.log('Pensions data:', pensions);
     
-    // Apply multilingual text extraction
-    const formattedPensions = pensions.map((p: any) => ({
-      ...p,
-      name: getMultilingualText(p.name_ml, language as string) || p.name,
-      description: getMultilingualText(p.description_ml, language as string) || p.description,
-      owner_info: getMultilingualText(p.owner_info_ml, language as string) || p.owner_info,
-      room_details: getMultilingualText(p.room_details_ml, language as string) || p.room_details
-    }));
+    // Apply multilingual text extraction and format for frontend
+    const formattedPensions = pensions.map((p: any) => {
+      const profile = p.owner?.ownerProfile;
+      return {
+        id: p.pension_id,
+        name: getMultilingualText(p.name_ml, language as string) || p.name,
+        address: p.address,
+        description: getMultilingualText(p.description_ml, language as string) || p.description,
+        phone: p.phone,
+        email: p.email,
+        capacity: p.capacity,
+        image_url: p.image_url,
+        owner_id: p.owner_id,
+        business_name: profile?.business_name,
+        business_email: profile?.business_email,
+        business_phone: profile?.business_phone,
+        license_number: profile?.license_number,
+        approval_status: profile?.approval_status
+      };
+    });
     
     res.json({
       success: true,
@@ -59,81 +82,112 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
 // Get pension by ID (public)
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id as string);
     const { language = 'en' } = req.query;
 
-    const pensionResult = await executeQuery(`
-      SELECT p.*, u.full_name as owner_name, u.email as owner_email,
-             (SELECT COUNT(*) FROM rooms r WHERE r.pension_id = p.pension_id AND r.is_available = TRUE) as available_rooms,
-             (SELECT AVG(rating) FROM reviews r WHERE r.pension_id = p.pension_id AND r.is_approved = TRUE) as avg_rating,
-             (SELECT COUNT(*) FROM reviews r WHERE r.pension_id = p.pension_id AND r.is_approved = TRUE) as review_count
-      FROM pensions p
-      LEFT JOIN users u ON p.owner_id = u.user_id
-      WHERE p.pension_id = ?
-    `, [id]);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
+    }
 
-    if (pensionResult.length === 0) {
+    const pensionData = await prisma.pension.findUnique({
+      where: { pension_id: id },
+      include: {
+        owner: {
+          select: {
+            full_name: true,
+            email: true
+          }
+        },
+        _count: {
+          select: {
+            rooms: {
+              where: { availability_status: 'Available' as any } // Cast to any to bypass enum check if needed, or use RoomStatus
+            },
+            reviews: true
+          }
+        }
+      }
+    });
+
+    if (!pensionData) {
       return res.status(404).json({
         success: false,
         message: 'Pension not found'
       });
     }
 
-    const pensionData = pensionResult[0];
+    // Get average rating
+    const avgRatingResult = await prisma.review.aggregate({
+      where: { pension_id: id },
+      _avg: { rating: true }
+    });
+
     const pension = { 
       ...pensionData, 
       id: pensionData.pension_id,
-      name: getMultilingualText(pensionData.name_ml, language as string) || pensionData.name,
-      description: getMultilingualText(pensionData.description_ml, language as string) || pensionData.description,
-      owner_info: getMultilingualText(pensionData.owner_info_ml, language as string) || pensionData.owner_info,
-      room_details: getMultilingualText(pensionData.room_details_ml, language as string) || pensionData.room_details
+      owner_name: pensionData.owner.full_name,
+      owner_email: pensionData.owner.email,
+      available_rooms: pensionData._count.rooms,
+      avg_rating: avgRatingResult._avg.rating || 0,
+      review_count: pensionData._count.reviews,
+      name: getMultilingualText(pensionData.name_ml as any, language as string) || pensionData.name,
+      description: getMultilingualText(pensionData.description_ml as any, language as string) || pensionData.description,
+      owner_info: getMultilingualText(pensionData.owner_info_ml as any, language as string) || pensionData.owner_info,
+      room_details: getMultilingualText(pensionData.room_details_ml as any, language as string) || pensionData.room_details
     };
 
     // Get rooms for this pension
-    const roomsResult = await executeQuery(
-      'SELECT * FROM rooms WHERE pension_id = ? AND is_available = TRUE ORDER BY price_per_night',
-      [id]
-    );
-    const rooms = roomsResult.map((r: any) => ({ 
+    const roomsData = await prisma.room.findMany({
+      where: { 
+        pension_id: id,
+        availability_status: 'Available' as any
+      },
+      orderBy: { price_per_night: 'asc' }
+    });
+
+    const rooms = roomsData.map((r: any) => ({ 
       ...r, 
       id: r.room_id,
       type: getMultilingualText(r.room_type_ml, language as string) || r.room_type
     }));
 
     // Get packages for this pension
-    let packages: any[] = [];
-    try {
-      const packagesResult = await executeQuery(
-        'SELECT * FROM packages WHERE pension_id = ? AND is_active = TRUE ORDER BY price',
-        [id]
-      );
-      packages = packagesResult.map((pkg: any) => ({ 
-        ...pkg, 
-        id: pkg.package_id || pkg.id,
-        name: getMultilingualText(pkg.name_ml, language as string) || pkg.name,
-        description: getMultilingualText(pkg.description_ml, language as string) || pkg.description
-      }));
-    } catch (e: any) {
-      console.warn('Packages table not found or query failed');
-      if ((pension as any).packages) {
-        try {
-          packages = typeof (pension as any).packages === 'string' ? JSON.parse((pension as any).packages) : (pension as any).packages;
-        } catch (parseError: any) {
-          console.error('Error parsing packages JSON:', parseError);
-        }
-      }
-    }
+    const packagesData = await prisma.package.findMany({
+      where: { 
+        pension_id: id,
+        is_active: true
+      },
+      orderBy: { price: 'asc' }
+    });
+
+    const packages = packagesData.map((pkg: any) => ({ 
+      ...pkg, 
+      id: pkg.package_id,
+      name: getMultilingualText(pkg.name_ml as any, language as string) || pkg.name,
+      description: getMultilingualText(pkg.description_ml as any, language as string) || pkg.description
+    }));
 
     // Get recent reviews
-    const reviewsResult = await executeQuery(`
-      SELECT r.*, u.full_name, u.email
-      FROM reviews r
-      JOIN users u ON r.user_id = u.user_id
-      WHERE r.pension_id = ? AND r.is_approved = TRUE
-      ORDER BY r.created_at DESC
-      LIMIT 5
-    `, [id]);
-    const reviews = reviewsResult.map((rev: any) => ({ ...rev, id: rev.review_id }));
+    const reviewsData = await prisma.review.findMany({
+      where: { pension_id: id },
+      include: {
+        customer: {
+          select: {
+            full_name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: 5
+    });
+
+    const reviews = reviewsData.map((rev: any) => ({ 
+      ...rev, 
+      id: rev.review_id,
+      full_name: rev.customer.full_name,
+      email: rev.customer.email
+    }));
 
     res.json({
       success: true,
@@ -155,30 +209,24 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
 });
 
 // TEMPORARY: Add properties endpoint here to fix the 500 error
-// This provides the property details structure expected by the frontend
 router.get('/properties/:id', async (req: express.Request, res: express.Response) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id as string);
 
-    console.log('=== GET PROPERTY BY ID (TEMP FIX) ===');
-    console.log('Property ID:', id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid property ID' });
+    }
 
-    // Get basic property info
-    const propertyResult = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [id]
-    );
+    const property = await prisma.pension.findUnique({
+      where: { pension_id: id }
+    });
 
-    console.log('Property result:', propertyResult);
-
-    if (propertyResult.length === 0) {
+    if (!property) {
       return res.status(404).json({
         success: false,
         message: 'Property not found'
       });
     }
-
-    const property = propertyResult[0];
 
     res.json({
       success: true,
@@ -214,10 +262,6 @@ router.get('/properties/:id', async (req: express.Request, res: express.Response
 router.post('/', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
-    console.log('=== CREATE PENSION DEBUG ===');
-    console.log('User ID:', userId);
-    console.log('Request body:', req.body);
-    
     const {
       name,
       description,
@@ -234,18 +278,6 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       room_details_ml
     }: PensionData & { name_ml?: any, description_ml?: any, owner_info_ml?: any, room_details_ml?: any } = req.body;
 
-    console.log('Extracted values:', {
-      name,
-      description,
-      address,
-      phone,
-      email,
-      capacity,
-      owner_info,
-      room_details,
-      image_url
-    });
-
     // Validate required fields
     if (!name || !address) {
       return res.status(400).json({
@@ -254,55 +286,46 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       });
     }
 
-    // Prepare multilingual fields
-    const nameMlJson = name_ml ? JSON.stringify(name_ml) : JSON.stringify({ en: name });
-    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : JSON.stringify({ en: description });
-    const ownerInfoMlJson = owner_info_ml ? JSON.stringify(owner_info_ml) : JSON.stringify({ en: owner_info });
-    const roomDetailsMlJson = room_details_ml ? JSON.stringify(room_details_ml) : JSON.stringify({ en: room_details });
-
-    // Geocode address to get coordinates
-    console.log(`🗺️ Geocoding address for new pension: "${address}"`);
+    // Geocode address
     let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
-    
     if (address) {
       try {
         coordinates = await geocodingService.geocodeAddress(address);
-        console.log(`✅ Geocoded "${name}" to coordinates:`, coordinates);
-      } catch (error: any) {
-        console.log(`⚠️ Geocoding failed for "${name}":`, (error as Error).message);
-        console.log('📍 Using default Addis Ababa coordinates as fallback');
+      } catch (err) {
+        console.warn('Geocoding failed, using defaults');
       }
     }
 
-    console.log('About to execute INSERT query with coordinates...');
-    
-    // Always create pensions with 'pending' status for admin approval workflow
-    const result = await executeQuery(
-      `INSERT INTO pensions (name, description, owner_info, room_details, address, phone, email, capacity, latitude, longitude, owner_id, status, image_url, name_ml, description_ml, owner_info_ml, room_details_ml, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, NOW())`,
-      [name, description, owner_info, room_details, address, phone, email, capacity || 0, coordinates.lat, coordinates.lng, userId, image_url || null, nameMlJson, descriptionMlJson, ownerInfoMlJson, roomDetailsMlJson]
-    );
-
-    console.log('INSERT result:', result);
-
-    // Get created pension
-    const newPension = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [result.insertId]
-    );
-
-    console.log('Created pension:', newPension[0]);
+    const newPension = await prisma.pension.create({
+      data: {
+        name,
+        description,
+        owner_info,
+        room_details,
+        address,
+        phone,
+        email,
+        capacity: parseInt(capacity as any) || 0,
+        latitude: new Prisma.Decimal(coordinates.lat),
+        longitude: new Prisma.Decimal(coordinates.lng),
+        owner_id: userId,
+        status: 'pending' as any,
+        image_url: image_url || null,
+        name_ml: name_ml || { en: name },
+        description_ml: description_ml || { en: description },
+        owner_info_ml: owner_info_ml || { en: owner_info },
+        room_details_ml: room_details_ml || { en: room_details }
+      }
+    });
 
     res.status(201).json({
       success: true,
       message: 'Pension created successfully',
-      data: newPension[0]
+      data: newPension
     });
 
   } catch (error: any) {
     console.error('Create pension error:', error);
-    console.error('Request body:', req.body);
-    console.error('User ID:', req.user?.userId);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -315,13 +338,12 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
 router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
-    const { id } = req.params;
-    console.log('=== UPDATE PENSION DEBUG ===');
-    console.log('User ID:', userId);
-    console.log('Pension ID:', id);
-    console.log('Request method:', req.method);
-    console.log('Request body:', req.body);
+    const id = parseInt(req.params.id);
     
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
+    }
+
     const {
       name,
       description,
@@ -338,116 +360,60 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       room_details_ml
     }: PensionData & { name_ml?: any, description_ml?: any, owner_info_ml?: any, room_details_ml?: any } = req.body;
 
-    console.log('Extracted values:', {
-      name,
-      description,
-      address,
-      phone,
-      email,
-      capacity,
-      owner_info,
-      room_details,
-      image_url
+    // Check if user owns this pension or is admin
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: id }
     });
 
-    // Validate required fields
-    if (!name || !address) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name and address are required'
-      });
-    }
-
-    // Check if user owns this pension or is admin
-    const pension = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [id]
-    );
-
-    if (pension.length === 0) {
-      console.log('Pension not found for ID:', id);
+    if (!pension) {
       return res.status(404).json({
         success: false,
         message: 'Pension not found'
       });
     }
 
-    if (pension[0].owner_id !== userId && req.user.role !== 'admin') {
-      console.log('Ownership check failed. Pension owner:', pension[0].owner_id, 'User ID:', userId);
+    if (pension.owner_id !== userId && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You can only update your own pensions'
       });
     }
 
-    console.log('Ownership check passed. Updating pension...');
-    
-    // Prepare multilingual fields
-    const nameMlJson = name_ml ? JSON.stringify(name_ml) : (pension[0].name_ml || JSON.stringify({ en: name || pension[0].name }));
-    const descriptionMlJson = description_ml ? JSON.stringify(description_ml) : (pension[0].description_ml || JSON.stringify({ en: description || pension[0].description }));
-    const ownerInfoMlJson = owner_info_ml ? JSON.stringify(owner_info_ml) : (pension[0].owner_info_ml || JSON.stringify({ en: owner_info || pension[0].owner_info }));
-    const roomDetailsMlJson = room_details_ml ? JSON.stringify(room_details_ml) : (pension[0].room_details_ml || JSON.stringify({ en: room_details || pension[0].room_details }));
-    
-    // Geocode address to get updated coordinates
-    console.log(`🗺️ Geocoding updated address for pension: "${address}"`);
-    let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
-    
-    if (address) {
+    // Geocode address if changed
+    let coordinates = { lat: Number(pension.latitude), lng: Number(pension.longitude) };
+    if (address && address !== pension.address) {
       try {
         coordinates = await geocodingService.geocodeAddress(address);
-        console.log(`✅ Re-geocoded "${name}" to coordinates:`, coordinates);
-      } catch (error: any) {
-        console.log(`⚠️ Re-geocoding failed for "${name}":`, (error as Error).message);
-        console.log('📍 Using default Addis Ababa coordinates as fallback');
+      } catch (err) {
+        console.warn('Geocoding failed, keeping old coords');
       }
     }
     
-    // Update pension with coordinates
-    try {
-      await executeQuery(
-        `UPDATE pensions 
-         SET name = ?, description = ?, owner_info = ?, room_details = ?, address = ?, phone = ?, email = ?, capacity = ?, latitude = ?, longitude = ?, image_url = ?, name_ml = ?, description_ml = ?, owner_info_ml = ?, room_details_ml = ?
-         WHERE pension_id = ?`,
-        [name || pension[0].name, 
-         description || pension[0].description, 
-         owner_info || pension[0].owner_info, 
-         room_details || pension[0].room_details, 
-         address, 
-         phone, 
-         email, 
-         capacity || 0, 
-         coordinates.lat, 
-         coordinates.lng, 
-         image_url || null,
-         nameMlJson,
-         descriptionMlJson,
-         ownerInfoMlJson,
-         roomDetailsMlJson,
-         id]
-      );
-
-      console.log('Pension updated successfully');
-    } catch (error: any) {
-      console.error('Error updating pension:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update pension',
-        error: error.message
-      });
-    }
-
-    // Get updated pension
-    const updatedPension = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [id]
-    );
+    const updatedPension = await prisma.pension.update({
+      where: { pension_id: id },
+      data: {
+        name: name || undefined,
+        description: description || undefined,
+        owner_info: owner_info || undefined,
+        room_details: room_details || undefined,
+        address: address || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
+        capacity: capacity !== undefined ? parseInt(capacity as any) : undefined,
+        latitude: new Prisma.Decimal(coordinates.lat),
+        longitude: new Prisma.Decimal(coordinates.lng),
+        image_url: image_url || undefined,
+        name_ml: name_ml || undefined,
+        description_ml: description_ml || undefined,
+        owner_info_ml: owner_info_ml || undefined,
+        room_details_ml: room_details_ml || undefined
+      }
+    });
 
     res.json({
       success: true,
       message: 'Pension updated successfully',
-      data: {
-        pension: updatedPension[0]
-      }
+      data: { pension: updatedPension }
     });
 
   } catch (error: any) {
@@ -463,36 +429,30 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
 // Delete pension (protected - admin only)
 router.delete('/:id', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
 
-    // Check if pension exists
-    const pension = await executeQuery(
-      'SELECT * FROM pensions WHERE pension_id = ?',
-      [id]
-    );
-
-    if (pension.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pension not found'
-      });
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid pension ID' });
     }
 
     // Check if there are active bookings
-    const activeBookings = await executeQuery(
-      'SELECT COUNT(*) as count FROM bookings WHERE pension_id = ? AND status IN ("pending", "confirmed")',
-      [id]
-    );
+    const activeBookingsCount = await prisma.booking.count({
+      where: {
+        room: { pension_id: id },
+        status: { in: ['Pending', 'Confirmed'] }
+      }
+    });
 
-    if (activeBookings[0].count > 0) {
+    if (activeBookingsCount > 0) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete pension with active bookings'
       });
     }
 
-    // Delete pension (cascade will handle related records)
-    await executeQuery('DELETE FROM pensions WHERE pension_id = ?', [id]);
+    await prisma.pension.delete({
+      where: { pension_id: id }
+    });
 
     res.json({
       success: true,
@@ -513,31 +473,37 @@ router.get('/my/pensions', authenticateToken as any, async (req: any, res: expre
   try {
     const userId = req.user.userId;
     const { page = 1, limit = 10 } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
+    const skip = (parseInt(page as string) - 1) * take;
 
-    const pensionsResult = await executeQuery(`
-      SELECT p.*, COUNT(DISTINCT r.room_id) as room_count
-      FROM pensions p
-      LEFT JOIN rooms r ON p.pension_id = r.pension_id
-      WHERE p.owner_id = ?
-      GROUP BY p.pension_id
-      ORDER BY p.created_at DESC
-      LIMIT ${parseInt(limit as string)} OFFSET ${offset}
-    `, [userId]);
+    const [pensionsResult, totalCount] = await prisma.$transaction([
+      prisma.pension.findMany({
+        where: { owner_id: userId },
+        include: {
+          _count: {
+            select: { rooms: true }
+          }
+        },
+        orderBy: { created_at: 'desc' },
+        take,
+        skip
+      }),
+      prisma.pension.count({ where: { owner_id: userId } })
+    ]);
 
-    const totalCount = await executeQuery(
-      'SELECT COUNT(*) as count FROM pensions WHERE owner_id = ?',
-      [userId]
-    );
+    const formattedPensions = pensionsResult.map(p => ({
+      ...p,
+      room_count: p._count.rooms
+    }));
 
     res.json({
       success: true,
-      data: pensionsResult,
+      data: formattedPensions,
       pagination: {
         page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        total: totalCount[0].count,
-        pages: Math.ceil(totalCount[0].count / parseInt(limit as string))
+        limit: take,
+        total: totalCount,
+        pages: Math.ceil(totalCount / take)
       }
     });
   } catch (error: any) {
@@ -552,32 +518,32 @@ router.get('/my/pensions', authenticateToken as any, async (req: any, res: expre
 // Update existing pensions with missing coordinates (admin only)
 router.post('/update-coordinates', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
-    console.log('=== UPDATING MISSING COORDINATES ===');
-    
-    // Get all pensions without coordinates
-    const pensionsWithoutCoords = await executeQuery(`
-      SELECT pension_id, name, address 
-      FROM pensions 
-      WHERE latitude IS NULL OR longitude IS NULL OR latitude = '' OR longitude = ''
-    `);
+    const pensionsWithoutCoords = await prisma.pension.findMany({
+      where: {
+        OR: [
+          { latitude: null },
+          { longitude: null }
+        ]
+      },
+      select: { pension_id: true, name: true, address: true }
+    });
     
     console.log(`Found ${pensionsWithoutCoords.length} pensions without coordinates`);
     
     for (const pension of pensionsWithoutCoords) {
-      try {
-        console.log(`🗺️ Geocoding address for pension "${pension.name}": "${pension.address}"`);
-        const coordinates = await geocodingService.geocodeAddress(pension.address);
-        
-        await executeQuery(`
-          UPDATE pensions 
-          SET latitude = ?, longitude = ? 
-          WHERE pension_id = ?
-        `, [coordinates.lat, coordinates.lng, pension.pension_id]);
-        
-        console.log(`✅ Updated coordinates for "${pension.name}":`, coordinates);
-        
-      } catch (error: any) {
-        console.log(`⚠️ Failed to geocode "${pension.name}":`, error.message);
+      if (pension.address) {
+        try {
+          const coordinates = await geocodingService.geocodeAddress(pension.address);
+          await prisma.pension.update({
+            where: { pension_id: pension.pension_id },
+            data: {
+              latitude: new Prisma.Decimal(coordinates.lat),
+              longitude: new Prisma.Decimal(coordinates.lng)
+            }
+          });
+        } catch (err) {
+          console.warn(`Failed to geocode ${pension.name}`);
+        }
       }
     }
     

@@ -1,4 +1,5 @@
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
+import { NotificationType } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -28,7 +29,7 @@ interface Notification {
   type: string;
 }
 
-interface EmailNotification {
+interface EmailNotificationData {
   user_id: number;
   subject: string;
   message: string;
@@ -44,11 +45,14 @@ class NotificationService {
    */
   async createNotification(notification: Notification): Promise<void> {
     try {
-      const query = `
-        INSERT INTO notifications (user_id, title, message, type, created_at)
-        VALUES (?, ?, ?, ?, NOW())
-      `;
-      await executeQuery(query, [notification.user_id, notification.title, notification.message, notification.type]);
+      await prisma.notification.create({
+        data: {
+          user_id: notification.user_id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type as NotificationType
+        }
+      });
       
       // If User is connected via WebSocket, send real-time notification
       if (wsServer.isUserConnected(notification.user_id)) {
@@ -65,7 +69,7 @@ class NotificationService {
   /**
    * Send email notification
    */
-  async sendEmailNotification(emailNotification: EmailNotification): Promise<void> {
+  async sendEmailNotification(emailNotification: EmailNotificationData): Promise<void> {
     if (!transporter) {
       console.warn('⚠️ Email transporter not configured, skipping email notification.');
       return;
@@ -73,12 +77,15 @@ class NotificationService {
 
     try {
       // Fetch user email
-      const users = await executeQuery('SELECT email FROM users WHERE user_id = ?', [emailNotification.user_id]);
-      if (users.length === 0) {
+      const user = await prisma.user.findUnique({
+        where: { user_id: emailNotification.user_id },
+        select: { email: true }
+      });
+
+      if (!user || !user.email) {
         console.error(`❌ User with ID ${emailNotification.user_id} not found for email notification.`);
         return;
       }
-      const userEmail = users[0].email;
 
       // Load email template
       const templatePath = path.join(__dirname, '../../emails/notification.html');
@@ -98,23 +105,27 @@ class NotificationService {
 
       await transporter.sendMail({
         from: process.env.SMTP_EMAIL,
-        to: userEmail,
+        to: user.email,
         subject: emailNotification.subject,
         text: emailNotification.message,
         html: emailContent.includes('<') ? emailContent : undefined
       });
 
       if (emailNotification.email_id) {
-        const updateQuery = 'UPDATE email_notifications SET status = "Sent", sent_at = NOW() WHERE email_id = ?';
-        await executeQuery(updateQuery, [emailNotification.email_id]);
+        await prisma.emailNotification.update({
+          where: { email_id: emailNotification.email_id },
+          data: { status: 'Sent', sent_at: new Date() }
+        });
       }
 
-      console.log(`✅ Email notification sent to ${userEmail}`);
+      console.log(`✅ Email notification sent to ${user.email}`);
     } catch (error: any) {
       console.error('❌ Error sending email notification:', error);
       if (emailNotification.email_id) {
-        const updateQuery = 'UPDATE email_notifications SET status = "Failed" WHERE email_id = ?';
-        await executeQuery(updateQuery, [emailNotification.email_id]);
+        await prisma.emailNotification.update({
+          where: { email_id: emailNotification.email_id },
+          data: { status: 'Failed' }
+        });
       }
       throw error;
     }
@@ -125,14 +136,11 @@ class NotificationService {
    */
   async getUserNotifications(userId: number, limit: number = 50): Promise<any[]> {
     try {
-      const query = `
-        SELECT notification_id, user_id, title, message, type, is_read, created_at
-        FROM notifications
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT ?
-      `;
-      return await executeQuery(query, [userId, limit]);
+      return await prisma.notification.findMany({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+        take: limit
+      });
     } catch (error: any) {
       console.error('❌ Error getting user notifications:', error);
       return [];
@@ -144,12 +152,12 @@ class NotificationService {
    */
   async getUnreadCount(userId: number): Promise<number> {
     try {
-      const query = `
-        SELECT COUNT(*) as count FROM notifications 
-        WHERE user_id = ? AND is_read = 0
-      `;
-      const result = await executeQuery(query, [userId]);
-      return result[0]?.count || 0;
+      return await prisma.notification.count({
+        where: { 
+          user_id: userId,
+          is_read: false
+        }
+      });
     } catch (error: any) {
       console.error('❌ Error getting unread count:', error);
       return 0;
@@ -161,12 +169,13 @@ class NotificationService {
    */
   async markAsRead(notificationId: number, userId: number): Promise<void> {
     try {
-      const query = `
-        UPDATE notifications 
-        SET is_read = 1 
-        WHERE notification_id = ? AND user_id = ?
-      `;
-      await executeQuery(query, [notificationId, userId]);
+      await prisma.notification.updateMany({
+        where: { 
+          notification_id: notificationId,
+          user_id: userId
+        },
+        data: { is_read: true }
+      });
     } catch (error: any) {
       console.error('❌ Error marking notification as read:', error);
       throw error;
@@ -178,12 +187,13 @@ class NotificationService {
    */
   async markAllAsRead(userId: number): Promise<void> {
     try {
-      const query = `
-        UPDATE notifications 
-        SET is_read = 1 
-        WHERE user_id = ? AND is_read = 0
-      `;
-      await executeQuery(query, [userId]);
+      await prisma.notification.updateMany({
+        where: { 
+          user_id: userId,
+          is_read: false
+        },
+        data: { is_read: true }
+      });
     } catch (error: any) {
       console.error('❌ Error marking all notifications as read:', error);
       throw error;
@@ -195,11 +205,12 @@ class NotificationService {
    */
   async deleteNotification(notificationId: number, userId: number): Promise<void> {
     try {
-      const query = `
-        DELETE FROM notifications 
-        WHERE notification_id = ? AND user_id = ?
-      `;
-      await executeQuery(query, [notificationId, userId]);
+      await prisma.notification.deleteMany({
+        where: { 
+          notification_id: notificationId,
+          user_id: userId
+        }
+      });
     } catch (error: any) {
       console.error('❌ Error deleting notification:', error);
       throw error;
@@ -212,24 +223,22 @@ class NotificationService {
   async createBookingNotification(bookingId: number, type: 'created' | 'confirmed' | 'cancelled' | 'completed'): Promise<void> {
     try {
       // Get booking details
-      const bookingQuery = `
-        SELECT b.*, u.full_name as customer_name, u.email as customer_email,
-               p.name as pension_name, p.owner_id,
-               r.room_type, r.room_number
-        FROM bookings b
-        LEFT JOIN users u ON b.customer_id = u.user_id
-        LEFT JOIN rooms r ON b.room_id = r.room_id
-        LEFT JOIN pensions p ON r.pension_id = p.pension_id
-        WHERE b.booking_id = ?
-      `;
-      const bookings = await executeQuery(bookingQuery, [bookingId]);
+      const booking = await prisma.booking.findUnique({
+        where: { booking_id: bookingId },
+        include: {
+          customer: { select: { full_name: true, user_id: true } },
+          room: {
+            include: {
+              pension: { select: { name: true, owner_id: true } }
+            }
+          }
+        }
+      });
       
-      if (bookings.length === 0) {
+      if (!booking) {
         console.error(`❌ Booking ${bookingId} not found`);
         return;
       }
-
-      const booking = bookings[0];
 
       let title = '';
       let message = '';
@@ -239,30 +248,30 @@ class NotificationService {
       switch (type) {
         case 'created':
           title = 'New Booking Request';
-          message = `New booking request for ${booking.room_type} (${booking.room_number}) from ${booking.check_in_date} to ${booking.check_out_date}`;
+          message = `New booking request for ${booking.room?.room_type} (${booking.room?.room_number}) from ${booking.check_in_date?.toLocaleDateString()} to ${booking.check_out_date?.toLocaleDateString()}`;
           notifyOwner = true;
           break;
         case 'confirmed':
           title = 'Booking Confirmed';
-          message = `Your booking for ${booking.pension_name} has been confirmed`;
+          message = `Your booking for ${booking.room?.pension.name} has been confirmed`;
           notifyCustomer = true;
           break;
         case 'cancelled':
           title = 'Booking Cancelled';
-          message = `Booking for ${booking.pension_name} has been cancelled`;
+          message = `Booking for ${booking.room?.pension.name} has been cancelled`;
           notifyCustomer = true;
           notifyOwner = true;
           break;
         case 'completed':
           title = 'Booking Completed';
-          message = `Your stay at ${booking.pension_name} is complete. Please leave a review!`;
+          message = `Your stay at ${booking.room?.pension.name} is complete. Please leave a review!`;
           notifyCustomer = true;
           break;
       }
 
-      if (notifyOwner && booking.owner_id) {
+      if (notifyOwner && booking.room?.pension.owner_id) {
         await this.createNotification({
-          user_id: booking.owner_id,
+          user_id: booking.room.pension.owner_id,
           title,
           message,
           type: 'booking'
@@ -290,29 +299,25 @@ class NotificationService {
   async createReviewNotification(reviewId: number): Promise<void> {
     try {
       // Get review details
-      const reviewQuery = `
-        SELECT r.*, u.full_name as reviewer_name,
-               p.name as pension_name, p.owner_id
-        FROM reviews r
-        LEFT JOIN users u ON r.customer_id = u.user_id
-        LEFT JOIN pensions p ON r.pension_id = p.pension_id
-        WHERE r.review_id = ?
-      `;
-      const reviews = await executeQuery(reviewQuery, [reviewId]);
+      const review = await prisma.review.findUnique({
+        where: { review_id: reviewId },
+        include: {
+          customer: { select: { full_name: true } },
+          pension: { select: { name: true, owner_id: true } }
+        }
+      });
       
-      if (reviews.length === 0) {
+      if (!review) {
         console.error(`❌ Review ${reviewId} not found`);
         return;
       }
 
-      const review = reviews[0];
-
       const title = 'New Review';
-      const message = `New ${review.rating}-star review from ${review.reviewer_name}: "${review.comment.substring(0, 100)}..."`;
+      const message = `New ${review.rating}-star review from ${review.customer?.full_name}: "${review.comment?.substring(0, 100)}..."`;
 
-      if (review.owner_id) {
+      if (review.pension?.owner_id) {
         await this.createNotification({
-          user_id: review.owner_id,
+          user_id: review.pension.owner_id,
           title,
           message,
           type: 'review'

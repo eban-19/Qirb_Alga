@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import * as dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { testConnection } from './config/database';
+import prisma from './lib/prisma';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -32,28 +32,17 @@ import scheduledCheckoutWorker from './services/scheduledCheckoutWorker';
 
 dotenv.config();
 
-// ... rest of the code remains the same ...
 const app = express();
-
 const server = createServer(app);
 
 const io = new SocketIOServer(server, {
-
   cors: {
-
     origin: process.env.FRONTEND_URL || "http://localhost:8080",
-
     methods: ["GET", "POST"]
-
   }
-
 });
 
-
-
 const PORT = process.env.PORT || 3005;
-
-
 
 // CORS middleware for uploads (must come before helmet)
 app.use('/uploads', (req, res, next) => {
@@ -64,7 +53,6 @@ app.use('/uploads', (req, res, next) => {
 });
 
 // Middleware
-
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
@@ -75,39 +63,25 @@ app.use(cors({
 }));
 
 app.use(morgan('combined'));
-
 app.use(express.json({ limit: '10mb' }));
-
 app.use(express.urlencoded({ extended: true }));
 
 // Static files with proper CORS and path resolution
 const uploadsPath = path.join(__dirname, '../uploads');
-console.log('🔍 Uploads directory path:', uploadsPath);
-console.log('🔍 Uploads directory exists:', fs.existsSync(uploadsPath));
 
 // Serve static files with CORS headers
 app.use('/uploads', (req, res, next) => {
-  // Set CORS headers
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
   
-  console.log('🔍 Upload request:', {
-    method: req.method,
-    url: req.url,
-    fullPath: path.join(uploadsPath, req.url),
-    exists: fs.existsSync(path.join(uploadsPath, req.url))
-  });
-  
-  // Use express.static to serve the file
   express.static(uploadsPath, {
-    setHeaders: (res, path, stat) => {
+    setHeaders: (res) => {
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -115,7 +89,7 @@ app.use('/uploads', (req, res, next) => {
   })(req, res, next);
 });
 
-// API Routes (same as working .js version)
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/pensions', pensionRoutes);
 app.use('/api/properties', propertyRoutes);
@@ -129,7 +103,7 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin-approvals', adminRoutes); // Add route for frontend compatibility
+app.use('/api/admin-approvals', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/translations', translationRoutes);
 
@@ -151,12 +125,11 @@ app.get('/api/test', (req, res) => {
 // Database test endpoint
 app.get('/api/test-db', async (req, res) => {
   try {
-    const { testConnection } = await import('./config/database');
-    const dbConnected = await testConnection();
+    await prisma.$queryRaw`SELECT 1`;
     res.json({
       success: true,
-      message: 'Database connection test',
-      connected: dbConnected,
+      message: 'Database connection test successful',
+      connected: true,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -174,94 +147,52 @@ app.get('/api/test-db', async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
-
     timestamp: new Date().toISOString(),
-
     uptime: process.uptime()
-
   });
-
 });
-
-
-
-// API Routes (will be added later)
 
 app.get('/api', (req, res) => {
-
   res.json({
-
     message: 'Pension Management System API',
-
     version: '1.0.0',
-
     endpoints: {
-
       health: '/health',
-
       auth: '/api/auth',
-
       pensions: '/api/pensions',
-
       packages: '/api/packages',
-
       rooms: '/api/rooms',
-
       bookings: '/api/bookings'
-
     }
-
   });
-
 });
-
-
 
 // Socket.IO connection
-
 io.on('connection', (socket) => {
-
   console.log('🔌 Client connected:', socket.id);
-
-  
-
   socket.on('disconnect', () => {
-
     console.log('🔌 Client disconnected:', socket.id);
-
   });
-
 });
 
-
-
 // Start server
-
 const startServer = async () => {
-  // Create uploads directory if it doesn't exist
   const uploadDir = path.join(__dirname, '../uploads');
   if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
   }
   
   try {
-    // Test database connection
-    const dbConnected = await testConnection();
-    if (!dbConnected) {
-      console.error('❌ Failed to connect to database');
-      process.exit(1);
-    }
+    // Test database connection with Prisma
+    await prisma.$connect();
+    console.log('✅ Database connection established via Prisma');
     
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🔗 API endpoint: http://localhost:${PORT}/api`);
       
-      // Initialize WebSocket server
       wsServer.initialize(server);
-      console.log(`🔌 WebSocket server ready for real-time notifications`);
-      
-      // Start scheduled checkout worker
       scheduledCheckoutWorker.start();
     });
   } catch (error) {
@@ -269,6 +200,8 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+startServer();
 
 
 // Handle graceful shutdown
@@ -311,7 +244,7 @@ process.on('SIGINT', () => {
 
 
 
-startServer();
+
 
 
 

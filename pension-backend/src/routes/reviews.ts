@@ -1,6 +1,7 @@
 import * as express from 'express';
-import { executeQuery } from '../config/database';
+import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
+import { BookingStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -9,54 +10,47 @@ router.get('/pension/:pensionId', async (req: any, res: any) => {
   try {
     const { pensionId } = req.params;
     const { page = 1, limit = 10, rating, approved_only = true } = req.query;
-    const offset = String((parseInt(page as string) - 1) * parseInt(limit as string));
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
+    const pId = parseInt(pensionId as string);
 
-    let query = `
-      SELECT r.*, u.full_name, u.email
-      FROM reviews r
-      LEFT JOIN users u ON r.customer_id = u.user_id
-      WHERE r.pension_id = ?
-    `;
-    
-    const params: any[] = [pensionId];
+    const where: any = {
+      pension_id: pId
+    };
 
-    if (approved_only === 'true') {
-      query += ' AND r.is_approved = TRUE';
+    if (approved_only === 'true' || approved_only === true) {
+      where.is_approved = true;
     }
 
     if (rating) {
-      query += ' AND r.rating = ?';
-      params.push(rating as string);
+      where.rating = parseInt(rating as string);
     }
 
-    query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit as string), offset);
+    const reviews = await prisma.review.findMany({
+      where,
+      include: {
+        customer: {
+          select: {
+            full_name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take
+    });
 
-    const reviews = await executeQuery(query, params);
-
-    // Get total count
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM reviews r
-      WHERE r.pension_id = ?
-    `;
-    
-    const countParams = [pensionId];
-
-    if (approved_only === 'true') {
-      countQuery += ' AND r.is_approved = TRUE';
-    }
-
-    if (rating) {
-      countQuery += ' AND r.rating = ?';
-      countParams.push(rating as string);
-    }
-
-    const countResult = await executeQuery(countQuery, countParams);
+    // Formatting to match previous SQL result structure
+    const formattedReviews = reviews.map(r => ({
+      ...r,
+      full_name: r.customer?.full_name,
+      email: r.customer?.email
+    }));
 
     res.json({
       success: true,
-      reviews
+      reviews: formattedReviews
     });
 
   } catch (error: any) {
@@ -70,26 +64,33 @@ router.get('/my/reviews', authenticateToken as any, async (req: any, res: any) =
   try {
     const userId = req.user.userId;
     const { page = 1, limit = 10 } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
 
-    const reviews = await executeQuery(`
-      SELECT r.*, p.name as pension_name, p.address as pension_address
-      FROM reviews r
-      LEFT JOIN pensions p ON r.pension_id = p.pension_id
-      WHERE r.customer_id = ?
-      ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [userId, parseInt(limit as string), offset]);
+    const reviews = await prisma.review.findMany({
+      where: { customer_id: userId },
+      include: {
+        pension: {
+          select: {
+            name: true,
+            address: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take
+    });
 
-    // Get total count
-    const countResult = await executeQuery(
-      'SELECT COUNT(*) as total FROM reviews WHERE customer_id = ?',
-      [userId]
-    );
+    const formattedReviews = reviews.map(r => ({
+      ...r,
+      pension_name: r.pension?.name,
+      pension_address: r.pension?.address
+    }));
 
     res.json({
       success: true,
-      reviews
+      reviews: formattedReviews
     });
 
   } catch (error: any) {
@@ -103,6 +104,7 @@ router.post('/', authenticateToken as any, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
     const { pension_id, rating, comment } = req.body;
+    const pId = parseInt(pension_id as string);
 
     // Validate input
     if (!pension_id || !rating || !comment) {
@@ -120,26 +122,32 @@ router.post('/', authenticateToken as any, async (req: any, res: any) => {
     }
 
     // Check if user has already reviewed this pension
-    const existingReview = await executeQuery(
-      'SELECT * FROM reviews WHERE customer_id = ? AND pension_id = ?',
-      [userId, pension_id]
-    );
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        customer_id: userId,
+        pension_id: pId
+      }
+    });
 
-    if (existingReview.length > 0) {
+    if (existingReview) {
       return res.status(400).json({
         success: false,
         message: 'You have already reviewed this pension'
       });
     }
 
-    // Check if user has a confirmed booking for this pension
-    const bookingCheck = await executeQuery(`
-      SELECT b.* FROM bookings b
-      LEFT JOIN rooms r ON b.room_id = r.room_id
-      WHERE b.customer_id = ? AND r.pension_id = ? AND b.status = 'Completed'
-    `, [userId, pension_id]);
+    // Check if user has a completed booking for this pension
+    const bookingCheck = await prisma.booking.findFirst({
+      where: {
+        customer_id: userId,
+        status: BookingStatus.Completed,
+        room: {
+          pension_id: pId
+        }
+      }
+    });
 
-    if (bookingCheck.length === 0) {
+    if (!bookingCheck) {
       return res.status(400).json({
         success: false,
         message: 'You can only review pensions you have stayed at'
@@ -147,16 +155,22 @@ router.post('/', authenticateToken as any, async (req: any, res: any) => {
     }
 
     // Create review
-    const result = await executeQuery(`
-      INSERT INTO reviews (customer_id, pension_id, rating, comment, is_approved, created_at)
-      VALUES (?, ?, ?, ?, FALSE, NOW())
-    `, [userId, pension_id, rating, comment]);
+    const review = await prisma.review.create({
+      data: {
+        customer_id: userId,
+        pension_id: pId,
+        booking_id: bookingCheck.booking_id,
+        rating: parseInt(rating as string),
+        comment,
+        is_approved: false
+      }
+    });
 
     res.status(201).json({
       success: true,
       message: 'Review submitted successfully. It will be visible after admin approval.',
       data: {
-        reviewId: result.insertId,
+        reviewId: review.review_id,
         rating,
         comment,
         status: 'Pending'
@@ -176,27 +190,41 @@ router.post('/', authenticateToken as any, async (req: any, res: any) => {
 router.get('/admin/pending', authenticateToken as any, async (req: any, res: any) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
 
-    const reviews = await executeQuery(`
-      SELECT r.*, u.full_name as reviewer_name, u.email as reviewer_email,
-             p.name as pension_name, p.address as pension_address
-      FROM reviews r
-      LEFT JOIN users u ON r.customer_id = u.user_id
-      LEFT JOIN pensions p ON r.pension_id = p.pension_id
-      WHERE r.is_approved = FALSE
-      ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [parseInt(limit as string), offset]);
+    const reviews = await prisma.review.findMany({
+      where: { is_approved: false },
+      include: {
+        customer: {
+          select: {
+            full_name: true,
+            email: true
+          }
+        },
+        pension: {
+          select: {
+            name: true,
+            address: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take
+    });
 
-    // Get total count
-    const countResult = await executeQuery(
-      'SELECT COUNT(*) as total FROM reviews WHERE is_approved = FALSE'
-    );
+    const formattedReviews = reviews.map(r => ({
+      ...r,
+      reviewer_name: r.customer?.full_name,
+      reviewer_email: r.customer?.email,
+      pension_name: r.pension?.name,
+      pension_address: r.pension?.address
+    }));
 
     res.json({
       success: true,
-      reviews
+      reviews: formattedReviews
     });
 
   } catch (error: any) {
@@ -210,6 +238,7 @@ router.put('/admin/:reviewId/approval', authenticateToken as any, async (req: an
   try {
     const { reviewId } = req.params;
     const { approved, rejectionReason } = req.body;
+    const rId = parseInt(reviewId as string);
 
     if (typeof approved !== 'boolean') {
       return res.status(400).json({
@@ -219,10 +248,13 @@ router.put('/admin/:reviewId/approval', authenticateToken as any, async (req: an
     }
 
     if (approved) {
-      await executeQuery(
-        'UPDATE reviews SET is_approved = TRUE, rejection_reason = NULL WHERE review_id = ?',
-        [reviewId]
-      );
+      await prisma.review.update({
+        where: { review_id: rId },
+        data: {
+          is_approved: true,
+          rejection_reason: null
+        }
+      });
     } else {
       if (!rejectionReason) {
         return res.status(400).json({
@@ -231,10 +263,13 @@ router.put('/admin/:reviewId/approval', authenticateToken as any, async (req: an
         });
       }
 
-      await executeQuery(
-        'UPDATE reviews SET is_approved = FALSE, rejection_reason = ? WHERE review_id = ?',
-        [rejectionReason, reviewId]
-      );
+      await prisma.review.update({
+        where: { review_id: rId },
+        data: {
+          is_approved: false,
+          rejection_reason: rejectionReason
+        }
+      });
     }
 
     res.json({
@@ -255,34 +290,45 @@ router.put('/admin/:reviewId/approval', authenticateToken as any, async (req: an
 router.get('/pension/:pensionId/stats', async (req: any, res: any) => {
   try {
     const { pensionId } = req.params;
+    const pId = parseInt(pensionId as string);
 
-    const stats = await executeQuery(`
-      SELECT 
-        COUNT(*) as total_reviews,
-        AVG(rating) as average_rating,
-        COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
-        COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
-        COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
-        COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
-        COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
-      FROM reviews 
-      WHERE pension_id = ? AND is_approved = TRUE
-    `, [pensionId]);
+    const aggregate = await prisma.review.aggregate({
+      where: {
+        pension_id: pId,
+        is_approved: true
+      },
+      _count: {
+        _all: true
+      },
+      _avg: {
+        rating: true
+      }
+    });
 
-    const result = stats[0];
+    const groupBy = await prisma.review.groupBy({
+      by: ['rating'],
+      where: {
+        pension_id: pId,
+        is_approved: true
+      },
+      _count: {
+        _all: true
+      }
+    });
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    groupBy.forEach(item => {
+      const rating = item.rating;
+      const count = (item._count as any)?._all || 0;
+      distribution[rating] = count;
+    });
 
     res.json({
       success: true,
       data: {
-        totalReviews: result.total_reviews || 0,
-        averageRating: result.average_rating ? parseFloat(result.average_rating).toFixed(1) : 0,
-        ratingDistribution: {
-          5: result.five_star || 0,
-          4: result.four_star || 0,
-          3: result.three_star || 0,
-          2: result.two_star || 0,
-          1: result.one_star || 0
-        }
+        totalReviews: (aggregate._count as any)?._all || 0,
+        averageRating: aggregate._avg?.rating ? aggregate._avg.rating.toFixed(1) : "0",
+        ratingDistribution: distribution
       }
     });
 
