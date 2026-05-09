@@ -13,7 +13,8 @@ import Booking from "./pages/Booking.tsx";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
 import Login from "./pages/Login.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
-import AdminDashboard from "./pages/AdminDashboardNew.tsx";
+import AdminDashboard from "./pages/AdminDashboard";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import PendingApproval from "./pages/PendingApproval.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import Terms from "./pages/Terms.tsx";
@@ -36,7 +37,7 @@ const App = () => (
               <Route path="/book/:id" element={<Booking />} />
               <Route path="/register-property" element={<RegisterProperty />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/pending-approval" element={<PendingApproval />} />
               
               {/* Admin Dashboard Routes - Protected */}

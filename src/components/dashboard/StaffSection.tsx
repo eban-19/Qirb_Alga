@@ -5,16 +5,18 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { LayoutDashboard, Edit, Trash2, MessageSquare, Phone, Mail, BarChart3, User, Building, DollarSign } from 'lucide-react';
-import { StaffMember } from '../../data/types/dashboardTypes';
+import { Staff } from '../../types/dashboard';
 import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
 
 interface StaffSectionProps {
-  staff: StaffMember[];
-  viewMode: 'card' | 'table';
+  staff: Staff[];
+  viewMode: 'card' | 'table' | string;
   onToggleView: () => void;
-  onEditStaff: (id: string) => void;
-  onDeleteStaff: (id: string) => void;
+  onEditStaff: (staff: Staff) => void;
+  onDeleteStaff: (id: string | number) => void;
+  onAddNewStaff: () => void;
+  onBulkUpload: () => void;
   downloadTemplate: () => void;
 }
 
@@ -24,40 +26,63 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   onToggleView,
   onEditStaff,
   onDeleteStaff,
+  onAddNewStaff,
+  onBulkUpload,
   downloadTemplate
 }) => {
   const { language } = useLanguage();
   
   return (
     <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
-        <Button 
-          variant={viewMode === "card" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <TranslationText text="Cards" language={language} />
-        </Button>
-        <Button 
-          variant={viewMode === "table" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <BarChart3 className="h-4 w-4" />
-          <TranslationText text="Table" language={language} />
-        </Button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* View Toggle */}
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
+          <Button 
+            variant={viewMode === "card" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "card" 
+                ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <TranslationText text="Cards" language={language} />
+          </Button>
+          <Button 
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "table" 
+                ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <TranslationText text="Table" language={language} />
+          </Button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={onBulkUpload}
+            className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
+          >
+            <LayoutDashboard className="h-4 w-4 rotate-180" />
+            <TranslationText text="Bulk Upload" language={language} />
+          </Button>
+          <Button 
+            onClick={onAddNewStaff}
+            className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
+          >
+            <User className="h-4 w-4" />
+            <TranslationText text="Add Staff" language={language} />
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -185,7 +210,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     variant="outline" 
                     size="sm" 
                     className="flex-1 gap-1 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300"
-                    onClick={() => onEditStaff(member.id)}
+                    onClick={() => onEditStaff(member)}
                   >
                     <Edit className="h-3.5 w-3.5" />
                     <TranslationText text="Edit" language={language} />
@@ -227,11 +252,11 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                         <div className="flex items-center gap-2 sm:gap-3 min-w-[140px] sm:min-w-[160px]">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                             <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-[10px] sm:text-sm">
-                              {member.name.split(" ").map((n) => n[0]).join("")}
+                              {member.full_name.split(" ").map((n) => n[0]).join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div className="hidden sm:block flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm">{member.name}</div>
+                            <div className="font-medium text-slate-900 text-sm">{member.full_name}</div>
                             <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
                               {member.role}
                             </Badge>
@@ -255,7 +280,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => onEditStaff(member.id)}
+                            onClick={() => onEditStaff(member)}
                             className="hover:bg-blue-50 hover:text-blue-600"
                           >
                             <Edit className="h-3.5 w-3.5" />

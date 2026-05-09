@@ -445,6 +445,26 @@ class ApiService {
     });
   }
 
+  // Guest methods
+  async getGuests(pensionId: number): Promise<ApiResponse<any[]>> {
+    try {
+      return await this.request(`/guests/pensions/${pensionId}`);
+    } catch (error) {
+      console.warn('Guests endpoint not available, returning empty array');
+      return { success: true, data: [] };
+    }
+  }
+
+  // Transaction methods
+  async getTransactions(pensionId: number): Promise<ApiResponse<any[]>> {
+    try {
+      return await this.request(`/transactions/pensions/${pensionId}`);
+    } catch (error) {
+      console.warn('Transactions endpoint not available, returning empty array');
+      return { success: true, data: [] };
+    }
+  }
+
   // Package methods
   async getPackages(pensionId: number, params: { language?: string } = {}): Promise<ApiResponse<any[]>> {
     const query = new URLSearchParams(params as any).toString();
@@ -514,7 +534,12 @@ class ApiService {
 
   // Expense methods
   async getExpenses(pensionId: number): Promise<ApiResponse<any>> {
-    return this.request(`/expenses/pensions/${pensionId}`);
+    try {
+      return await this.request(`/expenses/pensions/${pensionId}`);
+    } catch (error) {
+      console.warn('Expenses endpoint not available, returning empty array');
+      return { success: true, data: { items: [], totalExpenses: 0 } };
+    }
   }
 
   async addExpense(pensionId: number, expenseData: any): Promise<ApiResponse<any>> {
@@ -642,6 +667,10 @@ class ApiService {
       // Return basic properties without details rather than failing completely
       return this.request('/admin/properties') as Promise<ApiResponse<any[]>>;
     }
+  }
+
+  async getAdminPensions(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/pensions/all');
   }
 
   async getAllBookings(): Promise<ApiResponse<any[]>> {

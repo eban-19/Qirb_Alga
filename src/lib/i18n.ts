@@ -205,11 +205,14 @@ export interface TranslationSchema {
         guests: string;
         pensionProfile: string;
         staffHr: string;
+        staff: string;
         transactions: string;
         reports: string;
         settings: string;
         businessProfile: string;
         security: string;
+        availability: string;
+        compliance: string;
     };
     notFound: {
         message: string;
@@ -456,11 +459,14 @@ export const translations: Record<Language, TranslationSchema> = {
             guests: "Guests",
             pensionProfile: "Pension Profile",
             staffHr: "Staff & HR",
+            staff: "Staff & HR",
             transactions: "Transactions",
             reports: "Reports",
             settings: "Settings",
             businessProfile: "Business Profile",
             security: "Security",
+            availability: "Availability",
+            compliance: "Compliance",
         },
     },
     om: {
@@ -701,11 +707,14 @@ export const translations: Record<Language, TranslationSchema> = {
             guests: "Keessummoota",
             pensionProfile: "Profaayilii Pensiinii",
             staffHr: "Tajaajila & HR",
+            staff: "Hojjettoota & HR",
             transactions: "Tajaajiloota",
             reports: "Gabaasa",
             settings: "Sajataa",
             businessProfile: "Profaayilii Daldalaa",
             security: "Nageenyaa",
+            availability: "Kutaa Banaa",
+            compliance: "Mirkaneessuu",
         },
     },
     am: {
@@ -944,11 +953,14 @@ export const translations: Record<Language, TranslationSchema> = {
             guests: "እንግዶች",
             pensionProfile: "የፔንሽን ፕሮፋይል",
             staffHr: "ሰራተኞች እና HR",
+            staff: "ሰራተኞች እና HR",
             transactions: "ግብይቶች",
             reports: "ሪፖርቶች",
             settings: "ቅንብሮች",
             businessProfile: "የንግድ ፕሮፋይል",
             security: "ደህንነት",
+            availability: "ባዶ ክፍሎች",
+            compliance: "ህጋዊነት",
         },
     },
 };

@@ -1,152 +1,31 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   Users, 
   Building, 
   Calendar,
   BarChart3,
-  PieChart,
   Activity,
   Download,
-  Filter,
   ArrowUpRight,
   ArrowDownRight,
   Eye
 } from "lucide-react";
-
-interface AnalyticsData {
-  revenue: {
-    current: number;
-    previous: number;
-    change: number;
-    trend: 'up' | 'down';
-  };
-  bookings: {
-    current: number;
-    previous: number;
-    change: number;
-    trend: 'up' | 'down';
-  };
-  properties: {
-    current: number;
-    previous: number;
-    change: number;
-    trend: 'up' | 'down';
-  };
-  users: {
-    current: number;
-    previous: number;
-    change: number;
-    trend: 'up' | 'down';
-  };
-}
-
-interface TopProperty {
-  id: string;
-  name: string;
-  bookings: number;
-  revenue: number;
-  occupancyRate: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'booking' | 'registration' | 'payment' | 'review';
-  description: string;
-  timestamp: string;
-  amount?: number;
-}
+import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 
 export default function DashboardAnalytics() {
-  const [timeRange, setTimeRange] = useState("30days");
-  const [selectedMetric, setSelectedMetric] = useState("revenue");
-
-  // Mock analytics data
-  const analyticsData: AnalyticsData = {
-    revenue: {
-      current: 2456000,
-      previous: 2123000,
-      change: 15.7,
-      trend: 'up'
-    },
-    bookings: {
-      current: 342,
-      previous: 298,
-      change: 14.8,
-      trend: 'up'
-    },
-    properties: {
-      current: 156,
-      previous: 142,
-      change: 9.9,
-      trend: 'up'
-    },
-    users: {
-      current: 2847,
-      previous: 2456,
-      change: 15.9,
-      trend: 'up'
-    }
-  };
-
-  const topProperties: TopProperty[] = [
-    {
-      id: "1",
-      name: "Sunshine Pension",
-      bookings: 89,
-      revenue: 890000,
-      occupancyRate: 92
-    },
-    {
-      id: "2", 
-      name: "Abyssinia Guest House",
-      bookings: 76,
-      revenue: 760000,
-      occupancyRate: 88
-    },
-    {
-      id: "3",
-      name: "Ethiopian Paradise",
-      bookings: 65,
-      revenue: 650000,
-      occupancyRate: 85
-    }
-  ];
-
-  const recentActivity: RecentActivity[] = [
-    {
-      id: "1",
-      type: "booking",
-      description: "New booking at Sunshine Pension",
-      timestamp: "2 minutes ago",
-      amount: 3500
-    },
-    {
-      id: "2",
-      type: "registration",
-      description: "New property owner registered",
-      timestamp: "15 minutes ago"
-    },
-    {
-      id: "3",
-      type: "payment",
-      description: "Payment received for booking #BK234",
-      timestamp: "1 hour ago",
-      amount: 7200
-    },
-    {
-      id: "4",
-      type: "review",
-      description: "5-star review for Abyssinia Guest House",
-      timestamp: "2 hours ago"
-    }
-  ];
+  const {
+    timeRange,
+    setTimeRange,
+    selectedMetric,
+    analyticsData,
+    topProperties,
+    recentActivity,
+    handleExportData,
+    handleViewDetails
+  } = useDashboardAnalytics();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-ET', {
@@ -179,14 +58,6 @@ export default function DashboardAnalytics() {
       default:
         return <Activity className="w-4 h-4 text-gray-600" />;
     }
-  };
-
-  const handleExportData = () => {
-    console.log('Export analytics data');
-  };
-
-  const handleViewDetails = (metric: string) => {
-    console.log('View details for:', metric);
   };
 
   return (

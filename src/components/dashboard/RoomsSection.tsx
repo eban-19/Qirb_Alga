@@ -16,13 +16,17 @@ interface RoomsSectionProps {
   viewMode: 'card' | 'table';
   onToggleView: () => void;
   onDeleteRoom?: (roomId: string | number) => void;
+  onAddNewRoom?: () => void;
+  onBulkUpload?: () => void;
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
   rooms = [], // Default to empty array
   viewMode,
   onToggleView,
-  onDeleteRoom
+  onDeleteRoom,
+  onAddNewRoom,
+  onBulkUpload
 }) => {
   // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
@@ -30,34 +34,55 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   
   return (
     <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
-        <Button
-          variant={viewMode === "card" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <TranslationText text="Cards" language={language} />
-        </Button>
-        <Button
-          variant={viewMode === "table" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <BarChart3 className="h-4 w-4" />
-          <TranslationText text="Table" language={language} />
-        </Button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* View Toggle */}
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
+          <Button
+            variant={viewMode === "card" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "card" 
+                ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <TranslationText text="Cards" language={language} />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "table" 
+                ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <TranslationText text="Table" language={language} />
+          </Button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={onBulkUpload}
+            className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
+          >
+            <LayoutDashboard className="h-4 w-4 rotate-180" />
+            <TranslationText text="Bulk Upload" language={language} />
+          </Button>
+          <Button 
+            onClick={onAddNewRoom}
+            className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <TranslationText text="Add Room" language={language} />
+          </Button>
+        </div>
       </div>
 
       {/* Cards View */}

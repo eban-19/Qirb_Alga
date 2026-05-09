@@ -1,94 +1,149 @@
 import { useState } from 'react';
-import { ViewModes, BulkUploadData } from '../data/types/dashboardTypes';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import apiService from '../services/api';
+import { User, Pension, Package, Room, Staff } from '../types/dashboard';
 
 export const useDashboard = () => {
-  // View modes for different sections
-  const [viewModes, setViewModes] = useState<ViewModes>({
+  const navigate = useNavigate();
+  const { logout, user } = useAuth() as { logout: () => Promise<void>, user: User };
+
+  // --- UI STATE ---
+  const [activeTab, setActiveTab] = useState("overview");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  type ViewMode = 'card' | 'table';
+  const [viewModes, setViewModes] = useState<Record<string, ViewMode>>({
     rooms: 'card',
     bookings: 'card',
     guests: 'card',
-    transactions: 'card'
+    transactions: 'card',
+    staff: 'card'
   });
 
-  // Rooms bulk upload state
-  const [showRoomsBulkUploadModal, setShowRoomsBulkUploadModal] = useState(false);
-  const [roomsBulkUpload, setRoomsBulkUpload] = useState<BulkUploadData>({
-    file: null,
-    data: [],
-    preview: []
-  });
-
-  // Add room modal state
+  // --- MODAL STATES ---
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [showAddPackageModal, setShowAddPackageModal] = useState(false);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [showCreatePension, setShowCreatePension] = useState(false);
+  const [showRoomsBulkUploadModal, setShowRoomsBulkUploadModal] = useState(false);
+  const [showStaffBulkUploadModal, setShowStaffBulkUploadModal] = useState(false);
 
-  // Toggle view mode for a section
-  const toggleViewMode = (section: keyof ViewModes) => {
+  // --- FORM STATES ---
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [newStaff, setNewStaff] = useState({
+    full_name: '', role: '', phone: '', salary: '', pension_id: '',
+    owner_id: '', department: '', email: '', status: 'active'
+  });
+
+  const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+  const [newPackage, setNewPackage] = useState({
+    name: '', name_en: '', name_am: '', name_om: '', price: '',
+    description: '', description_en: '', description_am: '', description_om: '',
+    services: ['WiFi', 'Clean Room', 'Basic Amenities'],
+    isMostPopular: false, image: '', customService: '', imageType: 'Normal'
+  });
+
+  const [newRoom, setNewRoom] = useState({
+    type: '', floor: '', price: '', status: 'Available', capacity: '',
+    numberOfBeds: '', numberOfRooms: '1', package: '', roomNumbers: '',
+    imageType: 'Normal', images: [], customPackageName: '', customPackagePrice: ''
+  });
+
+  const [newPension, setNewPension] = useState({
+    name: '', name_en: '', name_am: '', name_om: '',
+    description: '', description_en: '', description_am: '', description_om: '',
+    address: '', address_en: '', address_am: '', address_om: '',
+    phone: '', email: '', capacity: '', image_url: '',
+    owner_info: '', owner_info_en: '', owner_info_am: '', owner_info_om: '',
+    room_details: '', room_details_en: '', room_details_am: '', room_details_om: ''
+  });
+
+  const [walkInForm, setWalkInForm] = useState({
+    guestName: '', phoneNumber: '', checkIn: '', checkOut: '', packageId: ''
+  });
+
+  // Bulk upload states
+  const [roomsBulkUpload, setRoomsBulkUpload] = useState({ file: null as File | null, data: [] as unknown[], preview: [] as unknown[] });
+  const [staffBulkUpload, setStaffBulkUpload] = useState({ file: null as File | null, data: [] as unknown[], preview: [] as unknown[] });
+
+  // Settings states
+  const [propertySettings, setPropertySettings] = useState({
+    name: '', address: '', phone: '', email: '', description: '',
+    imageUrl: '', ownerInfo: '', roomDetails: '', capacity: '',
+    amenities: [] as string[]
+  });
+  const [businessProfile, setBusinessProfile] = useState({
+    businessName: '', businessEmail: '', businessPhone: ''
+  });
+  const [securitySettings, setSecuritySettings] = useState({
+    currentPassword: '', newPassword: '', twoFactorEnabled: false
+  });
+
+  // --- ACTIONS ---
+  const toggleViewMode = (section: keyof typeof viewModes) => {
     setViewModes(prev => ({
       ...prev,
       [section]: prev[section] === 'card' ? 'table' : 'card'
     }));
   };
 
-  // Rooms bulk upload handlers
-  const handleRoomsBulkFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setRoomsBulkUpload(prev => ({ ...prev, file }));
-      // Parse CSV file and set data/preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const lines = text.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
-        const data = lines.slice(1).filter(line => line.trim()).map(line => {
-          const values = line.split(',').map(v => v.trim());
-          const obj: any = {};
-          headers.forEach((header, index) => {
-            obj[header] = values[index] || '';
-          });
-          return obj;
-        });
-        setRoomsBulkUpload(prev => ({ ...prev, data, preview: data.slice(0, 5) }));
-      };
-      reader.readAsText(file);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
-  const handleRoomsBulkUploadConfirm = () => {
-    // Implement bulk upload logic here
-    setShowRoomsBulkUploadModal(false);
-    setRoomsBulkUpload({ file: null, data: [], preview: [] });
-  };
-
-  // Download template handlers
-  const downloadRoomsTemplate = () => {
-    const csvContent = "id,type,floor,price,status,capacity,amenities\n" +
-                      "R001,Standard Single,1,1500,Available,1,Wifi,TV,AC";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rooms_template.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const showSuccess = () => {
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 3000);
   };
 
   return {
     // State
-    viewModes,
-    showRoomsBulkUploadModal,
-    roomsBulkUpload,
-    showAddRoomModal,
+    activeTab, setActiveTab,
+    mobileSidebarOpen, setMobileSidebarOpen,
+    settingsExpanded, setSettingsExpanded,
+    isSearchOpenMobile, setIsSearchOpenMobile,
+    searchQuery, setSearchQuery,
+    showSaveSuccess,
+    isUpdating, setIsUpdating,
+    viewModes, toggleViewMode,
 
-    // Actions
-    setViewModes,
-    toggleViewMode,
-    setShowRoomsBulkUploadModal,
-    setShowAddRoomModal,
+    // Modal States
+    showAddRoomModal, setShowAddRoomModal,
+    showAddPackageModal, setShowAddPackageModal,
+    showAddStaffModal, setShowAddStaffModal,
+    showWalkInModal, setShowWalkInModal,
+    showCreatePension, setShowCreatePension,
+    showRoomsBulkUploadModal, setShowRoomsBulkUploadModal,
+    showStaffBulkUploadModal, setShowStaffBulkUploadModal,
+
+    // Form States
+    editingStaff, setEditingStaff,
+    newStaff, setNewStaff,
+    editingPackage, setEditingPackage,
+    newPackage, setNewPackage,
+    newRoom, setNewRoom,
+    newPension, setNewPension,
+    walkInForm, setWalkInForm,
+    roomsBulkUpload, setRoomsBulkUpload,
+    staffBulkUpload, setStaffBulkUpload,
+    propertySettings, setPropertySettings,
+    businessProfile, setBusinessProfile,
+    securitySettings, setSecuritySettings,
 
     // Handlers
-    handleRoomsBulkFileUpload,
-    handleRoomsBulkUploadConfirm,
-    downloadRoomsTemplate
+    handleLogout,
+    showSuccess
   };
 };

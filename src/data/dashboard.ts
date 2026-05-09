@@ -1,0 +1,56 @@
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar, 
+  Bed, 
+  UserCircle, 
+  Building, 
+  ArrowLeftRight, 
+  BarChart3, 
+  Settings, 
+  ShieldCheck, 
+  Contact, 
+  FileCheck,
+  Home
+} from 'lucide-react';
+
+export const sidebarLinks = [
+  { id: "overview", labelKey: "overview", icon: "LayoutDashboard" },
+  { id: "bookings", labelKey: "bookings", icon: "Calendar" },
+  { id: "rooms", labelKey: "rooms", icon: "Bed" },
+  { id: "guests", labelKey: "guests", icon: "UserCircle" },
+  { id: "staff", labelKey: "staff", icon: "Users" },
+  { id: "pension-profile", labelKey: "pensionProfile", icon: "Building" },
+  { id: "transactions", labelKey: "transactions", icon: "ArrowLeftRight" },
+  { id: "reports", labelKey: "reports", icon: "BarChart3" },
+  {
+    id: "settings",
+    labelKey: "settings",
+    icon: "Settings",
+    sublinks: [
+      { id: "business-profile", labelKey: "businessProfile", icon: "Contact" },
+      { id: "security", labelKey: "security", icon: "ShieldCheck" },
+      { id: "compliance", labelKey: "compliance", icon: "FileCheck" }
+    ]
+  }
+];
+
+export const getIcon = (name: string) => {
+  const icons: any = {
+    LayoutDashboard,
+    Users,
+    Calendar,
+    CalendarCheck: Calendar,
+    Bed,
+    UserCircle,
+    Building,
+    ArrowLeftRight,
+    BarChart3,
+    Settings,
+    ShieldCheck,
+    Contact,
+    FileCheck,
+    Home
+  };
+  return icons[name] || LayoutDashboard;
+};
