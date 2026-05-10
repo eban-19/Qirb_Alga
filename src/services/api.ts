@@ -582,6 +582,12 @@ class ApiService {
     });
   }
 
+  async deleteOwner(ownerId: string): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAllProperties(): Promise<ApiResponse<any[]>> {
     console.log('=== FETCHING ALL PROPERTIES WITH ROOMS AND PACKAGES ===');
     try {

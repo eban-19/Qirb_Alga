@@ -301,11 +301,14 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     });
 
     if (!user) {
+      // Generate a fallback email if none provided (email is required in schema)
+      const userEmail = email || `${phone.replace(/\s+/g, '').replace(/\+/g, '')}@guest.qirbalga.com`;
+      
       user = await prisma.user.create({
         data: {
           full_name: fullName,
           phone,
-          email,
+          email: userEmail,
           role: Role.Customer,
           status: ApprovalStatus.Approved,
           password_hash: ''
@@ -364,7 +367,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
             check_in_date: checkIn,
             check_out_date: checkOut,
             total_price: new Prisma.Decimal(totalPrice / quantity),
-            status: BookingStatus.Confirmed,
+            status: BookingStatus.Pending,
             id_document_url: idDocumentUrl,
             pass_code: passCode,
             booking_source: BookingSource.App

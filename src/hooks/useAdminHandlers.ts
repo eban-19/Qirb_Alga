@@ -1,4 +1,5 @@
 import apiService from "@/services/api";
+import { toast } from "sonner";
 
 export const useAdminHandlers = (ui: any) => {
 
@@ -17,8 +18,20 @@ export const useAdminHandlers = (ui: any) => {
         break;
 
       case "delete":
-        ui.setOwners((prev: any) => prev.filter((o: any) => o.id !== ownerId));
-        console.log("Deleted owner:", ownerId);
+        try {
+          const response = await apiService.deleteOwner(ownerId);
+          if (response.success) {
+            ui.setOwners((prev: any) => prev.filter((o: any) => o.id !== ownerId));
+            toast.success("Owner deleted successfully");
+            console.log("✅ Owner deleted successfully:", ownerId);
+          } else {
+            toast.error(response.message || "Failed to delete owner");
+            console.error("❌ Failed to delete owner:", response.message);
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Error deleting owner");
+          console.error("❌ Error deleting owner:", error);
+        }
         break;
 
       case "view":
@@ -52,16 +65,20 @@ export const useAdminHandlers = (ui: any) => {
         break;
 
       case "verify":
+      case "approve":
         // Call API to approve owner
         try {
           const response = await apiService.approveOwner(ownerId);
           if (response.success) {
             ui.setOwners((prev: any) => prev.map((o: any) => o.id === ownerId ? { ...o, status: "verified" as const, documentStatus: "approved" as const } : o));
+            toast.success("Owner approved successfully");
             console.log("✅ Owner approved successfully:", ownerId);
           } else {
+            toast.error(response.message || "Failed to approve owner");
             console.error("❌ Failed to approve owner:", response.message);
           }
-        } catch (error) {
+        } catch (error: any) {
+          toast.error(error.message || "Error approving owner");
           console.error("❌ Error approving owner:", error);
         }
         break;
@@ -72,11 +89,14 @@ export const useAdminHandlers = (ui: any) => {
           const response = await apiService.rejectOwner(ownerId);
           if (response.success) {
             ui.setOwners((prev: any) => prev.map((o: any) => o.id === ownerId ? { ...o, status: "rejected" as const, documentStatus: "rejected" as const } : o));
+            toast.success("Owner rejected successfully");
             console.log("✅ Owner rejected successfully:", ownerId);
           } else {
+            toast.error(response.message || "Failed to reject owner");
             console.error("❌ Failed to reject owner:", response.message);
           }
-        } catch (error) {
+        } catch (error: any) {
+          toast.error(error.message || "Error rejecting owner");
           console.error("❌ Error rejecting owner:", error);
         }
         break;

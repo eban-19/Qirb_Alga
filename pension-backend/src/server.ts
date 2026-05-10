@@ -25,6 +25,9 @@ import expenseRoutes from './routes/expenses';
 import adminRoutes from './routes/admin';
 import notificationRoutes from './routes/notifications';
 import translationRoutes from './routes/translations';
+import otpRoutes from './routes/otp';
+import paymentRoutes from './routes/payments';
+import subscriptionRoutes from './routes/subscriptions';
 import { getSystemStatusController } from './routes/system';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
@@ -106,6 +109,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin-approvals', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/translations', translationRoutes);
+app.use('/api/otp', otpRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // System status endpoint
 app.get('/api/system/status', getSystemStatusController);

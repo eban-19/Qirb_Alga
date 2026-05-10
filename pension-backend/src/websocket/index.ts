@@ -107,6 +107,10 @@ class WebSocketServer {
         // Handle marking notifications as read in real-time
         this.markNotificationRead(userId, message.notificationId);
         break;
+      case 'admin_connect':
+        console.log(`👨‍💼 Admin user ${userId} connected to real-time management`);
+        this.sendToClient(userId, { type: 'admin_ready', timestamp: new Date().toISOString() });
+        break;
       default:
         console.log(`❓ Unknown message type: ${message.type}`);
     }

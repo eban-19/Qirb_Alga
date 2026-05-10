@@ -10,6 +10,8 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RoomDetails from "./pages/RoomDetails.tsx";
 import Booking from "./pages/Booking.tsx";
+import BookingSuccess from "./pages/BookingSuccess.tsx";
+import SubscriptionVerify from "./pages/SubscriptionVerify";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
 import Login from "./pages/Login.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
@@ -20,6 +22,7 @@ import Privacy from "./pages/Privacy.tsx";
 import Terms from "./pages/Terms.tsx";
 import About from "./pages/About.tsx";
 import HowItWorks from "./pages/HowItWorks.tsx";
+import PaymentConfirmation from "./pages/PaymentConfirmation.tsx";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/room/:id" element={<RoomDetails />} />
               <Route path="/book/:id" element={<Booking />} />
+              <Route path="/booking/success" element={<BookingSuccess />} />
+              <Route path="/payment/confirmation" element={<PaymentConfirmation />} />
+              <Route path="/owner/subscription/verify" element={<SubscriptionVerify />} />
               <Route path="/register-property" element={<RegisterProperty />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />

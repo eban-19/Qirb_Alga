@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 // Helper function to construct full URLs for images (same as in RoomProfile)
@@ -68,7 +68,102 @@ const Booking = () => {
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 4;
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  const handleSendOtp = async () => {
+    if (!formData.phone) {
+      toast.error("Please enter a phone number first.");
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      const response = await fetch('http://localhost:3005/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOtpSent(true);
+        setResendTimer(60);
+        toast.success("OTP sent successfully!");
+      } else {
+        toast.error(data.message || "Failed to send OTP.");
+      }
+    } catch (err) {
+      toast.error("Error sending OTP.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode) {
+      toast.error("Please enter the code sent to your phone.");
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:3005/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone, code: otpCode })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOtpVerified(true);
+        toast.success("Phone verified successfully!");
+        handleNextStep();
+      } else {
+        toast.error(data.message || "Invalid OTP code.");
+      }
+    } catch (err) {
+      toast.error("Error verifying OTP.");
+    }
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return otpVerified;
+      case 2:
+        return formData.checkIn && formData.checkOut && formData.rooms > 0;
+      case 3:
+        return formData.fullName;
+      case 4:
+        return formData.paymentMethod && idDocument;
+      default:
+        return false;
+    }
+  };
+
+  const handleStepSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentStep < totalSteps) {
+      if (isStepValid()) {
+        handleNextStep();
+      } else {
+        toast.error("Please fill in all required fields for this step.");
+      }
+    } else {
+      handleSubmit(e);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -101,32 +196,6 @@ const Booking = () => {
     }
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
-        return formData.checkIn && formData.checkOut && formData.rooms > 0;
-      case 2:
-        return formData.fullName && formData.phone;
-      case 3:
-        return formData.paymentMethod;
-      default:
-        return false;
-    }
-  };
-
-  const handleStepSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentStep < totalSteps) {
-      if (isStepValid()) {
-        handleNextStep();
-      } else {
-        toast.error("Please fill in all required fields for this step.");
-      }
-    } else {
-      handleSubmit(e);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.checkIn || !formData.checkOut || !formData.fullName || !formData.phone || !idDocument) {
@@ -137,6 +206,7 @@ const Booking = () => {
     setIsSubmitting(true);
 
     try {
+      // First, create the booking
       const payload = new FormData();
       payload.append('pensionId', id);
       payload.append('packageName', pkgName);
@@ -159,17 +229,48 @@ const Booking = () => {
       const responseData = await response.json();
 
       if (responseData.success) {
-        setData(responseData); // Store the full response data
-        if (responseData.data?.bookingIds?.length > 0) {
-          setBookingId(responseData.data.bookingIds[0].toString());
+        const bookingId = responseData.data?.bookingIds?.[0] || responseData.data?.booking?.booking_id;
+        
+        if (formData.paymentMethod === 'pay_at_hotel') {
+          setData(responseData);
+          if (responseData.data?.bookingIds?.length > 0) {
+            setBookingId(responseData.data.bookingIds[0].toString());
+          }
+          if (responseData.data?.booking?.passCode) {
+            setPassCode(responseData.data.booking.passCode);
+          }
+          setIsSuccess(true);
+          toast.success("Booking confirmed successfully!");
+        } else {
+          // Initialize Chapa Payment
+          const cleanName = formData.fullName.trim();
+          const nameParts = cleanName.split(/\s+/);
+          const fName = nameParts[0] || 'Guest';
+          const lName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'User';
+
+          const paymentResponse = await fetch('http://localhost:3005/api/payments/initialize-booking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId,
+              amount: total.toString(),
+              email: `${fName.toLowerCase()}@guest.qirbalga.com`,
+              firstName: fName,
+              lastName: lName,
+              phone: formData.phone
+            })
+          });
+          
+          const paymentData = await paymentResponse.json();
+          if (paymentData.success && paymentData.data.checkout_url) {
+            window.location.href = paymentData.data.checkout_url;
+            return;
+          } else {
+            toast.error("Failed to initialize payment gateway.");
+          }
         }
-        if (responseData.data?.booking?.passCode) {
-          setPassCode(responseData.data.booking.passCode);
-        }
-        setIsSuccess(true);
-        toast.success("Booking confirmed successfully!");
       } else {
-        toast.error(responseData.message || "Failed to confirm booking. Please try again.");
+        toast.error(responseData.message || "Failed to confirm booking.");
       }
     } catch (error) {
       console.error("Booking submission error:", error);
@@ -286,20 +387,21 @@ const Booking = () => {
             <form onSubmit={handleStepSubmit} className="space-y-10">
               
               {/* Progress Steps */}
-              <div className="flex items-center justify-between mb-8">
-                {[1, 2, 3].map((step) => (
+              <div className="flex items-center justify-between mb-12">
+                {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 shadow-sm ${
                       currentStep >= step 
-                        ? 'bg-primary text-primary-foreground' 
+                        ? 'bg-primary text-primary-foreground scale-110 shadow-primary/20' 
                         : 'bg-muted text-muted-foreground'
                     }`}>
-                      {step === 1 && <Calendar className="w-4 h-4" />}
-                      {step === 2 && <User className="w-4 h-4" />}
-                      {step === 3 && <CreditCard className="w-4 h-4" />}
+                      {step === 1 && <ShieldCheck className="w-5 h-5" />}
+                      {step === 2 && <Calendar className="w-5 h-5" />}
+                      {step === 3 && <User className="w-5 h-5" />}
+                      {step === 4 && <CreditCard className="w-5 h-5" />}
                     </div>
                     {step < totalSteps && (
-                      <div className={`w-16 h-1 mx-2 transition-colors ${
+                      <div className={`w-12 sm:w-20 h-1 mx-2 rounded-full transition-colors duration-500 ${
                         currentStep > step ? 'bg-primary' : 'bg-muted'
                       }`} />
                     )}
@@ -307,13 +409,122 @@ const Booking = () => {
                 ))}
               </div>
 
-              {/* Step 1: Stay Details */}
+              {/* Step 1: Phone Verification */}
               {currentStep === 1 && (
-                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    {t.booking.stepStayInfo}
-                  </h2>
+                <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <ShieldCheck className="w-6 h-6 text-primary" />
+                      </div>
+                      Phone Verification
+                    </h2>
+                    <p className="text-muted-foreground">Verify your phone number to secure your booking.</p>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="flex gap-3">
+                        <Input 
+                          id="phone" 
+                          name="phone" 
+                          type="tel" 
+                          placeholder="+251 9XX XXX XXX" 
+                          required 
+                          disabled={otpSent && !otpVerified}
+                          value={formData.phone} 
+                          onChange={handleInputChange} 
+                          className="h-14 w-full rounded-2xl text-lg px-6" 
+                        />
+                        {!otpSent && (
+                          <Button 
+                            type="button" 
+                            onClick={handleSendOtp} 
+                            disabled={isSendingOtp || !formData.phone}
+                            className="h-14 px-8 rounded-2xl shrink-0"
+                          >
+                            {isSendingOtp ? "Sending..." : "Send OTP"}
+                          </Button>
+                        )}
+                        {otpSent && !otpVerified && (
+                           <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => setOtpSent(false)} 
+                            className="h-14 px-6 rounded-2xl shrink-0"
+                          >
+                            Change
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {otpSent && !otpVerified && (
+                      <div className="space-y-4 pt-4 border-t border-dashed border-border animate-in zoom-in-95 duration-300">
+                        <div className="space-y-3">
+                          <Label htmlFor="otpCode">Enter 6-digit Code</Label>
+                          <Input 
+                            id="otpCode" 
+                            placeholder="· · · · · ·" 
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            className="h-14 w-full rounded-2xl text-center text-2xl font-mono tracking-[0.5em] px-6" 
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Button 
+                            type="button" 
+                            onClick={handleVerifyOtp} 
+                            className="h-14 w-full rounded-2xl shadow-lg shadow-primary/20"
+                          >
+                            Verify & Continue
+                          </Button>
+                        </div>
+                        <div className="text-center">
+                          {resendTimer > 0 ? (
+                            <p className="text-sm text-muted-foreground">Resend in {resendTimer}s</p>
+                          ) : (
+                            <button 
+                              type="button" 
+                              onClick={handleSendOtp}
+                              className="text-sm text-primary font-bold hover:underline"
+                            >
+                              Resend OTP
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {otpVerified && (
+                      <div className="p-6 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-4 text-green-700 animate-in zoom-in-95 duration-300">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold">Verified!</p>
+                          <p className="text-sm opacity-80">Phone number {formData.phone} verified.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* Step 2: Stay Details */}
+              {currentStep === 2 && (
+                <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <Calendar className="w-6 h-6 text-primary" />
+                      </div>
+                      Stay Information
+                    </h2>
+                    <p className="text-muted-foreground">Select your dates and number of rooms.</p>
+                  </div>
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -346,38 +557,62 @@ const Booking = () => {
                 </section>
               )}
 
-              {/* Step 2: Guest Details */}
-              {currentStep === 2 && (
-                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                    <User className="w-5 h-5 text-primary" />
-                    Guest Details
-                  </h2>
+              {/* Step 3: Guest Details */}
+              {currentStep === 3 && (
+                <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <User className="w-6 h-6 text-primary" />
+                      </div>
+                      Guest Details
+                    </h2>
+                    <p className="text-muted-foreground">Tell us a bit about yourself.</p>
+                  </div>
                   
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <Label htmlFor="fullName">{t.booking.fullName}</Label>
-                      <Input id="fullName" name="fullName" placeholder="Abebe Bikila" required value={formData.fullName} onChange={handleInputChange} className="h-12 w-full" />
+                      <Input id="fullName" name="fullName" placeholder="Abebe Bikila" required value={formData.fullName} onChange={handleInputChange} className="h-14 w-full rounded-2xl px-6" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" name="phone" type="tel" placeholder="+251 9XX XXX XXX" required value={formData.phone} onChange={handleInputChange} className="h-12 w-full" />
+                      <Label htmlFor="phone">Phone Number (Verified)</Label>
+                      <Input id="phone" name="phone" disabled value={formData.phone} className="h-14 w-full rounded-2xl px-6 bg-muted/50" />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="idDocument">ID Document (Required)</Label>
+                      <div className="relative group">
+                        <Input
+                          id="idDocument"
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => setIdDocument(e.target.files?.[0] || null)}
+                          className="h-16 w-full rounded-2xl cursor-pointer bg-muted/20 border-dashed border-2 hover:border-primary/50 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Please upload a valid ID document or passport for verification.</p>
                     </div>
                     <div className="md:col-span-2 space-y-2">
                       <Label htmlFor="specialRequests">{t.booking.specialRequests}</Label>
-                      <Textarea id="specialRequests" name="specialRequests" placeholder="Any special requests..." value={formData.specialRequests} onChange={handleInputChange} className="min-h-[100px] w-full" />
+                      <Textarea id="specialRequests" name="specialRequests" placeholder="Any special requests..." value={formData.specialRequests} onChange={handleInputChange} className="min-h-[120px] w-full rounded-2xl p-6" />
                     </div>
                   </div>
                 </section>
               )}
 
-              {/* Step 3: Payment */}
-              {currentStep === 3 && (
-                <section className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm space-y-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2 border-b border-border pb-4">
-                    <CreditCard className="w-5 h-5 text-primary" />
-                    {t.booking.stepPayment}
-                  </h2>
+              {/* Step 4: Payment */}
+              {currentStep === 4 && (
+                <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <CreditCard className="w-6 h-6 text-primary" />
+                      </div>
+                      Checkout & Payment
+                    </h2>
+                    <p className="text-muted-foreground">Choose your payment method and complete the booking.</p>
+                  </div>
                   
                   <div className="grid cols-1 sm:grid-cols-3 gap-4">
                     <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
@@ -447,17 +682,13 @@ const Booking = () => {
                     </label>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="idDocument">ID Document (Required)</Label>
-                    <Input
-                      id="idDocument"
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(e) => setIdDocument(e.target.files?.[0] || null)}
-                      className="h-12 w-full"
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">Please upload a valid ID document for verification</p>
+                  <div className="p-4 bg-muted/30 rounded-2xl border border-border text-sm text-muted-foreground flex gap-3 items-start">
+                    <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <p>
+                      {formData.paymentMethod === 'pay_at_hotel' 
+                        ? "You will pay the total amount at the property during check-in. No payment is required now." 
+                        : "You will be redirected to the secure Chapa payment gateway to complete your transaction."}
+                    </p>
                   </div>
                 </section>
               )}
@@ -482,8 +713,23 @@ const Booking = () => {
                 >
                   {currentStep === totalSteps ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      {isSubmitting ? 'Processing...' : 'Complete Booking'}
+                      {isSubmitting ? (
+                        <>Processing...</>
+                      ) : (
+                        <>
+                          {formData.paymentMethod === 'pay_at_hotel' ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              Complete Booking
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4" />
+                              Proceed to Payment
+                            </>
+                          )}
+                        </>
+                      )}
                     </>
                   ) : (
                     <>

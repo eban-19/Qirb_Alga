@@ -27,7 +27,10 @@ export const useDashboardData = (ui?: any) => {
   const [selectedPensionId, setSelectedPensionId] = useState<string>('');
 
   const loadRealData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

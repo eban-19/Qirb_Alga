@@ -200,29 +200,19 @@ export function OwnersTab({
 
 
   const handleSaveOwner = (owner: PensionOwner) => {
-
     if (owner.id) {
-
-      onOwnerAction(owner.id, "update", owner);
-
+      onOwnerAction("update", owner.id, owner);
     } else {
-
-      onOwnerAction("", "create", owner);
-
+      onOwnerAction("create", "", owner);
     }
-
   };
 
 
 
   const handleDeleteOwner = (ownerId: string) => {
-
     if (confirm("Are you sure you want to delete this owner?")) {
-
-      onOwnerAction(ownerId, "delete");
-
+      onOwnerAction("delete", ownerId);
     }
-
   };
 
 
@@ -474,14 +464,14 @@ export function OwnersTab({
                               {owner.status === 'pending' && (
                                 <>
                                   <DropdownMenuItem 
-                                    onClick={() => onOwnerAction(owner.id, "approve", owner)}
+                                    onClick={() => onOwnerAction("approve", owner.id, owner)}
                                     className="flex items-center gap-2 text-green-600 hover:bg-green-50"
                                   >
                                     <Check className="w-4 h-4" />
                                     <span>Approve</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    onClick={() => onOwnerAction(owner.id, "reject", owner)}
+                                    onClick={() => onOwnerAction("reject", owner.id, owner)}
                                     className="flex items-center gap-2 text-red-600 hover:bg-red-50"
                                   >
                                     <X className="w-4 h-4" />
@@ -524,7 +514,7 @@ export function OwnersTab({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   console.log('=== Dropdown View Details clicked ===');
-                                  onOwnerAction(owner.id, "view", owner);
+                                  onOwnerAction("view", owner.id, owner);
                                 }}
                                 className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
                               >

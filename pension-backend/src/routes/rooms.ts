@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
 import { RoomStatus, Prisma } from '@prisma/client';
+import { checkSubscription } from '../middleware/checkSubscription';
 
 const router = express.Router();
 

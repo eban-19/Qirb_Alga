@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../hooks/use-language';
 import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '../hooks/use-subscription';
 
 // Hooks
 import { useDashboard } from '../hooks/useDashboard';
@@ -20,6 +21,7 @@ import { BookingSection } from '../components/dashboard/BookingSection';
 import { RoomsSection } from '../components/dashboard/RoomsSection';
 import { GuestsSection } from '../components/dashboard/GuestsSection';
 import { TransactionsSection } from '../components/dashboard/TransactionsSection';
+import SubscriptionPlans from '../components/dashboard/SubscriptionPlans';
 
 // Modals
 import { CreatePensionModal } from '../components/dashboard/CreatePensionModal';
@@ -31,17 +33,24 @@ import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 
 // UI & Data
 import { Button } from '../components/ui/button';
-import { Calendar, Upload, Bed, Building, Download, BarChart3, Save, Plus } from 'lucide-react';
+import { Calendar, AlertCircle, Zap, Bed, Building, Download, BarChart3, Save, Plus } from 'lucide-react';
 import { sidebarLinks, getIcon } from '../data/dashboard';
 
 const Dashboard: React.FC = () => {
-  const { language, t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { status, isLoading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const { isPensionOwner, user } = useAuth();
 
   // Initialize Hooks
   const ui = useDashboard();
   const data = useDashboardData(ui);
+
+  React.useEffect(() => {
+    if (status?.isRestricted && ui.activeTab !== "subscription") {
+      ui.setActiveTab("subscription");
+    }
+  }, [status, ui.activeTab]);
   const handlers = useDashboardHandlers(data, ui, data.loadRealData);
 
   // Derived State
@@ -50,7 +59,7 @@ const Dashboard: React.FC = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  if (data.loading) {
+  if (data.loading || subLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
@@ -111,6 +120,7 @@ const Dashboard: React.FC = () => {
                    ui.activeTab === "pension-profile" ? "Pension Profile" :
                    ui.activeTab === "reports" ? "Reports & Analytics" :
                    ui.activeTab.startsWith("settings-") ? "Settings" :
+                   ui.activeTab === "subscription" ? "Subscription Plans" :
                    "Dashboard Section"}
                 </h2>
               )}
@@ -126,7 +136,38 @@ const Dashboard: React.FC = () => {
 
           {/* Content Sections */}
           <div className="space-y-6">
-            {ui.activeTab === "overview" && (
+            {status?.isRestricted && (
+              <div className="mb-6 p-6 bg-red-50 border border-red-100 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-red-900">Subscription Expired</h4>
+                    <p className="text-sm text-red-700 opacity-80">Access to dashboard features is currently restricted.</p>
+                  </div>
+                </div>
+                <Button variant="destructive" className="rounded-xl px-8 h-12 font-bold" onClick={() => ui.setActiveTab("subscription")}>
+                  Renew Now
+                </Button>
+              </div>
+            )}
+
+            {status?.trial.isActive && !status.isRestricted && (
+              <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <p className="text-sm font-medium text-foreground">
+                    <span className="font-bold">Free Trial:</span> You have <span className="text-primary font-bold">{status.trial.daysLeft} days</span> left on your trial.
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10" onClick={() => ui.setActiveTab("subscription")}>
+                  Upgrade Now
+                </Button>
+              </div>
+            )}
+
+            {ui.activeTab === "overview" && !status?.isRestricted && (
               <OverviewSection
                 stats={{
                   staffCount: data.staffData.length,
@@ -141,7 +182,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "staff" && (
+            {ui.activeTab === "staff" && !status?.isRestricted && (
               <StaffSection
                 staff={data.staffData}
                 viewMode={ui.viewModes.staff}
@@ -154,7 +195,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "bookings" && (
+            {ui.activeTab === "bookings" && !status?.isRestricted && (
               <BookingSection
                 bookings={data.bookings}
                 viewMode={ui.viewModes.bookings}
@@ -164,7 +205,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "rooms" && (
+            {ui.activeTab === "rooms" && !status?.isRestricted && (
               <RoomsSection
                 rooms={data.roomsData}
                 viewMode={ui.viewModes.rooms}
@@ -175,7 +216,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "guests" && (
+            {ui.activeTab === "guests" && !status?.isRestricted && (
               <GuestsSection
                 guests={data.guestsData}
                 viewMode={ui.viewModes.guests || 'card'}
@@ -183,13 +224,13 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "transactions" && (
+            {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
                 transactions={data.recentTransactions}
               />
             )}
 
-            {ui.activeTab === "pension-profile" && (
+            {ui.activeTab === "pension-profile" && !status?.isRestricted && (
               <PensionProfileSection
                 propertySettings={ui.propertySettings}
                 setPropertySettings={ui.setPropertySettings}
@@ -207,7 +248,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "reports" && (
+            {ui.activeTab === "reports" && !status?.isRestricted && (
               <ReportsSection
                 totalRevenue={data.totalRevenue}
                 totalExpenses={data.totalExpenses}
@@ -223,6 +264,8 @@ const Dashboard: React.FC = () => {
                 bookingTrends={{ avgStayDuration: 0, cancellationRate: 0 }}
               />
             )}
+
+            {ui.activeTab === "subscription" && <SubscriptionPlans />}
 
             {ui.activeTab.startsWith("settings-") && (
               <SettingsSection

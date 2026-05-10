@@ -74,6 +74,11 @@ class WebSocketService {
             case 'metrics_update':
               this.callbacks.onMetricsUpdate?.(message.data);
               break;
+            case 'pong':
+            case 'admin_ready':
+            case 'connection':
+              // System messages, no action needed but acknowledged
+              break;
             default:
               console.log('Unknown message type:', message.type);
           }

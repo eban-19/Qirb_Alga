@@ -116,17 +116,25 @@ router.get('/owners/:ownerId/details', authenticateToken as any, requireAdmin as
 router.put('/owners/:ownerId/approve', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
-    const id = parseInt(ownerId);
+    const id = parseInt(ownerId.replace('OWN', ''));
     
     // Update both users table and ownerprofiles table in a transaction
     await prisma.$transaction([
       prisma.user.update({
         where: { user_id: id, role: Role.Owner },
-        data: { approved: 1 }
+        data: { approved: 1, status: UserStatus.Approved }
       }),
-      prisma.ownerProfile.update({
+      prisma.ownerProfile.upsert({
         where: { owner_id: id },
-        data: { approval_status: ApprovalStatus.Approved }
+        update: { approval_status: ApprovalStatus.Approved },
+        create: { 
+          owner_id: id,
+          approval_status: ApprovalStatus.Approved,
+          business_name: 'Pending Setup',
+          business_email: '',
+          business_phone: '',
+          license_number: ''
+        }
       })
     ]);
 
@@ -172,7 +180,7 @@ router.put('/owners/:ownerId/approve', authenticateToken as any, requireAdmin as
 router.put('/owners/:ownerId/reject', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
-    const id = parseInt(ownerId);
+    const id = parseInt(ownerId.replace('OWN', ''));
     
     // Update both users table and ownerprofiles table in a transaction
     await prisma.$transaction([
@@ -228,10 +236,11 @@ router.put('/owners/:ownerId/reject', authenticateToken as any, requireAdmin as 
 router.put('/owners/:ownerId/suspend', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
     const { ownerId } = req.params;
+    const id = parseInt(ownerId.replace('OWN', ''));
     
     await prisma.user.update({
       where: { 
-        user_id: parseInt(ownerId),
+        user_id: id,
         role: Role.Owner
       },
       data: { approved: -1 }
@@ -246,6 +255,36 @@ router.put('/owners/:ownerId/suspend', authenticateToken as any, requireAdmin as
     res.status(500).json({
       success: false,
       message: 'Failed to suspend owner'
+    });
+  }
+});
+
+// Delete owner
+router.delete('/owners/:ownerId', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { ownerId } = req.params;
+    // Strip "OWN" prefix if present
+    const id = parseInt(ownerId.replace('OWN', ''));
+    
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid owner ID' });
+    }
+
+    await prisma.user.delete({
+      where: { user_id: id, role: Role.Owner }
+    });
+
+    console.log(`🗑️ Owner ${id} deleted successfully`);
+
+    res.json({
+      success: true,
+      message: 'Owner deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete owner error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete owner'
     });
   }
 });
@@ -455,12 +494,16 @@ router.put('/pensions/:pensionId/approve', authenticateToken as any, requireAdmi
         type: 'pension_approved'
       });
 
-      // Send email notification to owner
-      await notificationService.sendEmailNotification({
-        user_id: ownerId,
-        subject: 'Your Pension Has Been Approved',
-        message: `Congratulations! Your pension "${pensionName}" has been approved by the admin and is now live on the platform.\n\nYou can start receiving bookings from customers.`
-      });
+      // Send email notification to owner (non-blocking)
+      try {
+        await notificationService.sendEmailNotification({
+          user_id: ownerId,
+          subject: 'Your Pension Has Been Approved',
+          message: `Congratulations! Your pension "${pensionName}" has been approved by the admin and is now live on the platform.\n\nYou can start receiving bookings from customers.`
+        });
+      } catch (emailError: any) {
+        console.error('⚠️ Failed to send pension approval email:', emailError.message);
+      }
     }
 
     res.json({
@@ -518,12 +561,16 @@ router.put('/pensions/:pensionId/reject', authenticateToken as any, requireAdmin
         type: 'pension_rejected'
       });
 
-      // Send email notification to owner
-      await notificationService.sendEmailNotification({
-        user_id: ownerId,
-        subject: 'Your Pension Has Been Rejected',
-        message: `Your pension "${pensionName}" has been rejected by the admin.\n\nReason: ${rejectionReason}\n\nPlease review the rejection reason and make necessary changes before resubmitting.`
-      });
+      // Send email notification to owner (non-blocking)
+      try {
+        await notificationService.sendEmailNotification({
+          user_id: ownerId,
+          subject: 'Update Regarding Your Pension Application',
+          message: `Your pension "${pensionName}" has been reviewed by the admin and unfortunately was not approved at this time.\n\nReason: ${rejectionReason || 'Does not meet current platform requirements'}\n\nYou can update your pension details and submit for approval again.`
+        });
+      } catch (emailError: any) {
+        console.error('⚠️ Failed to send pension rejection email:', emailError.message);
+      }
     }
 
     res.json({
