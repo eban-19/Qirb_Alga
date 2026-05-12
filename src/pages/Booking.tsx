@@ -51,8 +51,8 @@ const Booking = () => {
   }, [room, pkgName]);
 
   const [formData, setFormData] = useState({
-    checkIn: "",
-    checkOut: "",
+    checkIn: new Date().toISOString().split('T')[0],
+    checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     rooms: 1,
     fullName: "",
     phone: "",

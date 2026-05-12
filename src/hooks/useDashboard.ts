@@ -83,7 +83,11 @@ export const useDashboard = () => {
   });
 
   const [walkInForm, setWalkInForm] = useState({
-    guestName: '', phoneNumber: '', checkIn: '', checkOut: '', packageId: ''
+    guestName: '', 
+    phoneNumber: '', 
+    checkIn: new Date().toISOString().split('T')[0], 
+    checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+    packageId: ''
   });
 
   // Bulk upload states

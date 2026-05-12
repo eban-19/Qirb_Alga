@@ -384,6 +384,13 @@ export const useDashboardHandlers = (
     try {
       // Implement walk-in logic
       ui.setShowWalkInModal(false);
+      ui.setWalkInForm({
+        guestName: '', 
+        phoneNumber: '', 
+        checkIn: new Date().toISOString().split('T')[0], 
+        checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+        packageId: ''
+      });
       await loadRealData();
     } catch (error) {
       console.error('Walk-in booking error:', error);
