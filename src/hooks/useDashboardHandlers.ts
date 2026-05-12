@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from './use-language';
 import apiService from '../services/api';
 import { Package, Staff, Room } from '../types/dashboard';
 
@@ -7,8 +7,7 @@ export const useDashboardHandlers = (
   ui: any,
   loadRealData: () => Promise<void>
 ) => {
-  const { i18n } = useTranslation();
-  const language = i18n.language;
+  const { language } = useLanguage();
 
   // --- PENSION HANDLERS ---
   const handleCreatePension = async () => {

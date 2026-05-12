@@ -101,13 +101,11 @@ router.get('/verify/:txRef', async (req, res) => {
     const verification = await verifyPayment(txRef);
     
     if (verification.status === 'success' && verification.data.status === 'success') {
-      // Update payment status in DB
       const payment = await prisma.payment.update({
         where: { reference: txRef },
         data: { status: 'PAID' },
       });
 
-      // Update booking status
       const booking = await prisma.booking.findFirst({ 
         where: { payment_id: payment.payment_id },
         include: {
@@ -136,9 +134,17 @@ router.get('/verify/:txRef', async (req, res) => {
       });
     }
 
-    res.status(400).json({ success: false, message: 'Payment verification failed', data: verification.data });
+    console.warn('⚠️ Payment Verification Unsuccessful:', verification);
+    res.status(400).json({ 
+      success: false, 
+      message: verification.message || 'Payment verification failed', 
+      data: verification.data 
+    });
   } catch (error: any) {
-    console.error('Payment Verify Error:', error);
+    console.error('❌ Payment Verify Route Error:', {
+      message: error.message,
+      txRef: req.params.txRef
+    });
     res.status(500).json({ success: false, message: error.message || 'Failed to verify payment' });
   }
 });

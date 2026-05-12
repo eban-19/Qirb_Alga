@@ -135,26 +135,28 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         image_url: p.image_url,
         phone: p.phone || '',
         email: p.email || '',
-        packages: packages.map((pkg: any): Package => ({
-          id: pkg.package_id,
-          name: pkg.name,
-          price: parseFloat(pkg.price.toString()),
-          description: pkg.description,
-          image: pkg.image_url || null,
-          services: (() => {
-            if (Array.isArray(pkg.inclusions)) return pkg.inclusions;
-            if (typeof pkg.inclusions === 'string') {
-              try {
-                return JSON.parse(pkg.inclusions);
-              } catch (e) {
-                return pkg.inclusions.split(',').map((s: string) => s.trim()).filter(Boolean);
+        packages: packages
+          .filter((pkg: any) => pkg.availableRoomsCount > 0)
+          .map((pkg: any): Package => ({
+            id: pkg.package_id,
+            name: pkg.name,
+            price: parseFloat(pkg.price.toString()),
+            description: pkg.description,
+            image: pkg.image_url || null,
+            services: (() => {
+              if (Array.isArray(pkg.inclusions)) return pkg.inclusions;
+              if (typeof pkg.inclusions === 'string') {
+                try {
+                  return JSON.parse(pkg.inclusions);
+                } catch (e) {
+                  return pkg.inclusions.split(',').map((s: string) => s.trim()).filter(Boolean);
+                }
               }
-            }
-            return [];
-          })(),
-          availableRooms: pkg.availableRoomsCount || 0,
-          isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
-        }))
+              return [];
+            })(),
+            availableRooms: pkg.availableRoomsCount || 0,
+            isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
+          }))
       };
     }));
 
@@ -259,26 +261,28 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       images: [p.image_url || '/src/assets/room-1.png'],
       phone: p.phone || '',
       email: p.email || '',
-      packages: packages.map((pkg: any): Package => ({
-        id: pkg.package_id,
-        name: pkg.name,
-        price: parseFloat(pkg.price.toString()),
-        description: pkg.description,
-        image: pkg.image_url || null,
-        services: (() => {
-          if (Array.isArray(pkg.inclusions)) return pkg.inclusions;
-          if (typeof pkg.inclusions === 'string') {
-            try {
-              return JSON.parse(pkg.inclusions);
-            } catch (e) {
-              return pkg.inclusions.split(',').map((s: string) => s.trim()).filter(Boolean);
+      packages: packages
+        .filter((pkg: any) => pkg.availableRoomsCount > 0)
+        .map((pkg: any): Package => ({
+          id: pkg.package_id,
+          name: pkg.name,
+          price: parseFloat(pkg.price.toString()),
+          description: pkg.description,
+          image: pkg.image_url || null,
+          services: (() => {
+            if (Array.isArray(pkg.inclusions)) return pkg.inclusions;
+            if (typeof pkg.inclusions === 'string') {
+              try {
+                return JSON.parse(pkg.inclusions);
+              } catch (e) {
+                return pkg.inclusions.split(',').map((s: string) => s.trim()).filter(Boolean);
+              }
             }
-          }
-          return [];
-        })(),
-        availableRooms: pkg.availableRoomsCount || 0,
-        isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
-      }))
+            return [];
+          })(),
+          availableRooms: pkg.availableRoomsCount || 0,
+          isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
+        }))
     };
 
     res.json({

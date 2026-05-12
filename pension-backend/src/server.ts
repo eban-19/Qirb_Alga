@@ -28,6 +28,7 @@ import translationRoutes from './routes/translations';
 import otpRoutes from './routes/otp';
 import paymentRoutes from './routes/payments';
 import subscriptionRoutes from './routes/subscriptions';
+import availabilityRoutes from './routes/availability';
 import { getSystemStatusController } from './routes/system';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
@@ -112,6 +113,7 @@ app.use('/api/translations', translationRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/availability', availabilityRoutes);
 
 // System status endpoint
 app.get('/api/system/status', getSystemStatusController);
