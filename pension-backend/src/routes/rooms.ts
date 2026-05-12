@@ -146,6 +146,44 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
       return res.status(400).json({ success: false, message: 'Pension ID and room type are required' });
     }
 
+    // Check if room number already exists for this pension
+    if (room_number) {
+      const existingRoom = await prisma.room.findFirst({
+        where: {
+          pension_id: parseInt(pension_id),
+          room_number: room_number.toString()
+        }
+      });
+
+      if (existingRoom) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Room number ${room_number} already exists in this pension. Please use a unique room number.` 
+        });
+      }
+    }
+
+    // Check for consistency with existing rooms in the same package
+    if (packageId) {
+      const existingPackageRoom = await prisma.room.findFirst({
+        where: {
+          package_id: parseInt(packageId)
+        }
+      });
+
+      if (existingPackageRoom) {
+        const existingCapacity = existingPackageRoom.capacity;
+        const existingBeds = existingPackageRoom.number_of_beds;
+        
+        if (parseInt(capacity) !== existingCapacity || parseInt(number_of_beds) !== existingBeds) {
+          return res.status(400).json({
+            success: false,
+            message: `Consistency Error: All rooms in this package must have a capacity of ${existingCapacity} and ${existingBeds} bed(s).`
+          });
+        }
+      }
+    }
+
     // Check ownership
     const pension = await prisma.pension.findUnique({
       where: { 
@@ -185,7 +223,7 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
   try {
     const userId = req.user.userId;
     const id = parseInt(req.params.id);
-    const { room_type, capacity, price_per_night, number_of_beds, availability_status, room_type_ml } = req.body;
+    const { room_type, capacity, price_per_night, number_of_beds, availability_status, room_type_ml, room_number } = req.body;
 
     if (isNaN(id)) {
       return res.status(400).json({ success: false, message: 'Invalid room ID' });
@@ -200,6 +238,25 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
     if (!room) {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
+
+    // Check if new room number already exists for this pension (and it's not the same room)
+    if (room_number && room_number !== room.room_number) {
+      const existingRoom = await prisma.room.findFirst({
+        where: {
+          pension_id: room.pension_id,
+          room_number: room_number.toString(),
+          room_id: { not: id }
+        }
+      });
+
+      if (existingRoom) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Room number ${room_number} already exists in this pension. Please use a unique room number.` 
+        });
+      }
+    }
+
     if (room.pension.owner_id !== userId && req.user.role !== 'Admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
@@ -208,6 +265,7 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
       where: { room_id: id },
       data: {
         room_type: room_type || undefined,
+        room_number: room_number || undefined,
         capacity: capacity ? parseInt(capacity) : undefined,
         price_per_night: price_per_night ? new Prisma.Decimal(price_per_night) : undefined,
         number_of_beds: number_of_beds ? parseInt(number_of_beds) : undefined,

@@ -56,25 +56,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               className="h-10 border-slate-200 bg-slate-50/30"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700">Role</Label>
-              <Input
-                value={newStaff.role}
-                onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                placeholder="Manager"
-                className="h-10 border-slate-200 bg-slate-50/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700">Department</Label>
-              <Input
-                value={newStaff.department}
-                onChange={(e) => setNewStaff({ ...newStaff, department: e.target.value })}
-                placeholder="Front Desk"
-                className="h-10 border-slate-200 bg-slate-50/30"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-slate-700">Role</Label>
+            <Input
+              value={newStaff.role}
+              onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+              placeholder="e.g., Manager, Receptionist"
+              className="h-10 border-slate-200 bg-slate-50/30"
+            />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-bold text-slate-700">Email</Label>

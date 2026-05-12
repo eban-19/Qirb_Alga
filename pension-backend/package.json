@@ -12,7 +12,8 @@
     "prisma:studio": "prisma studio",
     "build": "tsc",
     "seed:owner": "ts-node prisma/seed-approved-owner.ts",
-    "activate:at": "ts-node --transpile-only scratch/activate-at.ts",
+    "seed:admin": "ts-node prisma/seed.ts",
+    "seed:subscriptions": "ts-node prisma/seed-subscriptions.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

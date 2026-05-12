@@ -24,6 +24,7 @@ interface SettingsSectionProps {
   onSaveSecuritySettings: () => void;
   onToggleTwoFactor: () => void;
   showSaveSuccess: boolean;
+  subscriptionStatus?: any;
 }
 
 export const SettingsSection: React.FC<SettingsSectionProps> = ({
@@ -37,8 +38,12 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   onSaveBusinessProfile,
   onSaveSecuritySettings,
   onToggleTwoFactor,
-  showSaveSuccess
+  showSaveSuccess,
+  subscriptionStatus
 }) => {
+  const sub = subscriptionStatus?.subscription;
+  const isPro = subscriptionStatus?.hasActiveSubscription;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col gap-1">
@@ -109,6 +114,32 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 <Button onClick={onSaveBusinessProfile} disabled={isUpdating} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
                   {isUpdating ? 'Updating...' : 'Update Business Profile'}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6 border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
+            <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-blue-500 to-purple-400" />
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <span>Subscription Management</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-2xl bg-slate-50 border border-slate-100 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Plan</p>
+                  <p className="text-xl font-black text-slate-900">{sub?.plan?.name || (subscriptionStatus?.trial?.isActive ? 'Free Trial' : 'No Active Plan')}</p>
+                </div>
+                {isPro && (
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Expires On</p>
+                    <p className="text-sm font-bold text-slate-900">{new Date(sub.end_date).toLocaleDateString()}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -82,6 +82,13 @@ class ApiService {
     });
   }
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<any>> {
+    return this.request('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
   // Property methods
   async getPropertyById(propertyId: string): Promise<ApiResponse<{
     id: string;
@@ -159,14 +166,30 @@ class ApiService {
 
       // Transform packages data (same structure as dashboard)
       const packagesData = packagesResponse?.data || [];
-      const transformedPackages = Array.isArray(packagesData) ? packagesData.map((pkg: any) => ({
-        id: pkg.package_id || pkg.id,
-        name: pkg.name || 'Standard Package',
-        price: pkg.price || 0,
-        duration: pkg.duration || '1 night',
-        description: pkg.description,
-        features: pkg.features || pkg.services || []
-      })) : [];
+      const transformedPackages = Array.isArray(packagesData) ? packagesData.map((pkg: any) => {
+        let services = [];
+        if (Array.isArray(pkg.inclusions)) {
+          services = pkg.inclusions;
+        } else if (typeof pkg.inclusions === 'string') {
+          try {
+            services = JSON.parse(pkg.inclusions);
+          } catch (e) {
+            services = pkg.inclusions.split(',').map((s: string) => s.trim());
+          }
+        } else if (Array.isArray(pkg.services)) {
+          services = pkg.services;
+        }
+
+        return {
+          id: pkg.package_id || pkg.id,
+          name: pkg.name || 'Standard Package',
+          price: pkg.price || 0,
+          duration: pkg.duration || '1 night',
+          description: pkg.description,
+          services: Array.isArray(services) ? services : [],
+          image: pkg.image_url || pkg.image || null
+        };
+      }) : [];
 
       // Get owner info from pension data
       const ownerInfo = {
@@ -421,8 +444,12 @@ class ApiService {
   }
 
   // Staff Management methods
-  async getStaff(pensionId: number): Promise<ApiResponse<any[]>> {
-    return this.request(`/staff/pensions/${pensionId}`);
+  async getStaff(pensionId: number, params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<PaginatedResponse<any>> {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request(`/staff/pensions/${pensionId}${query ? `?${query}` : ''}`);
   }
 
   async addStaff(pensionId: number, staffData: any): Promise<ApiResponse<any>> {
@@ -446,29 +473,62 @@ class ApiService {
   }
 
   // Guest methods
-  async getGuests(pensionId: number): Promise<ApiResponse<any[]>> {
+  async getGuests(pensionId: number, params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<PaginatedResponse<any>> {
     try {
-      return await this.request(`/guests/pensions/${pensionId}`);
+      const query = new URLSearchParams(params as any).toString();
+      return await this.request(`/guests/pensions/${pensionId}${query ? `?${query}` : ''}`);
     } catch (error) {
       console.warn('Guests endpoint not available, returning empty array');
-      return { success: true, data: [] };
+      return { success: true, data: { items: [], total: 0 } } as any;
     }
   }
 
   // Transaction methods
-  async getTransactions(pensionId: number): Promise<ApiResponse<any[]>> {
+  async getTransactions(pensionId: number, params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<PaginatedResponse<any>> {
     try {
-      return await this.request(`/transactions/pensions/${pensionId}`);
+      const query = new URLSearchParams(params as any).toString();
+      return await this.request(`/transactions/pensions/${pensionId}${query ? `?${query}` : ''}`);
     } catch (error) {
       console.warn('Transactions endpoint not available, returning empty array');
-      return { success: true, data: [] };
+      return { success: true, data: { items: [], total: 0 } } as any;
     }
   }
 
   // Package methods
   async getPackages(pensionId: number, params: { language?: string } = {}): Promise<ApiResponse<any[]>> {
     const query = new URLSearchParams(params as any).toString();
-    return this.request(`/packages/pensions/${pensionId}${query ? `?${query}` : ''}`);
+    const response = await this.request<any[]>(`/packages/pensions/${pensionId}${query ? `?${query}` : ''}`);
+    
+    if (response.success && Array.isArray(response.data)) {
+      response.data = response.data.map(pkg => {
+        let services = [];
+        if (Array.isArray(pkg.inclusions)) {
+          services = pkg.inclusions;
+        } else if (typeof pkg.inclusions === 'string') {
+          try {
+            services = JSON.parse(pkg.inclusions);
+          } catch (e) {
+            services = pkg.inclusions.split(',').map((s: string) => s.trim());
+          }
+        } else if (Array.isArray(pkg.services)) {
+          services = pkg.services;
+        }
+
+        return {
+          ...pkg,
+          services: Array.isArray(services) ? services : [],
+          image: pkg.image_url || pkg.image || null
+        };
+      });
+    }
+    
+    return response;
   }
 
   async createPackage(pensionId: number, packageData: any): Promise<ApiResponse<any>> {
@@ -533,12 +593,16 @@ class ApiService {
   }
 
   // Expense methods
-  async getExpenses(pensionId: number): Promise<ApiResponse<any>> {
+  async getExpenses(pensionId: number, params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<any>> {
     try {
-      return await this.request(`/expenses/pensions/${pensionId}`);
+      const query = new URLSearchParams(params as any).toString();
+      return await this.request(`/expenses/pensions/${pensionId}${query ? `?${query}` : ''}`);
     } catch (error) {
       console.warn('Expenses endpoint not available, returning empty array');
-      return { success: true, data: { items: [], totalExpenses: 0 } };
+      return { success: true, data: { items: [], totalExpenses: 0, total: 0 } };
     }
   }
 

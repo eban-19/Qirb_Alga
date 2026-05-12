@@ -7,14 +7,32 @@ import { Download } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface TransactionsSectionProps {
   transactions: any[];
+  pagination?: { page: number; limit: number };
+  onPageChange?: (page: number) => void;
+  selectedRows?: (string | number)[];
+  onToggleSelection?: (id: string | number) => void;
+  onSelectAll?: (ids: (string | number)[]) => void;
+  totalItems?: number;
+  language?: any;
 }
 
 export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
-  transactions = []
+  transactions = [],
+  pagination = { page: 1, limit: 10 },
+  onPageChange,
+  selectedRows = [],
+  onToggleSelection,
+  onSelectAll,
+  totalItems = 0,
+  language
 }) => {
-  const { language } = useLanguage();
+  // Ensure transactions is always an array
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
   
   return (
     <div className="space-y-6">
@@ -39,7 +57,19 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
             <Table>
               <TableHeader className="bg-slate-50/50">
                 <TableRow className="hover:bg-transparent border-slate-100 h-16">
-                  <TableHead className="font-bold pl-8 text-slate-600">
+                  <TableHead className="w-[50px] px-8">
+                    <Checkbox 
+                      checked={safeTransactions.length > 0 && selectedRows.length === safeTransactions.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          onSelectAll?.(safeTransactions.map(t => t.id));
+                        } else {
+                          onSelectAll?.([]);
+                        }
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-600">
                     <TranslationText text="Date" language={language} />
                   </TableHead>
                   <TableHead className="font-bold text-slate-600">
@@ -57,16 +87,22 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.length === 0 ? (
+                {safeTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-slate-400">
+                    <TableCell colSpan={6} className="h-32 text-center text-slate-400">
                       <TranslationText text="No transactions found." language={language} />
                     </TableCell>
                   </TableRow>
                 ) : (
-                  transactions.map((transaction) => (
-                    <TableRow key={transaction.id} className="hover:bg-slate-50/50 transition-all duration-200 h-20 group">
-                      <TableCell className="text-sm font-semibold text-slate-500 pl-8">
+                  safeTransactions.map((transaction) => (
+                    <TableRow key={transaction.id} className={`hover:bg-slate-50/50 transition-all duration-200 h-20 group ${selectedRows.includes(transaction.id) ? 'bg-blue-50/30' : ''}`}>
+                      <TableCell className="px-8">
+                        <Checkbox 
+                          checked={selectedRows.includes(transaction.id)}
+                          onCheckedChange={() => onToggleSelection?.(transaction.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-sm font-semibold text-slate-500">
                         {transaction.date}
                       </TableCell>
                       <TableCell className="font-bold text-slate-800">
@@ -80,7 +116,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                       <TableCell className={`text-right font-black text-lg ${
                         transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
                       }`}>
-                        {transaction.type === 'income' ? '+' : '-'}ETB {transaction.amount.toLocaleString()}
+                        {transaction.type === 'income' ? '+' : '-'}ETB {(transaction.amount || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="pr-8">
                         <Badge className={`${
@@ -94,6 +130,36 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-slate-500">
+              Showing <span className="font-semibold text-slate-900">{safeTransactions.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> transactions
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange?.(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
+              <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
+                Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange?.(pagination.page + 1)}
+                disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
+                className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

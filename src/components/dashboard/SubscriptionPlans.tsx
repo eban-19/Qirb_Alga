@@ -69,7 +69,7 @@ const SubscriptionPlans = () => {
           Scale your pension business with professional tools and unlimited bookings.
         </p>
         
-        {status?.trial.isActive && (
+        {status?.trial.isActive && !status.hasActiveSubscription && (
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-primary/10 text-primary rounded-full border border-primary/20 animate-pulse">
             <Zap className="w-5 h-5" />
             <span className="font-bold">Free Trial Active: {status.trial.daysLeft} days remaining</span>
@@ -120,13 +120,20 @@ const SubscriptionPlans = () => {
             </div>
 
             <Button 
-              className={`mt-10 h-14 rounded-2xl text-lg font-bold w-full shadow-lg ${
-                plan.name.includes('Annual') ? 'shadow-primary/20' : ''
+              className={`mt-10 h-14 rounded-2xl text-lg font-bold w-full shadow-lg transition-all duration-300 ${
+                status?.subscription?.plan_id === plan.plan_id
+                  ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
+                  : plan.name.includes('Annual') ? 'shadow-primary/20' : ''
               }`}
               onClick={() => handleSubscribe(plan.plan_id)}
-              disabled={isInitializing === plan.plan_id}
+              disabled={isInitializing === plan.plan_id || status?.subscription?.plan_id === plan.plan_id}
             >
-              {isInitializing === plan.plan_id ? "Initializing..." : `Upgrade to ${plan.name}`}
+              {isInitializing === plan.plan_id 
+                ? "Initializing..." 
+                : status?.subscription?.plan_id === plan.plan_id 
+                  ? "Current Plan" 
+                  : `Upgrade to ${plan.name}`
+              }
             </Button>
           </div>
         ))}

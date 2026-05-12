@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { initializePayment, verifyPayment } from '../services/chapaService';
+import { SMSService } from '../services/sms.service';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -91,7 +92,7 @@ router.post('/initialize', async (req, res) => {
       callback_url: `${process.env.BACKEND_URL}/api/payments/webhook`,
       return_url: `${process.env.FRONTEND_URL}/owner/subscription/verify?ref=${txRef}`,
       customization: {
-        title: `SaaS Subscription: ${plan.name}`,
+        title: `Sub ${plan.name}`.substring(0, 16),
         description: `Subscription payment for ${plan.name}`,
       },
     };
@@ -117,6 +118,67 @@ router.post('/initialize', async (req, res) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Verify Subscription Payment
+router.get('/verify/:txRef', async (req, res) => {
+  const { txRef } = req.params;
+
+  try {
+    const verification = await verifyPayment(txRef);
+    
+    if (verification.status === 'success' && verification.data.status === 'success') {
+      // 1. Update payment status
+      const payment = await prisma.payment.update({
+        where: { reference: txRef },
+        data: { status: 'PAID' },
+      });
+
+      // 2. Find and activate the pending subscription
+      const subscription = await prisma.subscription.findFirst({
+        where: { payment_id: payment.payment_id },
+        include: { plan: true, owner: true }
+      });
+
+      if (subscription) {
+        await prisma.subscription.update({
+          where: { subscription_id: subscription.subscription_id },
+          data: { status: 'ACTIVE' }
+        });
+
+        // 3. Ensure owner is approved/active
+        await prisma.user.update({
+          where: { user_id: subscription.owner_id },
+          data: { status: 'Approved', approved: 1 }
+        });
+
+        // 4. Send Confirmation SMS
+        if (subscription.owner?.phone) {
+          try {
+            const message = `Upgrade Successful! Your ${subscription.plan.name} is now active. Thank you for choosing Qirb Alga.`;
+            await SMSService.sendSMS(subscription.owner.phone, message);
+          } catch (smsError) {
+            console.error('⚠️ Failed to send subscription SMS:', smsError);
+          }
+        }
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Subscription activated successfully',
+        data: {
+          plan: subscription?.plan.name,
+          owner: subscription?.owner.full_name,
+          expiry: subscription?.end_date
+        }
+      });
+    }
+
+    res.status(400).json({ success: false, message: 'Payment verification failed' });
+  } catch (error: any) {
+    console.error('Subscription Verify Error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to verify subscription' });
   }
 });
 

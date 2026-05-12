@@ -19,32 +19,40 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface GuestsSectionProps {
   guests: any[];
   viewMode: 'card' | 'table';
   onToggleView: () => void;
+  pagination?: { page: number; limit: number };
+  onPageChange?: (page: number) => void;
+  selectedRows?: (string | number)[];
+  onToggleSelection?: (id: string | number) => void;
+  onSelectAll?: (ids: (string | number)[]) => void;
+  totalItems?: number;
+  language?: any;
 }
 
 export const GuestsSection: React.FC<GuestsSectionProps> = ({
-  guests,
+  guests = [],
   viewMode,
-  onToggleView
+  onToggleView,
+  pagination = { page: 1, limit: 10 },
+  onPageChange,
+  selectedRows = [],
+  onToggleSelection,
+  onSelectAll,
+  totalItems = 0,
+  language
 }) => {
-  const { language } = useLanguage();
+  // Ensure guests is always an array
+  const safeGuests = Array.isArray(guests) ? guests : [];
   
-  // Debug: Log guest data to see available fields
-  console.log('🔍 Guests Section - Guest data:', guests);
-  if (guests.length > 0) {
-    console.log('🔍 First guest object structure:', guests[0]);
-    console.log('🔍 First guest room fields:', {
-      room_number: guests[0].room_number,
-      roomId: guests[0].roomId,
-      room_id: guests[0].room_id
-    });
-  }
   return (
     <div className="space-y-6">
-      {/* View Toggle */}
+      {/* ... keep top part as is ... */}
       <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
         <Button
           variant={viewMode === "card" ? "default" : "ghost"}
@@ -77,10 +85,16 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
       {/* Cards View */}
       {viewMode === "card" && (
         <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {guests.map((guest) => (
-            <Card key={guest.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden">
+          {safeGuests.map((guest) => (
+            <Card key={guest.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden ${selectedRows.includes(guest.id) ? 'ring-2 ring-primary' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardContent className="p-6 relative">
+                <div className="absolute top-4 right-4">
+                  <Checkbox 
+                    checked={selectedRows.includes(guest.id)}
+                    onCheckedChange={() => onToggleSelection?.(guest.id)}
+                  />
+                </div>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold shadow-lg group-hover:shadow-purple-500/25 group-hover:scale-110 transition-all duration-300">
@@ -149,6 +163,18 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
+                    <TableHead className="w-[50px] px-4">
+                      <Checkbox 
+                        checked={safeGuests.length > 0 && selectedRows.length === safeGuests.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            onSelectAll?.(safeGuests.map(g => g.id));
+                          } else {
+                            onSelectAll?.([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="font-bold"><TranslationText text="Guest" language={language} /></TableHead>
                     <TableHead className="font-bold"><TranslationText text="Contact" language={language} /></TableHead>
                     <TableHead className="font-bold"><TranslationText text="Nationality" language={language} /></TableHead>
@@ -160,8 +186,14 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {guests.map((guest) => (
-                    <TableRow key={guest.id} className="hover:bg-slate-50/50 transition-colors">
+                  {safeGuests.map((guest) => (
+                    <TableRow key={guest.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(guest.id) ? 'bg-blue-50/30' : ''}`}>
+                      <TableCell className="px-4">
+                        <Checkbox 
+                          checked={selectedRows.includes(guest.id)}
+                          onCheckedChange={() => onToggleSelection?.(guest.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-bold text-slate-900">{guest.name}</p>
@@ -197,6 +229,36 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-semibold text-slate-900">{safeGuests.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> guests
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
+                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page + 1)}
+                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -38,15 +38,25 @@ export const useDashboardHandlers = (
 
   const handleSaveStaff = async () => {
     try {
+      const pensionId = parseInt(data.selectedPensionId);
+      if (!pensionId) {
+        alert('No pension selected. Please ensure your pension is set up correctly.');
+        return;
+      }
+
       if (ui.editingStaff) {
-        await apiService.updateStaff(ui.editingStaff.id, ui.newStaff);
+        const staffId = ui.editingStaff.id || ui.editingStaff.staff_id;
+        await apiService.updateStaff(staffId, ui.newStaff);
       } else {
-        await apiService.createStaff({ ...ui.newStaff, pension_id: data.selectedPensionId });
+        await apiService.addStaff(pensionId, ui.newStaff);
       }
       ui.setShowAddStaffModal(false);
+      ui.setEditingStaff(null);
       await loadRealData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save staff error:', error);
+      const msg = error?.originalResponse?.message || error?.message || 'Failed to save staff member.';
+      alert(msg);
     }
   };
 
@@ -91,21 +101,25 @@ export const useDashboardHandlers = (
 
   const handleConfirmStaffBulkUpload = async () => {
     try {
-      const staffToUpload = ui.staffBulkUpload.data.map((s: any) => ({
-        ...s,
-        pension_id: data.selectedPensionId,
-        salary: parseFloat(s.salary) || 0
-      }));
+      const pensionId = parseInt(data.selectedPensionId);
+      if (!pensionId) {
+        alert('No pension selected.');
+        return;
+      }
 
-      for (const staff of staffToUpload) {
-        await apiService.createStaff(staff);
+      for (const staff of ui.staffBulkUpload.data) {
+        await apiService.addStaff(pensionId, {
+          ...staff,
+          salary: parseFloat(staff.salary) || 0
+        });
       }
       
       ui.setShowStaffBulkUploadModal(false);
       ui.setStaffBulkUpload({ file: null, data: [], preview: [] });
       await loadRealData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Confirm staff bulk upload error:', error);
+      alert(error?.message || 'Failed to upload staff data.');
     }
   };
 
@@ -123,17 +137,54 @@ export const useDashboardHandlers = (
   // --- ROOM HANDLERS ---
   const handleAddRoom = async () => {
     try {
+      ui.setErrorMessage('');
       const roomNumbersList = ui.newRoom.roomNumbers
-        .split(',')
-        .map((num: string) => num.trim())
-        .filter((num: string) => num.length > 0);
+        ? ui.newRoom.roomNumbers
+            .split(',')
+            .map((num: string) => num.trim())
+            .filter((num: string) => num.length > 0)
+        : [];
       
       const selectedPackage = data.packages.find((p: Package) => String(p.id || p.package_id) === String(ui.newRoom.package));
       
-      for (const roomNumber of roomNumbersList) {
+      // If no room numbers provided, use quantity/numberOfRooms
+      const finalRoomNumbers = roomNumbersList.length > 0 
+        ? roomNumbersList 
+        : Array.from({ length: parseInt(ui.newRoom.numberOfRooms) || 1 }, (_, i) => `${selectedPackage?.name || 'Room'} ${i + 1}`);
+
+      // CLIENT-SIDE CHECK: Prevent duplicate room numbers within the same pension
+      const existingRoomNumbers = data.roomsData.map((r: any) => String(r.room_number || r.number || r.id || ''));
+      const duplicatesInNewList = finalRoomNumbers.filter((item: string, index: number) => finalRoomNumbers.indexOf(item) !== index);
+      
+      if (duplicatesInNewList.length > 0) {
+        ui.setErrorMessage(`Duplicate room numbers found: ${duplicatesInNewList.join(', ')}.`);
+        return;
+      }
+
+      const alreadyExists = finalRoomNumbers.filter(num => existingRoomNumbers.includes(String(num)));
+      if (alreadyExists.length > 0) {
+        ui.setErrorMessage(`Room numbers already exist: ${alreadyExists.join(', ')}.`);
+        return;
+      }
+
+      // PACKAGE CONSISTENCY CHECK: Ensure capacity and beds match existing rooms in this package
+      const packageId = ui.newRoom.package;
+      const existingPackageRoom = data.roomsData.find((r: any) => String(r.package_id) === String(packageId));
+      
+      if (existingPackageRoom) {
+        const requiredCapacity = parseInt(existingPackageRoom.capacity);
+        const requiredBeds = parseInt(existingPackageRoom.number_of_beds || existingPackageRoom.beds);
+        
+        if (parseInt(ui.newRoom.capacity) !== requiredCapacity || parseInt(ui.newRoom.numberOfBeds) !== requiredBeds) {
+          ui.setErrorMessage(`Consistency Error: All rooms in this package must have a capacity of ${requiredCapacity} and ${requiredBeds} bed(s).`);
+          return;
+        }
+      }
+
+      for (const roomNumber of finalRoomNumbers) {
         await apiService.createRoom({
           pension_id: data.selectedPensionId,
-          package_id: ui.newRoom.package,
+          packageId: ui.newRoom.package, // Fixed field name
           room_number: roomNumber,
           room_type: selectedPackage?.name || 'Standard',
           capacity: parseInt(ui.newRoom.capacity) || 1,
@@ -190,12 +241,46 @@ export const useDashboardHandlers = (
 
   const handleConfirmRoomBulkUpload = async () => {
     try {
+      ui.setErrorMessage('');
       const roomsToUpload = ui.roomsBulkUpload.data;
+      const existingRoomNumbers = data.roomsData.map((r: any) => String(r.room_number || r.number || r.id || ''));
+      
+      // Check for duplicates within the upload itself
+      const uploadedNumbers = roomsToUpload.map((r: any) => String(r.room_number || ''));
+      const duplicatesInUpload = uploadedNumbers.filter((item, index) => uploadedNumbers.indexOf(item) !== index && item !== '');
+      
+      if (duplicatesInUpload.length > 0) {
+        ui.setErrorMessage(`Duplicate room numbers in upload: ${duplicatesInUpload.join(', ')}.`);
+        return;
+      }
+
+      // Check against existing rooms
+      const conflicts = uploadedNumbers.filter(num => num !== '' && existingRoomNumbers.includes(num));
+      if (conflicts.length > 0) {
+        ui.setErrorMessage(`Room numbers already exist: ${conflicts.join(', ')}.`);
+        return;
+      }
       
       for (const roomData of roomsToUpload) {
         const selectedPackage = data.packages.find((p: Package) => 
           p.name.toLowerCase() === (roomData.package_name || '').toLowerCase()
         );
+        
+        const pkgId = selectedPackage?.id || selectedPackage?.package_id || null;
+
+        // CONSISTENCY CHECK: Ensure bulk upload rooms match existing rooms in the same package
+        if (pkgId) {
+          const existingRoom = data.roomsData.find((r: any) => String(r.package_id) === String(pkgId));
+          if (existingRoom) {
+            const reqCap = parseInt(existingRoom.capacity);
+            const reqBeds = parseInt(existingRoom.number_of_beds || existingRoom.beds);
+            
+            if (parseInt(roomData.capacity) !== reqCap || parseInt(roomData.number_of_beds) !== reqBeds) {
+              ui.setErrorMessage(`Consistency Error: Room ${roomData.room_number} in package "${selectedPackage.name}" must have capacity ${reqCap} and ${reqBeds} bed(s).`);
+              return;
+            }
+          }
+        }
 
         await apiService.createRoom({
           pension_id: data.selectedPensionId,
@@ -229,12 +314,28 @@ export const useDashboardHandlers = (
   };
 
   // --- PACKAGE HANDLERS ---
+  const handlePackageImageUpload = async (file: File) => {
+    try {
+      const response = await apiService.uploadImage(file);
+      if (response.success && response.data) {
+        ui.setNewPackage({ ...ui.newPackage, image: response.data.url });
+      }
+    } catch (error) {
+      console.error('Package image upload error:', error);
+    }
+  };
+
   const handleAddPackage = async () => {
     try {
+      let packageData = { ...ui.newPackage };
+      
+      // If there's a file to upload, do it first (though currently handled by handlePackageImageUpload)
+      // but we can also handle it here if ui.packageImageFile was used
+      
       if (ui.editingPackage) {
-        await apiService.updatePackage(data.selectedPensionId, ui.editingPackage.id, ui.newPackage);
+        await apiService.updatePackage(data.selectedPensionId, ui.editingPackage.id, packageData);
       } else {
-        await apiService.createPackage(data.selectedPensionId, ui.newPackage);
+        await apiService.createPackage(data.selectedPensionId, packageData);
       }
       ui.setShowAddPackageModal(false);
       await loadRealData();
@@ -305,7 +406,28 @@ export const useDashboardHandlers = (
   const handleSavePropertySettings = async () => {
     ui.setIsUpdating(true);
     try {
-      await apiService.updatePension(data.selectedPensionId, ui.propertySettings);
+      let finalSettings: any = {
+        name: ui.propertySettings.name,
+        description: ui.propertySettings.description,
+        address: ui.propertySettings.address,
+        phone: ui.propertySettings.phone,
+        email: ui.propertySettings.email,
+        capacity: ui.propertySettings.capacity,
+        owner_info: ui.propertySettings.ownerInfo,
+        room_details: ui.propertySettings.roomDetails,
+        image_url: ui.propertySettings.imageUrl
+      };
+
+      // Upload profile image if selected
+      if (ui.pensionProfileImageFile) {
+        const uploadResp = await apiService.uploadImage(ui.pensionProfileImageFile);
+        if (uploadResp.success && uploadResp.data) {
+          finalSettings.image_url = uploadResp.data.url;
+          ui.setPensionProfileImageFile(null);
+        }
+      }
+
+      await apiService.updatePension(data.selectedPensionId, finalSettings);
       ui.showSuccess();
       await loadRealData();
     } catch (error) {
@@ -315,8 +437,80 @@ export const useDashboardHandlers = (
     }
   };
 
+  const handleSaveSecuritySettings = async () => {
+    ui.setIsUpdating(true);
+    try {
+      const response = await apiService.changePassword(
+        ui.securitySettings.currentPassword,
+        ui.securitySettings.newPassword
+      );
+      
+      if (response.success) {
+        ui.showSuccess();
+        ui.setSecuritySettings({
+          currentPassword: '',
+          newPassword: '',
+          twoFactorEnabled: ui.securitySettings.twoFactorEnabled
+        });
+      }
+    } catch (error: any) {
+      console.error('Save security settings error:', error);
+      // You might want to show an error message to the user here
+      if (error.originalResponse?.message) {
+        alert(error.originalResponse.message);
+      } else {
+        alert('Failed to update security settings');
+      }
+    } finally {
+      ui.setIsUpdating(false);
+    }
+  };
+
+  const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const expenseData = {
+      category: formData.get('category'),
+      description: formData.get('description'),
+      amount: parseFloat(formData.get('amount') as string),
+      expense_date: formData.get('expense_date')
+    };
+
+    try {
+      const response = await apiService.addExpense(data.selectedPensionId, expenseData);
+      if (response.success) {
+        // Reset form
+        (e.target as HTMLFormElement).reset();
+        await loadRealData();
+      }
+    } catch (error) {
+      console.error('Add expense error:', error);
+    }
+  };
+
   return {
-    handleCreatePension,
+    handleCreatePension: async () => {
+      try {
+        let pensionData = { ...ui.newPension };
+        
+        // Upload image if selected
+        if (ui.pensionImageFile) {
+          const uploadResp = await apiService.uploadImage(ui.pensionImageFile);
+          if (uploadResp.success && uploadResp.data) {
+            pensionData.image_url = uploadResp.data.url;
+            ui.setPensionImageFile(null);
+          }
+        }
+
+        const response = await apiService.createPension(pensionData);
+        if (response.success) {
+          ui.setShowCreatePension(false);
+          await loadRealData();
+        }
+      } catch (error) {
+        console.error('Create pension error:', error);
+      }
+    },
     handlePensionSelectionChange,
     handleEditStaff,
     handleSaveStaff,
@@ -330,11 +524,14 @@ export const useDashboardHandlers = (
     handleConfirmRoomBulkUpload,
     handleDownloadRoomTemplate,
     handleAddPackage,
+    handlePackageImageUpload,
     handleDeletePackage,
     handleToggleMostPopular,
     handleUpdateBookingStatus,
     handleCompleteEarly,
     handleWalkInSubmit,
-    handleSavePropertySettings
+    handleSavePropertySettings,
+    handleSaveSecuritySettings,
+    handleAddExpense
   };
 };

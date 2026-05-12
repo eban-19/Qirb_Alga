@@ -96,22 +96,27 @@ export interface Staff {
 
 export interface Guest {
   id: string | number;
-  full_name: string;
+  name: string;
+  full_name?: string;
   email: string;
   phone: string;
-  total_bookings: number;
-  last_stay: string;
+  nationality?: string;
+  room_number?: string;
+  totalBookings: number;
+  totalSpent: number;
+  last_stay?: string;
   status: string;
 }
 
 export interface Transaction {
   id: string | number;
   date: string;
-  guest: string;
+  description: string;
+  guest?: string;
   amount: number;
-  status: 'Completed' | 'Pending' | 'Cancelled';
+  status: 'Completed' | 'Pending' | 'Cancelled' | string;
   method: string;
-  type: 'Revenue' | 'Expense';
+  type: 'income' | 'expense' | 'Revenue' | 'Expense' | string;
 }
 
 export interface Expense {

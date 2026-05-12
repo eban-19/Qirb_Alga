@@ -22,7 +22,7 @@ const SubscriptionVerify = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:3005/api/payments/verify/${txRef}`);
+        const response = await fetch(`http://localhost:3005/api/subscriptions/verify/${txRef}`);
         const data = await response.json();
 
         if (data.success) {

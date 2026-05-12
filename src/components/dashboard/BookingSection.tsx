@@ -17,17 +17,44 @@ import {
   Search,
   CheckCircle,
   Plus,
-  IdCard
+  IdCard,
+  MoreVertical,
+  Eye,
+  AlertCircle
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight, Filter, ChevronDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 
 interface BookingSectionProps {
   bookings: any[];
-  viewMode: 'card' | 'table';
+  viewMode: "card" | "table";
   onToggleView: () => void;
   onUpdateStatus: (id: string | number, status: string) => void;
   onCompleteEarly: (id: string | number) => void;
+  pagination?: { page: number; limit: number };
+  onPageChange?: (page: number) => void;
+  selectedRows?: (string | number)[];
+  onToggleSelection?: (id: string | number) => void;
+  onSelectAll?: (ids: (string | number)[]) => void;
+  totalItems?: number;
+  language?: any;
 }
 
 interface WalkInForm {
@@ -43,31 +70,57 @@ interface InlineMessage {
   timestamp: number;
 }
 
-const BookingCard = ({ booking, onCompleteEarly, language, onViewId }: { booking: any; onCompleteEarly: (id: string) => void; language: any; onViewId: (idUrl: string) => void }) => {
-  // Debug: Log booking data to see available fields
-  console.log('🔍 Owner Dashboard Booking data:', booking);
-  console.log('🔍 Room fields available:', {
-    room_number: booking.room_number,
-    room_id: booking.room_id,
-    room_type: booking.room_type,
-    room_name: booking.room_name
-  });
-  
+const BookingCard = ({ 
+  booking, 
+  onCompleteEarly, 
+  language, 
+  onViewId,
+  isSelected = false,
+  onToggleSelection,
+  onUpdateStatus
+}: { 
+  booking: any; 
+  onCompleteEarly: (id: string) => void; 
+  language: any; 
+  onViewId: (idUrl: string) => void;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string | number) => void;
+  onUpdateStatus: (id: string | number, status: string) => void;
+}) => {
   // Try different possible room fields
   const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
-  
-  console.log('🔍 Final roomInfo:', roomInfo);
+  const bookingId = booking.id || booking.booking_id;
   
   return (
-    <Card key={booking.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02] relative">
+    <Card key={bookingId} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02] relative ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+      <div className="absolute top-4 right-4 z-10">
+        <Checkbox 
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelection?.(bookingId)}
+          className="h-5 w-5 bg-white/80 border-slate-300"
+        />
+      </div>
       <CardHeader className="relative pb-0">
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start mb-4 pr-8">
           <div className="space-y-2">
             <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || <TranslationText text="Guest" language={language} />}</h3>
-            <p className="text-sm text-slate-600 flex items-center gap-1">
-              <Mail className="h-3 w-3" />
-              {booking.user_email}
-            </p>
+            {(booking.user_email || booking.user_phone || booking.phone) && (
+              <p className="text-sm text-slate-600 flex items-center gap-1">
+                {booking.user_email ? (
+                  <>
+                    <Mail className="h-3 w-3" />
+                    {booking.user_email}
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    {booking.user_phone || booking.phone}
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <Badge className={`${
             booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
@@ -90,45 +143,74 @@ const BookingCard = ({ booking, onCompleteEarly, language, onViewId }: { booking
             <CalendarCheck className="h-4 w-4" />
             <TranslationText text="Check-in" language={language} />
           </span>
-          <span className="font-bold text-slate-900">{new Date(booking.check_in_date).toLocaleDateString()}</span>
+          <span className="font-bold text-slate-900">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <TranslationText text="Check-out" language={language} />
           </span>
-          <span className="font-bold text-slate-900">{new Date(booking.check_out_date).toLocaleDateString()}</span>
+          <span className="font-bold text-slate-900">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
           <span className="text-sm font-bold text-emerald-700"><TranslationText text="Total" language={language} /></span>
-          <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price).toLocaleString()}</span>
+          <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price || 0).toLocaleString()}</span>
         </div>
-        <div className="flex gap-2 pt-2 border-t border-slate-100 mt-2">
-          {booking.id_document_url && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => onViewId(booking.id_document_url)} 
-              className="flex-1 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all"
-            >
-              <IdCard className="h-4 w-4 mr-1.5" /> <TranslationText text="View ID" language={language} />
-            </Button>
-          )}
-          {(() => {
-            const status = booking.status?.toLowerCase();
-            const showButton = status === 'confirmed' && status !== 'completed';
-            console.log(`BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
-            return showButton;
-          })() && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => onCompleteEarly(booking.id || booking.booking_id)} 
-              className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
-            >
-              <CheckCircle className="h-4 w-4 mr-1.5" /> <TranslationText text="Early Checkout" language={language} />
-            </Button>
-          )}
+        <div className="pt-2 border-t border-slate-100 mt-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
+              >
+                <span className="flex items-center gap-2 font-bold">
+                  <TranslationText text="Actions" language={language} />
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+              {booking.id_document_url && (
+                <DropdownMenuItem 
+                  onClick={() => onViewId(booking.id_document_url)}
+                  className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                >
+                  <IdCard className="h-4 w-4" />
+                  <TranslationText text="View ID" language={language} />
+                </DropdownMenuItem>
+              )}
+              
+              {booking.status?.toLowerCase() === 'pending' && (
+                <DropdownMenuItem 
+                  onClick={() => onUpdateStatus(bookingId, 'Confirmed')}
+                  className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <TranslationText text="Approve" language={language} />
+                </DropdownMenuItem>
+              )}
+
+              {booking.status?.toLowerCase() === 'confirmed' && (
+                <DropdownMenuItem 
+                  onClick={() => onCompleteEarly(bookingId)}
+                  className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <TranslationText text="Early Checkout" language={language} />
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator className="bg-slate-100" />
+              
+              <DropdownMenuItem 
+                onClick={() => onUpdateStatus(bookingId, 'cancelled')}
+                className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+              >
+                <X className="h-4 w-4" />
+                <TranslationText text="Cancel Booking" language={language} />
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
@@ -136,13 +218,21 @@ const BookingCard = ({ booking, onCompleteEarly, language, onViewId }: { booking
 };
 
 export const BookingSection: React.FC<BookingSectionProps> = ({
-  bookings,
+  bookings = [],
   viewMode,
   onToggleView,
   onUpdateStatus,
-  onCompleteEarly
+  onCompleteEarly,
+  pagination = { page: 1, limit: 10 },
+  onPageChange,
+  selectedRows = [],
+  onToggleSelection,
+  onSelectAll,
+  totalItems = 0,
+  language: propLanguage
 }) => {
-  const { language } = useLanguage();
+  const { language: hookLanguage } = useLanguage();
+  const language = propLanguage || hookLanguage;
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState<WalkInForm>({
     guestName: '',
@@ -157,6 +247,14 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [isProcessingEarlyCheckout, setIsProcessingEarlyCheckout] = useState(false);
   const [showIdModal, setShowIdModal] = useState(false);
   const [selectedIdUrl, setSelectedIdUrl] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed' | 'pending' | 'confirmed'>('all');
+
+  // Filter bookings based on active filter
+  const filteredBookings = bookings.filter(b => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'active') return b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'pending';
+    return b.status?.toLowerCase() === activeFilter;
+  });
 
   // Scroll lock when modal is open
   useEffect(() => {
@@ -214,7 +312,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
         case 'success':
           return (
             <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L6 11l-4 4m0 6l4-4m0 6" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L9 7" />
             </svg>
           );
         case 'error':
@@ -225,60 +323,22 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           );
         case 'processing':
           return (
-            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin">
-              <div className="h-2 w-2 border-2 border-cyan-600 border-t-transparent rounded-full mt-1"></div>
-            </div>
+            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
           );
         default:
-          return (
-            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1 4h-1v4M8 12h8v8H8" />
-            </svg>
-          );
+          return null;
       }
     };
 
     return (
-      <div className={`mt-3 p-4 rounded-xl border ${getMessageStyles()} flex items-start gap-3 animate-in fade-in-0 slide-in-from-top-2 duration-500 shadow-lg transform transition-all duration-300 hover:scale-[1.02]`}>
-        {/* Icon with subtle animation */}
-        <div className="flex items-start gap-3 flex-1">
-          <div className={`flex-shrink-0 mt-0.5 transition-transform duration-300 ${message.type === 'success' ? 'animate-bounce' : message.type === 'error' ? 'animate-pulse' : ''}`}>
-            {getMessageIcon()}
-          </div>
-          
-          {/* Content with better typography */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`text-sm font-bold tracking-wide ${message.type === 'success' ? 'text-emerald-700' : message.type === 'error' ? 'text-rose-700' : message.type === 'processing' ? 'text-cyan-700' : 'text-slate-700'}`}>
-                {message.type === 'success' && '✓'}
-                {message.type === 'error' && '⚠'}
-                {message.type === 'processing' && '⟳'}
-              </div>
-              <div className={`text-sm font-semibold ${message.type === 'success' ? 'text-emerald-800' : message.type === 'error' ? 'text-rose-800' : message.type === 'processing' ? 'text-cyan-800' : 'text-slate-800'}`}>
-                {message.type === 'success' && 'Success'}
-                {message.type === 'error' && 'Error'}
-                {message.type === 'processing' && 'Processing'}
-              </div>
-            </div>
-            
-            {/* Message description with better spacing */}
-            <div className={`text-sm leading-relaxed ${message.type === 'success' ? 'text-emerald-600' : message.type === 'error' ? 'text-rose-600' : message.type === 'processing' ? 'text-cyan-600' : 'text-slate-600'}`}>
-              {message.message}
-            </div>
-          </div>
+      <div className={`mt-2 p-3 rounded-lg border ${getMessageStyles()} flex items-center justify-between gap-3 animate-in fade-in-0 slide-in-from-top-1 duration-300 shadow-sm`}>
+        <div className="flex items-center gap-3">
+          {getMessageIcon()}
+          <span className="text-sm font-medium">{message.message}</span>
         </div>
-        
-        {/* Enhanced dismiss button with hover effects */}
         {message.type !== 'processing' && (
-          <button
-            onClick={() => clearMessage(bookingId)}
-            className="ml-auto flex-shrink-0 p-2 rounded-lg bg-white/80 backdrop-blur-sm hover:bg-white transition-all duration-200 hover:shadow-md border border-current/20 hover:border-current/30 text-current/70 hover:text-current/90 group"
-            title={`Dismiss ${message.type} message`}
-          >
-            <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span className="ml-2 text-xs font-medium">ESC</span>
+          <button onClick={() => clearMessage(bookingId)} className="p-1 hover:bg-black/5 rounded">
+            <X className="h-3 w-3" />
           </button>
         )}
       </div>
@@ -323,9 +383,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       const result = await response.json();
       if (result.success) {
         setShowWalkInModal(false);
-        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '' });
+        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '', checkIn: '', checkOut: '' });
         alert('Walk-in booking created successfully!');
-        // You might want to refresh bookings list here
       } else {
         alert('Failed to create booking: ' + result.message);
       }
@@ -335,28 +394,18 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
   };
 
-  // Wrapper function for early checkout with message handling
   const handleEarlyCheckoutWithMessages = async (bookingId: string | number) => {
-    // Only show messages if enabled
     if (!inlineMessagesEnabled) {
       await onCompleteEarly(bookingId);
       return;
     }
 
     try {
-      // Show processing message
       addMessage(bookingId, 'processing', 'Processing early checkout...');
-      
-      // Call the original early checkout handler
       await onCompleteEarly(bookingId);
-      
-      // Show success message
       addMessage(bookingId, 'success', 'Booking completed early. Room is now available.');
-      
     } catch (error: any) {
       console.error('Early checkout error:', error);
-      
-      // Show appropriate error message
       const errorMessage = error.message || 'Early checkout failed';
       if (errorMessage.includes('already completed')) {
         addMessage(bookingId, 'error', 'This booking is already completed.');
@@ -368,95 +417,16 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
   };
 
-  // Early Checkout Confirmation Dialog Component
-  const EarlyCheckoutConfirmDialog = () => {
-    if (!showEarlyCheckoutConfirm) return null;
-
-    const handleBackdropClick = (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        setShowEarlyCheckoutConfirm(false);
-        setPendingEarlyCheckoutId(null);
-        setIsProcessingEarlyCheckout(false);
-      }
-    };
-
-    return ReactDOM.createPortal(
-      <div 
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
-        onClick={handleBackdropClick}
-      >
-        <div 
-          className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v-6h6a3 3 0 0 6 12v6a3 3 0 0 6 12z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900"><TranslationText text="Confirm Early Checkout" language={language} /></h3>
-              <p className="text-sm text-slate-600 mt-2">
-                <TranslationText text="Are you sure you want to complete this booking early and make the room available?" language={language} />
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => {
-                setShowEarlyCheckoutConfirm(false);
-                setPendingEarlyCheckoutId(null);
-                setIsProcessingEarlyCheckout(false);
-              }}
-              disabled={isProcessingEarlyCheckout}
-              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={async () => {
-                if (pendingEarlyCheckoutId) {
-                  setIsProcessingEarlyCheckout(true);
-                  await handleEarlyCheckoutWithMessages(pendingEarlyCheckoutId);
-                }
-                setShowEarlyCheckoutConfirm(false);
-                setPendingEarlyCheckoutId(null);
-                setIsProcessingEarlyCheckout(false);
-              }}
-              disabled={isProcessingEarlyCheckout}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isProcessingEarlyCheckout ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  Processing...
-                </>
-              ) : (
-                'Confirm'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  };
-
-  // Handler to show confirmation dialog
   const handleEarlyCheckoutClick = (bookingId: string | number) => {
     setPendingEarlyCheckoutId(bookingId);
     setShowEarlyCheckoutConfirm(true);
   };
 
-  // Handler to show ID document
   const handleViewId = (idUrl: string) => {
     setSelectedIdUrl(idUrl);
     setShowIdModal(true);
   };
 
-  // Helper to get full image URL
   const getFullImageUrl = (imagePath: string | undefined | null): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
@@ -464,93 +434,83 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     return imagePath;
   };
 
-  // ID Document Modal Component
-  const IdDocumentModal = () => {
-    if (!showIdModal || !selectedIdUrl) return null;
-
-    const fullImageUrl = getFullImageUrl(selectedIdUrl);
-
-    const handleBackdropClick = (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        setShowIdModal(false);
-        setSelectedIdUrl(null);
-      }
-    };
-
-    return ReactDOM.createPortal(
-      <div 
-        className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4"
-        onClick={handleBackdropClick}
-      >
-        <div 
-          className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between p-4 border-b border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <IdCard className="h-5 w-5 text-purple-600" />
-              <TranslationText text="ID Document" language={language} />
-            </h3>
+  return (
+    <div className="space-y-6">
+      {/* Bulk Actions Bar */}
+      {selectedRows.length > 0 && (
+        <div className="sticky top-0 z-20 bg-blue-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-4">
+            <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} Selected
+            </Badge>
+            <p className="text-sm font-medium hidden sm:block">Perform actions on all selected bookings</p>
+          </div>
+          <div className="flex items-center gap-2">
             <Button 
-              variant="ghost" 
               size="sm" 
-              onClick={() => {
-                setShowIdModal(false);
-                setSelectedIdUrl(null);
-              }}
-              className="text-slate-500 hover:text-slate-700"
+              variant="ghost" 
+              className="text-white hover:bg-white/10 font-bold"
+              onClick={() => onSelectAll?.([])}
             >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <div className="flex-1 overflow-auto p-4 bg-slate-50 flex items-center justify-center">
-            {fullImageUrl ? (
-              <img 
-                src={fullImageUrl} 
-                alt="ID Document" 
-                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-lg"
-                onError={(e) => {
-                  console.error('Failed to load ID document:', e);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="text-center text-slate-500">
-                <IdCard className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <p><TranslationText text="Unable to load ID document" language={language} /></p>
-              </div>
-            )}
-          </div>
-          
-          <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => window.open(fullImageUrl, '_blank')}
-              className="gap-2"
-            >
-              <TranslationText text="Open in New Tab" language={language} />
+              Clear Selection
             </Button>
             <Button 
+              size="sm" 
+              className="bg-white text-blue-600 hover:bg-blue-50 font-bold shadow-md"
               onClick={() => {
-                setShowIdModal(false);
-                setSelectedIdUrl(null);
+                selectedRows.forEach(id => onUpdateStatus(id, 'Confirmed'));
+                onSelectAll?.([]);
               }}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              <TranslationText text="Close" language={language} />
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Bulk Approve
             </Button>
           </div>
         </div>
-      </div>,
-      document.body
-    );
-  };
+      )}
 
-  return (
-    <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
+        <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
+              <Filter className="h-4 w-4 text-slate-500" />
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">Filter by Status:</span>
+              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as any)}>
+                <SelectTrigger className="w-[160px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                  {[
+                    { id: 'all', label: 'All Bookings', color: 'text-slate-600' },
+                    { id: 'active', label: 'Active Bookings', color: 'text-blue-600' },
+                    { id: 'pending', label: 'Pending Approval', color: 'text-amber-600' },
+                    { id: 'confirmed', label: 'Confirmed Stays', color: 'text-emerald-600' },
+                    { id: 'completed', label: 'Past Bookings', color: 'text-indigo-600' }
+                  ].map((filter) => (
+                    <SelectItem 
+                      key={filter.id} 
+                      value={filter.id}
+                      className="rounded-lg focus:bg-slate-50 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          filter.id === 'all' ? 'bg-slate-400' :
+                          filter.id === 'active' ? 'bg-blue-400' :
+                          filter.id === 'pending' ? 'bg-amber-400' :
+                          filter.id === 'confirmed' ? 'bg-emerald-400' :
+                          'bg-indigo-400'
+                        }`} />
+                        <span className={`font-medium ${filter.color}`}>
+                          <TranslationText text={filter.label} language={language} />
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit ml-auto">
         <Button
           variant={viewMode === "card" ? "default" : "ghost"}
           size="sm"
@@ -578,19 +538,28 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           <TranslationText text="Table" language={language} />
         </Button>
       </div>
+    </div>
       
       {/* Cards View */}
       {viewMode === "card" && (
         <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {bookings.map((booking) => (
+          {filteredBookings.map((booking) => (
             <BookingCard 
-              key={booking.id} 
+              key={booking.id || booking.booking_id} 
               booking={booking} 
               onCompleteEarly={handleEarlyCheckoutClick}
               onViewId={handleViewId}
               language={language}
+              isSelected={selectedRows.includes(booking.id || booking.booking_id)}
+              onToggleSelection={onToggleSelection}
+              onUpdateStatus={onUpdateStatus}
             />
           ))}
+          {filteredBookings.length === 0 && (
+            <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100">
+              <p className="text-slate-400 font-medium italic">No bookings found for this filter.</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -602,6 +571,18 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               <Table>
                 <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100">
                   <TableRow className="hover:bg-transparent border-slate-200">
+                    <TableHead className="w-[50px] px-4">
+                      <Checkbox 
+                        checked={bookings.length > 0 && selectedRows.length === bookings.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            onSelectAll?.(bookings.map(b => b.id || b.booking_id));
+                          } else {
+                            onSelectAll?.([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="text-slate-700 font-bold">Guest</TableHead>
                     <TableHead className="text-slate-700 font-bold">Room</TableHead>
                     <TableHead className="text-slate-700 font-bold">Check-in</TableHead>
@@ -612,15 +593,18 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bookings.map((booking) => {
-                    // Debug: Log booking data to see available fields
-                    console.log('🔍 Table booking data:', booking);
-                    
-                    // Try different possible room fields
+                  {filteredBookings.map((booking) => {
+                    const bookingId = booking.id || booking.booking_id;
                     const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
                     
                     return (
-                    <TableRow key={booking.id} className="hover:bg-blue-50/50 transition-colors group">
+                    <TableRow key={bookingId} className={`hover:bg-blue-50/50 transition-colors group ${selectedRows.includes(bookingId) ? 'bg-blue-50/30' : ''}`}>
+                      <TableCell className="px-4">
+                        <Checkbox 
+                          checked={selectedRows.includes(bookingId)}
+                          onCheckedChange={() => onToggleSelection?.(bookingId)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
@@ -628,83 +612,141 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</p>
-                            <p className="text-sm text-slate-500 flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {booking.user_email}
-                            </p>
+                            {(booking.user_email || booking.user_phone || booking.phone) && (
+                              <p className="text-sm text-slate-500 flex items-center gap-1">
+                                {booking.user_email ? (
+                                  <>
+                                    <Mail className="h-3 w-3" />
+                                    {booking.user_email}
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    {booking.user_phone || booking.phone}
+                                  </>
+                                )}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
-                          <BedDouble className="h-4 w-4 text-slate-600" />
-                          <span className="font-medium">{roomInfo}</span>
-                        </div>
+                        <Badge variant="outline" className="bg-slate-50 text-slate-700 font-medium border-slate-200">
+                          {roomInfo}
+                        </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
-                          <CalendarCheck className="h-4 w-4 text-slate-600" />
-                          {new Date(booking.check_in_date).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
-                          <Calendar className="h-4 w-4 text-slate-600" />
-                          {new Date(booking.check_out_date).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 inline-block">
-                          <p className="font-bold text-emerald-700">ETB {parseFloat(booking.total_price).toLocaleString()}</p>
-                        </div>
+                      <TableCell className="text-slate-600">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell className="text-slate-600">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell className="text-right font-bold text-slate-900">
+                        ETB {(booking.total_price || 0).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge className={`${
-                          booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500' :
-                          booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500' : 'bg-red-500'
-                        } text-white text-xs capitalize shadow-sm`}>
+                          booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
+                          booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' :
+                          booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500 shadow-blue-500/25' :
+                          'bg-slate-500'
+                        } text-white border-none px-3 py-1 font-medium shadow-sm`}>
                           {booking.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                           {booking.id_document_url && (
-                             <Button 
-                               variant="outline" 
-                               size="sm" 
-                               onClick={() => handleViewId(booking.id_document_url)} 
-                               title="View ID Document" 
-                               className="hover:bg-purple-50 hover:border-purple-300 border-purple-200 text-purple-600 transition-all duration-300 px-2"
-                             >
-                               <IdCard className="h-4 w-4" />
-                             </Button>
-                           )}
-                           <Button variant="outline" size="sm" onClick={() => onUpdateStatus(booking.id || booking.booking_id, 'cancelled')} title="Cancel Booking" className="hover:bg-red-50 hover:border-red-300 border-red-200 text-red-600 transition-all duration-300 px-2">
-                             <X className="h-4 w-4" />
-                           </Button>
-                           {(() => {
-                             const status = booking.status?.toLowerCase();
-                             const showButton = status === 'confirmed' && status !== 'completed';
-                             console.log(`HEADER BOOKING ${booking.id || booking.booking_id} STATUS: ${status}, SHOW BUTTON: ${showButton}`);
-                             return showButton;
-                           })() && (
-                             <Button 
-                               variant="outline" 
-                               size="sm" 
-                               onClick={() => handleEarlyCheckoutClick(booking.id || booking.booking_id)} 
-                               title="Complete Early" 
-                               className="hover:bg-blue-50 hover:border-blue-300 border-blue-200 text-blue-600 transition-all duration-300 px-2"
-                             >
-                               <CheckCircle className="h-4 w-4" />
-                             </Button>
-                           )}
-                         </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300"
+                            >
+                              <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                            {booking.status?.toLowerCase() === 'pending' && (
+                              <DropdownMenuItem 
+                                onClick={() => onUpdateStatus(bookingId, 'Confirmed')}
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <TranslationText text="Approve" language={language} />
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {booking.id_document_url && (
+                              <DropdownMenuItem 
+                                onClick={() => handleViewId(booking.id_document_url)}
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                              >
+                                <IdCard className="h-4 w-4" />
+                                <TranslationText text="View ID" language={language} />
+                              </DropdownMenuItem>
+                            )}
+
+                            {booking.status?.toLowerCase() === 'confirmed' && (
+                              <DropdownMenuItem 
+                                onClick={() => handleEarlyCheckoutClick(bookingId)}
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <TranslationText text="Complete Early" language={language} />
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuSeparator className="bg-slate-100" />
+                            
+                            <DropdownMenuItem 
+                              onClick={() => onUpdateStatus(bookingId, 'cancelled')}
+                              className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                            >
+                              <X className="h-4 w-4" />
+                              <TranslationText text="Cancel Booking" language={language} />
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+                    );
+                  })}
                 </TableBody>
               </Table>
+            </div>
+            {filteredBookings.length === 0 && (
+              <div className="py-20 text-center bg-white">
+                <p className="text-slate-400 font-medium italic">No bookings found for this filter.</p>
+              </div>
+            )}
+
+            {/* Pagination Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-semibold text-slate-900">{bookings.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> bookings
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
+                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page + 1)}
+                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -719,11 +761,67 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
         </div>
       )}
 
-      {/* Early Checkout Confirmation Dialog */}
-      <EarlyCheckoutConfirmDialog />
+      {/* Modals & Dialogs */}
+      {showEarlyCheckoutConfirm && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowEarlyCheckoutConfirm(false)}>
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <AlertCircle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Confirm Early Checkout</h3>
+            <p className="text-slate-600 text-center mb-8">Are you sure you want to complete this booking early and make the room available?</p>
+            
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setShowEarlyCheckoutConfirm(false)}>Cancel</Button>
+              <Button 
+                className="flex-1 rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25"
+                disabled={isProcessingEarlyCheckout}
+                onClick={async () => {
+                  if (pendingEarlyCheckoutId) {
+                    setIsProcessingEarlyCheckout(true);
+                    await handleEarlyCheckoutWithMessages(pendingEarlyCheckoutId);
+                    setIsProcessingEarlyCheckout(false);
+                    setShowEarlyCheckoutConfirm(false);
+                  }
+                }}
+              >
+                {isProcessingEarlyCheckout ? 'Processing...' : 'Confirm'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
-      {/* ID Document Modal */}
-      <IdDocumentModal />
+      {showIdModal && selectedIdUrl && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4" onClick={() => setShowIdModal(false)}>
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
+                  <IdCard className="h-5 w-5" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">ID Document</h3>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowIdModal(false)} className="rounded-xl"><X className="h-5 w-5" /></Button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-8 bg-slate-50 flex items-center justify-center">
+              <img 
+                src={getFullImageUrl(selectedIdUrl)} 
+                alt="ID Document" 
+                className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-2xl border-4 border-white"
+              />
+            </div>
+            
+            <div className="p-6 border-t bg-white flex justify-end gap-3">
+              <Button variant="outline" className="rounded-xl px-6" onClick={() => window.open(getFullImageUrl(selectedIdUrl), '_blank')}>Open Full</Button>
+              <Button className="rounded-xl px-8 bg-slate-900 text-white" onClick={() => setShowIdModal(false)}>Close</Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Walk-In Booking Modal */}
       {showWalkInModal && (

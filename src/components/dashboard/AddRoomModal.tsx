@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Bed, X, Package as PackageIcon, Home, Hash, Users } from 'lucide-react';
+import { Bed, X, Package as PackageIcon, Home, Hash, Users, AlertCircle } from 'lucide-react';
 import { Package } from '../../types/dashboard';
 
 interface AddRoomModalProps {
@@ -13,6 +13,8 @@ interface AddRoomModalProps {
   setNewRoom: (room: any) => void;
   packages: Package[];
   onAddRoom: () => void;
+  existingRooms: any[];
+  errorMessage?: string;
 }
 
 export const AddRoomModal: React.FC<AddRoomModalProps> = ({
@@ -21,7 +23,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
   newRoom,
   setNewRoom,
   packages,
-  onAddRoom
+  onAddRoom,
+  existingRooms,
+  errorMessage
 }) => {
   if (!isOpen) return null;
 
@@ -46,6 +50,17 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 overflow-y-auto max-h-[calc(90vh-120px)] px-6">
+          {errorMessage && (
+            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm mb-2">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-red-900">Action Required</h4>
+                <p className="text-sm text-red-700 opacity-80">{errorMessage}</p>
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
               <PackageIcon className="h-4 w-4 text-primary" /> Select Package
@@ -53,14 +68,30 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             <select
               value={newRoom.package}
               onChange={(e) => {
-                const selectedPackage = packages.find(p => String(p.id || p.package_id) === String(e.target.value));
-                setNewRoom({ 
-                  ...newRoom, 
-                  package: e.target.value,
-                  type: selectedPackage?.name || '',
-                  capacity: selectedPackage?.services?.length ? '2' : '1',
-                  numberOfBeds: selectedPackage?.name?.includes('Double') ? '2' : '1'
-                });
+                const pkgId = e.target.value;
+                const selectedPackage = packages.find(p => String(p.id || p.package_id) === String(pkgId));
+                
+                // Find first existing room in this package
+                const firstExistingRoom = existingRooms.find(r => String(r.package_id) === String(pkgId));
+                
+                if (firstExistingRoom) {
+                  setNewRoom({ 
+                    ...newRoom, 
+                    package: pkgId,
+                    type: firstExistingRoom.room_type || selectedPackage?.name || '',
+                    capacity: String(firstExistingRoom.capacity || '1'),
+                    numberOfBeds: String(firstExistingRoom.number_of_beds || '1'),
+                    status: 'Available' // Default to available for new rooms
+                  });
+                } else {
+                  setNewRoom({ 
+                    ...newRoom, 
+                    package: pkgId,
+                    type: selectedPackage?.name || '',
+                    capacity: selectedPackage?.services?.length ? '2' : '1',
+                    numberOfBeds: selectedPackage?.name?.includes('Double') ? '2' : '1'
+                  });
+                }
               }}
               className="h-10 w-full border rounded-lg px-3 bg-slate-50/30"
             >
@@ -91,8 +122,38 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             </Label>
             <Input
               value={newRoom.roomNumbers || ''}
-              onChange={(e) => setNewRoom({ ...newRoom, roomNumbers: e.target.value })}
+              onChange={(e) => {
+                const numbers = e.target.value;
+                const count = numbers.split(',').map(n => n.trim()).filter(n => n !== '').length;
+                setNewRoom({ 
+                  ...newRoom, 
+                  roomNumbers: numbers,
+                  numberOfRooms: count > 0 ? String(count) : newRoom.numberOfRooms
+                });
+              }}
               placeholder="e.g., 201, 202, 203"
+              className="h-10 border-slate-200 bg-slate-50/30"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <Hash className="h-4 w-4 text-primary" /> Quantity (Number of Rooms)
+            </Label>
+            <Input
+              value={newRoom.numberOfRooms}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNewRoom({ 
+                  ...newRoom, 
+                  numberOfRooms: val,
+                  // If they manually change quantity, we might want to clear room numbers 
+                  // or keep them if they match. For now, let's just keep them.
+                });
+              }}
+              type="number"
+              min="1"
+              placeholder="Number of rooms to create"
               className="h-10 border-slate-200 bg-slate-50/30"
             />
           </div>

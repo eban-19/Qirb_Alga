@@ -117,36 +117,75 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <BedDouble className="h-4 w-4 text-purple-600" /> Total Capacity (Rooms)
+              </Label>
+              <Input
+                type="number"
+                value={propertySettings.capacity}
+                onChange={(e) => setPropertySettings({ ...propertySettings, capacity: e.target.value })}
+                placeholder="e.g., 20"
+                className="h-11 border-slate-200 bg-slate-50/30"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-purple-600" /> Pension Image
+              </Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPensionProfileImageFile(file);
+                    setPropertySettings({ ...propertySettings, imageUrl: file.name });
+                  }
+                }}
+                className="cursor-pointer border-slate-200 bg-slate-50/30 h-11 py-1.5"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-purple-600" /> About Description
+              </Label>
+              <textarea
+                value={propertySettings.description}
+                onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
+                placeholder="Describe your pension..."
+                rows={4}
+                className="w-full border border-slate-200 bg-slate-50/30 rounded-lg px-3 py-2 outline-none resize-none focus:border-purple-300 transition-all duration-200 min-h-[120px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Users className="h-4 w-4 text-purple-600" /> Owner / Property Info
+              </Label>
+              <textarea
+                value={propertySettings.ownerInfo}
+                onChange={(e) => setPropertySettings({ ...propertySettings, ownerInfo: e.target.value })}
+                placeholder="Details about ownership..."
+                rows={4}
+                className="w-full border border-slate-200 bg-slate-50/30 rounded-lg px-3 py-2 outline-none resize-none focus:border-purple-300 transition-all duration-200 min-h-[120px]"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-              <ImageIcon className="h-4 w-4 text-purple-600" /> Pension Image
-            </Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setPensionProfileImageFile(file);
-                  setPropertySettings({ ...propertySettings, imageUrl: file.name });
-                }
-              }}
-              className="cursor-pointer border-slate-200 bg-slate-50/30"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-purple-600" /> About Description
+              <BedDouble className="h-4 w-4 text-purple-600" /> Room Details Summary
             </Label>
             <textarea
-              value={propertySettings.description}
-              onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
-              placeholder="Describe your pension..."
-              rows={4}
-              className="w-full border-slate-200 bg-slate-50/30 rounded-lg px-3 py-2 outline-none resize-none"
+              value={propertySettings.roomDetails}
+              onChange={(e) => setPropertySettings({ ...propertySettings, roomDetails: e.target.value })}
+              placeholder="Summary of room types and features..."
+              rows={3}
+              className="w-full border border-slate-200 bg-slate-50/30 rounded-lg px-3 py-2 outline-none resize-none focus:border-purple-300 transition-all duration-200 min-h-[80px]"
             />
           </div>
 
