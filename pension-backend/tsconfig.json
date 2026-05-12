@@ -23,7 +23,8 @@
     "esm": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "scratch/**/*"
   ],
   "exclude": [
     "node_modules",
