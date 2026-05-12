@@ -106,12 +106,27 @@ router.get('/verify/:txRef', async (req, res) => {
         data: { status: 'PAID' },
       });
 
-      const booking = await prisma.booking.findFirst({ 
+      const booking = await prisma.booking.findUnique({ 
         where: { payment_id: payment.payment_id },
         include: {
           room: true,
           customer: true
         }
+      });
+
+      let pensionName = 'Your Pension';
+      if (booking?.room?.pension_id) {
+        const pension = await prisma.pension.findUnique({
+          where: { pension_id: booking.room.pension_id }
+        });
+        if (pension) pensionName = pension.name;
+      }
+      
+      console.log('✅ Found Booking for Slip:', {
+        bookingId: booking?.booking_id,
+        roomId: booking?.room_id,
+        pensionId: booking?.room?.pension_id,
+        pensionName
       });
       
       if (booking) {
@@ -126,7 +141,14 @@ router.get('/verify/:txRef', async (req, res) => {
         message: 'Payment verified successfully', 
         data: {
           ...verification.data,
-          booking: booking,
+          booking: {
+            ...booking,
+            room: {
+              ...booking?.room,
+              pension: { name: pensionName }
+            }
+          },
+          pension_name: pensionName,
           user: booking?.customer,
           reference: txRef,
           amount: payment.amount
