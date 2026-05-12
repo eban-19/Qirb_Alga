@@ -66,9 +66,9 @@ router.get('/', authenticateToken as any, async (req: any, res: any, next: any) 
 
     const formattedBookings = bookings.map(b => ({
       ...b,
-      user_name: b.customer?.full_name,
-      user_email: b.customer?.email,
-      user_phone: b.customer?.phone,
+      user_name: b.customer?.full_name || b.walk_in_guest_name,
+      user_email: b.customer?.email || b.walk_in_guest_email,
+      user_phone: b.customer?.phone || b.walk_in_guest_phone,
       pension_id: b.room?.pension_id,
       room_type: b.room?.room_type,
       price_per_night: b.room?.price_per_night,
@@ -306,11 +306,16 @@ router.put('/:bookingId/status', authenticateToken as any, async (req: any, res:
 
     // Send notification to customer
     if (bookingData.customer_id) {
+      // Map booking status to notification type
+      let notificationType: any = 'system';
+      if (status === 'Confirmed') notificationType = 'booking_confirmed';
+      else if (status === 'Cancelled') notificationType = 'booking_cancelled';
+
       await notificationService.createNotification({
         user_id: bookingData.customer_id,
         title: `Booking ${status}`,
         message: `Your booking has been ${status.toLowerCase()}`,
-        type: 'booking'
+        type: notificationType
       });
     }
 

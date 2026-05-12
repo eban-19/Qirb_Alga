@@ -88,22 +88,14 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-            {activeTab === "settings-legal" ? <TranslationText text="Legal Settings" language={language} /> :
-             activeTab === "settings-billing" ? <TranslationText text="Billing Settings" language={language} /> :
+            {activeTab === "settings-billing" ? <TranslationText text="Billing Settings" language={language} /> :
              activeTab === "settings-pension" ? <TranslationText text="Pension Profile" language={language} /> :
              <TranslationText text="Security Settings" language={language} />}
           </h2>
           <p className="text-slate-500 text-sm"><TranslationText text="Configure your property and account preferences." language={language} /></p>
         </div>
         <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-legal' ? 'bg-amber-600 text-white hover:bg-amber-600 shadow-sm' : 'text-slate-500'}`}
-            onClick={() => setActiveTab('settings-legal')}
-          >
-            <TranslationText text="Legal" language={language} />
-          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -142,78 +134,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
       )}
 
       <Tabs value={activeTab} className="w-full">
-        <TabsContent value="settings-legal" className="mt-0">
-          <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
-            <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400" />
-            <CardHeader className="pb-4">
-              <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition-colors duration-300 hover:scale-110 shadow-lg hover:shadow-amber-500/25">
-                  <FileText className="h-6 w-6 hover:rotate-12 transition-transform duration-500" />
-                </div>
-                <span className="hover:text-amber-600 transition-colors duration-300">Legal & Compliance</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-              <div className="grid gap-6 md:grid-cols-2">
-                <Card className="group border border-slate-200 bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-all duration-300 group-hover:scale-110">
-                          <FileText className="h-6 w-6 text-emerald-600 group-hover:rotate-12 transition-transform duration-500" />
-                        </div>
-                        <p className="text-sm font-semibold text-slate-500 uppercase">Business License</p>
-                      </div>
-                      <Badge className="bg-emerald-500 text-[10px] shadow-emerald-500/25 shadow-sm">Active</Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">{complianceSettings.licenseNumber}</h4>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                        <CalendarCheck className="h-3.5 w-3.5" />
-                        Expires: {complianceSettings.expiryDate}
-                      </div>
-                    </div>
-                    <div className="pt-2">
-                      <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-105" onClick={handleSaveComplianceSettings}>
-                        <RefreshCcw className="h-4 w-4 mr-2" />
-                        Renew Status
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <Card className="group border border-slate-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-all duration-300 group-hover:scale-110">
-                          <Shield className="h-6 w-6 text-blue-600 group-hover:rotate-12 transition-transform duration-500" />
-                        </div>
-                        <p className="text-sm font-semibold text-slate-500 uppercase">Insurance</p>
-                      </div>
-                      <Badge className="bg-blue-500 text-[10px] shadow-blue-500/25 shadow-sm">Valid</Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{complianceSettings.insurancePolicy}</h4>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                        <CalendarCheck className="h-3.5 w-3.5" />
-                        Valid until 2024-12-31
-                      </div>
-                    </div>
-                    <div className="pt-2">
-                      <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105">
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Policy
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="settings-billing" className="mt-0">
           <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">

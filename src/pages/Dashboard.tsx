@@ -33,7 +33,26 @@ import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 
 // UI & Data
 import { Button } from '../components/ui/button';
-import { Calendar, AlertCircle, Zap, Bed, Building, Download, BarChart3, Save, Plus } from 'lucide-react';
+import { 
+  Calendar, 
+  AlertCircle, 
+  Zap, 
+  Bed, 
+  Building, 
+  Download, 
+  BarChart3, 
+  Save, 
+  Plus,
+  ChevronDown,
+  UserPlus,
+  FileUp
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { sidebarLinks, getIcon } from '../data/dashboard';
 
 const Dashboard: React.FC = () => {
@@ -127,9 +146,37 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="flex gap-2">
               {ui.activeTab === "bookings" && (
-                <Button className="gap-2" onClick={() => ui.setShowWalkInModal(true)}>
-                  <Calendar className="h-4 w-4" /> New Booking
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all">
+                      <Plus className="h-4 w-4" /> 
+                      <span className="hidden sm:inline">New Booking</span>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                    <DropdownMenuItem 
+                      onClick={() => ui.setShowWalkInModal(true)}
+                      className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span className="font-bold">Walk-in Booking</span>
+                        <span className="text-[10px] text-slate-500">Add guest manually</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {}}
+                      className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-slate-50 opacity-50 cursor-not-allowed"
+                    >
+                      <FileUp className="h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span className="font-bold">Bulk Upload</span>
+                        <span className="text-[10px] text-slate-500">Coming soon</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -192,6 +239,13 @@ const Dashboard: React.FC = () => {
                 onAddNewStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
                 onBulkUpload={() => ui.setShowStaffBulkUploadModal(true)}
                 downloadTemplate={() => {}}
+                pagination={ui.pagination.staff}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, staff: { ...ui.pagination.staff, page } })}
+                selectedRows={ui.selectedRows.staff}
+                onToggleSelection={(id) => ui.toggleSelection('staff', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, staff: ids })}
+                totalItems={data.dataTotals.staff}
+                language={ui.language}
               />
             )}
 
@@ -202,6 +256,13 @@ const Dashboard: React.FC = () => {
                 onToggleView={() => ui.toggleViewMode('bookings')}
                 onUpdateStatus={handlers.handleUpdateBookingStatus}
                 onCompleteEarly={handlers.handleCompleteEarly}
+                pagination={ui.pagination.bookings}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, bookings: { ...ui.pagination.bookings, page } })}
+                selectedRows={ui.selectedRows.bookings}
+                onToggleSelection={(id) => ui.toggleSelection('bookings', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
+                totalItems={data.dataTotals.bookings}
+                language={ui.language}
               />
             )}
 
@@ -213,20 +274,41 @@ const Dashboard: React.FC = () => {
                 onDeleteRoom={handlers.handleDeleteRoom}
                 onAddNewRoom={() => ui.setShowAddRoomModal(true)}
                 onBulkUpload={() => ui.setShowRoomsBulkUploadModal(true)}
+                pagination={ui.pagination.rooms}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, rooms: { ...ui.pagination.rooms, page } })}
+                selectedRows={ui.selectedRows.rooms}
+                onToggleSelection={(id) => ui.toggleSelection('rooms', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, rooms: ids })}
+                totalItems={data.dataTotals.rooms}
+                language={ui.language}
               />
             )}
 
             {ui.activeTab === "guests" && !status?.isRestricted && (
               <GuestsSection
                 guests={data.guestsData}
-                viewMode={ui.viewModes.guests || 'card'}
+                viewMode={ui.viewModes.guests}
                 onToggleView={() => ui.toggleViewMode('guests')}
+                pagination={ui.pagination.guests}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, guests: { ...ui.pagination.guests, page } })}
+                selectedRows={ui.selectedRows.guests}
+                onToggleSelection={(id) => ui.toggleSelection('guests', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, guests: ids })}
+                totalItems={data.dataTotals.guests}
+                language={ui.language}
               />
             )}
 
             {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
                 transactions={data.recentTransactions}
+                pagination={ui.pagination.transactions}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, transactions: { ...ui.pagination.transactions, page } })}
+                selectedRows={ui.selectedRows.transactions}
+                onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
+                totalItems={data.dataTotals.transactions}
+                language={ui.language}
               />
             )}
 
@@ -242,8 +324,8 @@ const Dashboard: React.FC = () => {
                 onSaveProfile={handlers.handleSavePropertySettings}
                 isUpdating={ui.isUpdating}
                 showSaveSuccess={ui.showSaveSuccess}
-                pensionProfileImageFile={null}
-                setPensionProfileImageFile={() => {}}
+                pensionProfileImageFile={ui.pensionProfileImageFile}
+                setPensionProfileImageFile={ui.setPensionProfileImageFile}
                 calculateAvailableRooms={(id) => data.roomsData.filter(r => String(r.package_id) === String(id) && r.status === 'Available').length}
               />
             )}
@@ -255,9 +337,11 @@ const Dashboard: React.FC = () => {
                 bookings={data.bookings}
                 expensesData={data.expensesData}
                 expensesByCategory={expensesByCategory}
-                onAddExpense={async (e) => { e.preventDefault(); /* Implement add expense */ }}
+                onAddExpense={handlers.handleAddExpense}
                 occupancyMetrics={{
-                  currentOccupancy: 0,
+                  currentOccupancy: data.roomsData.length > 0 
+                    ? Math.round(((data.roomsData.length - data.actualRoomStats.availableRooms) / data.roomsData.length) * 100) 
+                    : 0,
                   totalRooms: data.roomsData.length,
                   availableRooms: data.actualRoomStats.availableRooms
                 }}
@@ -277,7 +361,7 @@ const Dashboard: React.FC = () => {
                 approvalStatus="Approved"
                 isUpdating={ui.isUpdating}
                 onSaveBusinessProfile={() => {}}
-                onSaveSecuritySettings={() => {}}
+                onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => {}}
                 showSaveSuccess={ui.showSaveSuccess}
               />
@@ -294,17 +378,19 @@ const Dashboard: React.FC = () => {
         setNewPension={ui.setNewPension}
         onCreatePension={handlers.handleCreatePension}
         language={language}
-        pensionImageFile={null}
-        setPensionImageFile={() => {}}
+        pensionImageFile={ui.pensionImageFile}
+        setPensionImageFile={ui.setPensionImageFile}
       />
 
       <AddRoomModal
         isOpen={ui.showAddRoomModal}
-        onClose={() => ui.setShowAddRoomModal(false)}
+        onClose={() => { ui.setShowAddRoomModal(false); ui.setErrorMessage(''); }}
         newRoom={ui.newRoom}
         setNewRoom={ui.setNewRoom}
         packages={data.packages}
         onAddRoom={handlers.handleAddRoom}
+        existingRooms={data.roomsData}
+        errorMessage={ui.errorMessage}
       />
 
       <AddPackageModal
@@ -315,7 +401,7 @@ const Dashboard: React.FC = () => {
         editingPackage={ui.editingPackage}
         onAddPackage={handlers.handleAddPackage}
         language={language}
-        handlePackageImageUpload={() => {}}
+        handlePackageImageUpload={handlers.handlePackageImageUpload}
       />
 
       <AddStaffModal
@@ -339,13 +425,14 @@ const Dashboard: React.FC = () => {
       {/* Rooms Bulk Upload */}
       <BulkUploadModal
         isOpen={ui.showRoomsBulkUploadModal}
-        onClose={() => ui.setShowRoomsBulkUploadModal(false)}
+        onClose={() => { ui.setShowRoomsBulkUploadModal(false); ui.setErrorMessage(''); }}
         title="Bulk Upload Rooms"
         description="Upload multiple rooms at once using a CSV file."
         uploadData={ui.roomsBulkUpload}
         onFileUpload={handlers.handleRoomFileUpload}
         onConfirm={handlers.handleConfirmRoomBulkUpload}
         onDownloadTemplate={handlers.handleDownloadRoomTemplate}
+        errorMessage={ui.errorMessage}
         columns={[
           { key: 'room_number', label: 'Room Number' },
           { key: 'room_type', label: 'Room Type' },

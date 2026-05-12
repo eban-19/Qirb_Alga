@@ -48,11 +48,11 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
   
   const confirmedRevenue = bookings
     .filter(b => b.status?.toLowerCase() === 'confirmed')
-    .reduce((acc, b) => acc + (b.total_price || 0), 0);
+    .reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
     
   const pendingRevenue = bookings
     .filter(b => b.status?.toLowerCase() === 'pending')
-    .reduce((acc, b) => acc + (b.total_price || 0), 0);
+    .reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
 
   return (
     <div className="space-y-6">

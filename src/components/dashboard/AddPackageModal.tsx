@@ -3,7 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Package as PackageIcon, X, Upload } from 'lucide-react';
+import { Package as PackageIcon, X, Upload, Plus, CheckCircle2 } from 'lucide-react';
+import { Switch } from '../ui/switch';
 import { Package } from '../../types/dashboard';
 
 interface AddPackageModalProps {
@@ -91,6 +92,79 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
               }}
               rows={2}
               className="w-full border-slate-200 bg-slate-50/30 rounded-lg px-3 py-2 outline-none resize-none"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-bold text-slate-700">Services Included</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newPackage.customService || ''}
+                onChange={(e) => setNewPackage({ ...newPackage, customService: e.target.value })}
+                placeholder="e.g., Free WiFi"
+                className="h-10 border-slate-200 bg-slate-50/30"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (newPackage.customService?.trim()) {
+                      setNewPackage({
+                        ...newPackage,
+                        services: [...(newPackage.services || []), newPackage.customService.trim()],
+                        customService: ''
+                      });
+                    }
+                  }
+                }}
+              />
+              <Button 
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-10 px-3 bg-purple-50 text-purple-600 hover:bg-purple-100"
+                onClick={() => {
+                  if (newPackage.customService?.trim()) {
+                    setNewPackage({
+                      ...newPackage,
+                      services: [...(newPackage.services || []), newPackage.customService.trim()],
+                      customService: ''
+                    });
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {(newPackage.services || []).map((service: string, idx: number) => (
+                <div key={idx} className="flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-bold border border-purple-100 shadow-sm animate-in fade-in zoom-in duration-200">
+                  {service}
+                  <button 
+                    onClick={() => setNewPackage({
+                      ...newPackage,
+                      services: (newPackage.services || []).filter((_: any, i: number) => i !== idx)
+                    })}
+                    className="hover:text-purple-800"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-purple-200 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${newPackage.isMostPopular ? 'bg-purple-100 text-purple-600' : 'bg-slate-200 text-slate-500'}`}>
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <Label className="text-sm font-bold text-slate-700 cursor-pointer">Most Popular</Label>
+                <p className="text-[10px] text-slate-500">Highlights this package to users</p>
+              </div>
+            </div>
+            <Switch 
+              checked={newPackage.isMostPopular}
+              onCheckedChange={(checked) => setNewPackage({ ...newPackage, isMostPopular: checked })}
             />
           </div>
 

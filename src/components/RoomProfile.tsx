@@ -37,15 +37,12 @@ const getFullImageUrl = (imagePath: string | undefined | null): string => {
   
   // If it's an uploaded file path (/uploads/), prepend the backend URL
   if (imagePath.startsWith('/uploads/')) {
-    const fullUrl = `http://localhost:3005${imagePath}`;
-    console.log('🔍 Backend uploaded file, constructed full URL:', fullUrl);
-    return fullUrl;
+    return `http://localhost:3005${imagePath}`;
   }
   
-  // Default: assume it's a backend file
-  const fullUrl = `http://localhost:3005${imagePath}`;
-  console.log('🔍 Default backend file, constructed full URL:', fullUrl);
-  return fullUrl;
+  // If it's a relative path without /uploads/, prepend it
+  const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  return `http://localhost:3005/uploads${normalizedPath}`;
 };
 
 interface RoomProfileProps {
@@ -73,7 +70,19 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
     [room.packages],
   );
 
-  const [activeTab, setActiveTab] = useState(sortedPackages.find(p => p.isMostPopular)?.name || room?.packages[1]?.name || room?.packages[0]?.name || '');
+  const [activeTab, setActiveTab] = useState('');
+
+  // Update active tab when packages load or change
+  useEffect(() => {
+    if (room?.packages && room.packages.length > 0) {
+      const mostPopular = room.packages.find(p => p.isMostPopular);
+      if (mostPopular) {
+        setActiveTab(mostPopular.name);
+      } else if (room.packages.length > 0) {
+        setActiveTab(room.packages[0].name);
+      }
+    }
+  }, [room?.packages]);
 
   const handleTabChange = (newValue: string) => {
     const scrollY = window.scrollY;
@@ -204,18 +213,26 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             <Sparkles className="w-5 h-5 text-primary" />
                             {t.rooms.includedServices || "Included Services"}
                           </h4>
-                          {pkg.services && pkg.services.length > 0 ? (() => {
-                            // Filter out known mock/default services
-                            const mockServices = ['Clean Room', 'Basic Amenities', 'Standard WiFi', 'Shared Bathroom', 'Daily Cleaning', 'High-speed WiFi', 'Private Bathroom', 'Breakfast Included', 'Free Parking', 'Premium WiFi', 'Private Balcony', '3 Meals Included', 'Airport Pickup', 'Laundry Service'];
-                            const filteredServices = pkg.services.filter(service => 
+                          {pkg.services && (Array.isArray(pkg.services) ? pkg.services.length > 0 : typeof pkg.services === 'string' && pkg.services.length > 0) ? (() => {
+                            const servicesArray = Array.isArray(pkg.services) 
+                              ? pkg.services 
+                              : (typeof pkg.services === 'string' ? (pkg.services.startsWith('[') ? JSON.parse(pkg.services) : pkg.services.split(',').map(s => s.trim())) : []);
+                            
+                            const filteredServices = servicesArray.map((service: any) => {
+                              if (typeof service === 'string') return service;
+                              if (service && typeof service === 'object') {
+                                return service.name || service.text || service.label || JSON.stringify(service);
+                              }
+                              return null;
+                            }).filter((service: any) => 
                               service && 
-                              service.trim() !== '' && 
-                              !mockServices.includes(service)
+                              typeof service === 'string' &&
+                              service.trim() !== ''
                             );
                             
                             return filteredServices.length > 0 ? (
                               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {filteredServices.map((service, idx) => (
+                                {filteredServices.map((service: string, idx: number) => (
                                   <li key={idx} className="flex items-start gap-3 text-muted-foreground text-base">
                                     <div className="mt-1 rounded-full bg-primary/10 p-1 text-primary shrink-0">
                                       <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

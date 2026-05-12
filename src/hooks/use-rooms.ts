@@ -90,9 +90,9 @@ export function useRefreshPackages() {
           if (packagesResponse.data && packagesResponse.data.packages) {
             // Update all packages with correct available rooms
             const updatedPackages = packagesResponse.data.packages.map((pkg: any) => {
-              const packageRooms = roomsResponse.data.items.filter((room: any) => room.package_id === pkg.id);
+              const packageRooms = roomsResponse.data.items.filter((room: any) => room.package_id === pkg.id || room.package_id === pkg.package_id);
               const availableRooms = packageRooms.filter((room: any) => 
-                room.status === 'Available' || room.is_available !== false
+                room.availability_status === 'Available' || room.is_available === true
               ).length;
               
               return {
@@ -128,9 +128,9 @@ export function useRoomById(id: string) {
           const roomsResponse = await apiService.getRooms(parseInt(id), { language });
           if (roomsResponse.success && roomsResponse.data?.items) {
             const updatedPackages = response.data.packages.map((pkg: any) => {
-              const packageRooms = roomsResponse.data.items.filter((room: any) => room.package_id === pkg.id);
+              const packageRooms = roomsResponse.data.items.filter((room: any) => room.package_id === pkg.id || room.package_id === pkg.package_id);
               const availableRooms = packageRooms.filter((room: any) => 
-                room.status === 'Available' || room.is_available !== false
+                room.availability_status === 'Available' || room.is_available === true
               ).length;
               
               return {

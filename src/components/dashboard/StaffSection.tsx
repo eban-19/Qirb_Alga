@@ -9,6 +9,9 @@ import { Staff } from '../../types/dashboard';
 import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface StaffSectionProps {
   staff: Staff[];
   viewMode: 'card' | 'table' | string;
@@ -18,22 +21,71 @@ interface StaffSectionProps {
   onAddNewStaff: () => void;
   onBulkUpload: () => void;
   downloadTemplate: () => void;
+  pagination?: { page: number; limit: number };
+  onPageChange?: (page: number) => void;
+  selectedRows?: (string | number)[];
+  onToggleSelection?: (id: string | number) => void;
+  onSelectAll?: (ids: (string | number)[]) => void;
+  totalItems?: number;
+  language?: any;
 }
 
 export const StaffSection: React.FC<StaffSectionProps> = ({
-  staff,
+  staff = [],
   viewMode,
   onToggleView,
   onEditStaff,
   onDeleteStaff,
   onAddNewStaff,
   onBulkUpload,
-  downloadTemplate
+  downloadTemplate,
+  pagination = { page: 1, limit: 10 },
+  onPageChange,
+  selectedRows = [],
+  onToggleSelection,
+  onSelectAll,
+  totalItems = 0,
+  language
 }) => {
-  const { language } = useLanguage();
+  // Ensure staff is always an array
+  const safeStaff = Array.isArray(staff) ? staff : [];
   
   return (
     <div className="space-y-6">
+      {/* Bulk Actions Bar */}
+      {selectedRows.length > 0 && (
+        <div className="sticky top-0 z-20 bg-primary text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-4">
+            <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} Selected
+            </Badge>
+            <p className="text-sm font-medium hidden sm:block">Perform actions on all selected staff</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="text-white hover:bg-white/10 font-bold"
+              onClick={() => onSelectAll?.([])}
+            >
+              Clear Selection
+            </Button>
+            <Button 
+              size="sm" 
+              className="bg-white text-primary hover:bg-blue-50 font-bold shadow-md"
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} staff members?`)) {
+                  selectedRows.forEach(id => onDeleteStaff(id));
+                  onSelectAll?.([]);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Bulk Delete
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
@@ -92,7 +144,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-600 font-medium"><TranslationText text="Total Staff" language={language} /></p>
-                <p className="text-2xl font-bold text-blue-700">{staff.length}</p>
+                <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <div className="h-6 w-6 bg-blue-500 rounded-full"></div>
@@ -107,7 +159,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               <div>
                 <p className="text-sm text-emerald-600 font-medium"><TranslationText text="Active" language={language} /></p>
                 <p className="text-2xl font-bold text-emerald-700">
-                  {staff.filter(s => s.status === 'Active').length}
+                  {safeStaff.filter(s => s.status === 'Active').length}
                 </p>
               </div>
               <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -123,7 +175,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               <div>
                 <p className="text-sm text-amber-600 font-medium"><TranslationText text="On Leave" language={language} /></p>
                 <p className="text-2xl font-bold text-amber-700">
-                  {staff.filter(s => s.status === 'On Leave').length}
+                  {safeStaff.filter(s => s.status === 'On Leave').length}
                 </p>
               </div>
               <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -139,7 +191,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               <div>
                 <p className="text-sm text-slate-600 font-medium"><TranslationText text="Departments" language={language} /></p>
                 <p className="text-2xl font-bold text-slate-700">
-                  {[...new Set(staff.map(s => s.department))].length}
+                  {[...new Set(safeStaff.map(s => s.department))].length}
                 </p>
               </div>
               <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center">
@@ -153,10 +205,16 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
       {/* Content */}
       {viewMode === 'card' ? (
         <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {staff.map((member) => (
-            <Card key={member.id} className="group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden">
+          {safeStaff.map((member) => (
+            <Card key={member.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden ${selectedRows.includes(member.id) ? 'ring-2 ring-primary' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardContent className="p-6 relative">
+                <div className="absolute top-4 right-4">
+                  <Checkbox 
+                    checked={selectedRows.includes(member.id)}
+                    onCheckedChange={() => onToggleSelection?.(member.id)}
+                  />
+                </div>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold shadow-lg group-hover:shadow-blue-500/25 group-hover:scale-110 transition-all duration-300">
@@ -230,29 +288,47 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           ))}
         </div>
       ) : (
-        <Card className="border-none shadow-sm bg-white">
-          <CardContent className="p-0 sm:p-4">
+        <Card className="border-none shadow-sm bg-white overflow-hidden">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="pl-4 sm:pl-6 whitespace-nowrap"><TranslationText text="Employee" language={language} /></TableHead>
+                    <TableHead className="w-[50px] px-4">
+                      <Checkbox 
+                        checked={safeStaff.length > 0 && selectedRows.length === safeStaff.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            onSelectAll?.(safeStaff.map(s => s.id));
+                          } else {
+                            onSelectAll?.([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="pl-4 whitespace-nowrap"><TranslationText text="Employee" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap">ID</TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Role" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Department" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Salary" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Status" language={language} /></TableHead>
-                    <TableHead className="text-right pr-4 sm:pr-6 whitespace-nowrap"><TranslationText text="Actions" language={language} /></TableHead>
+                    <TableHead className="text-right pr-4 whitespace-nowrap"><TranslationText text="Actions" language={language} /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {staff.map((member) => (
-                    <TableRow key={member.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="pl-4 sm:pl-6">
+                  {safeStaff.map((member) => (
+                    <TableRow key={member.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(member.id) ? 'bg-blue-50/30' : ''}`}>
+                      <TableCell className="px-4">
+                        <Checkbox 
+                          checked={selectedRows.includes(member.id)}
+                          onCheckedChange={() => onToggleSelection?.(member.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="pl-4">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-[140px] sm:min-w-[160px]">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                             <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-[10px] sm:text-sm">
-                              {member.full_name.split(" ").map((n) => n[0]).join("")}
+                              {member.full_name ? member.full_name.split(" ").map((n) => n[0]).join("") : "S"}
                             </AvatarFallback>
                           </Avatar>
                           <div className="hidden sm:block flex-1 min-w-0">
@@ -275,7 +351,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           <TranslationText text={member.status} language={language} />
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right pr-4 sm:pr-6">
+                      <TableCell className="text-right pr-4">
                         <div className="flex gap-2 justify-end">
                           <Button 
                             variant="ghost" 
@@ -299,6 +375,36 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-semibold text-slate-900">{safeStaff.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> employees
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
+                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange?.(pagination.page + 1)}
+                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
+                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

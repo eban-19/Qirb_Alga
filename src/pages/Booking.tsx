@@ -32,8 +32,9 @@ const getFullImageUrl = (imagePath: string | undefined | null): string => {
     return `http://localhost:3005${imagePath}`;
   }
   
-  // Default: assume it's a backend file
-  return `http://localhost:3005${imagePath}`;
+  // If it's a relative path without /uploads/, prepend it
+  const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  return `http://localhost:3005/uploads${normalizedPath}`;
 };
 
 const Booking = () => {
@@ -56,7 +57,7 @@ const Booking = () => {
     fullName: "",
     phone: "",
     specialRequests: "",
-    paymentMethod: "pay_at_hotel"
+    paymentMethod: "chapa"
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -231,43 +232,31 @@ const Booking = () => {
       if (responseData.success) {
         const bookingId = responseData.data?.bookingIds?.[0] || responseData.data?.booking?.booking_id;
         
-        if (formData.paymentMethod === 'pay_at_hotel') {
-          setData(responseData);
-          if (responseData.data?.bookingIds?.length > 0) {
-            setBookingId(responseData.data.bookingIds[0].toString());
-          }
-          if (responseData.data?.booking?.passCode) {
-            setPassCode(responseData.data.booking.passCode);
-          }
-          setIsSuccess(true);
-          toast.success("Booking confirmed successfully!");
-        } else {
-          // Initialize Chapa Payment
-          const cleanName = formData.fullName.trim();
-          const nameParts = cleanName.split(/\s+/);
-          const fName = nameParts[0] || 'Guest';
-          const lName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'User';
+        // Redirect to Chapa Payment
+        const cleanName = formData.fullName.trim();
+        const nameParts = cleanName.split(/\s+/);
+        const fName = nameParts[0] || 'Guest';
+        const lName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'User';
 
-          const paymentResponse = await fetch('http://localhost:3005/api/payments/initialize-booking', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              bookingId,
-              amount: total.toString(),
-              email: `${fName.toLowerCase()}@guest.qirbalga.com`,
-              firstName: fName,
-              lastName: lName,
-              phone: formData.phone
-            })
-          });
-          
-          const paymentData = await paymentResponse.json();
-          if (paymentData.success && paymentData.data.checkout_url) {
-            window.location.href = paymentData.data.checkout_url;
-            return;
-          } else {
-            toast.error("Failed to initialize payment gateway.");
-          }
+        const paymentResponse = await fetch('http://localhost:3005/api/payments/initialize-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId,
+            amount: total.toString(),
+            email: `${fName.toLowerCase()}@guest.qirbalga.com`,
+            firstName: fName,
+            lastName: lName,
+            phone: formData.phone
+          })
+        });
+        
+        const paymentData = await paymentResponse.json();
+        if (paymentData.success && paymentData.data.checkout_url) {
+          window.location.href = paymentData.data.checkout_url;
+          return;
+        } else {
+          toast.error("Failed to initialize payment gateway.");
         }
       } else {
         toast.error(responseData.message || "Failed to confirm booking.");
@@ -329,7 +318,11 @@ const Booking = () => {
                   <span className="text-sm font-semibold">{formData.checkOut}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-dashed border-border">
-                  <span className="text-sm font-bold">Total Paid</span>
+                  <span className="text-sm font-bold">Payment Method</span>
+                  <span className="text-sm font-semibold text-amber-600">Pay at Hotel</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold">Total to Pay</span>
                   <span className="text-lg font-black text-primary">ETB {total.toLocaleString()}</span>
                 </div>
               </div>
@@ -614,80 +607,40 @@ const Booking = () => {
                     <p className="text-muted-foreground">Choose your payment method and complete the booking.</p>
                   </div>
                   
-                  <div className="grid cols-1 sm:grid-cols-3 gap-4">
-                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
-                      formData.paymentMethod === "pay_at_hotel" 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:border-primary/50"
-                    }`}>
+                  <div className="space-y-6">
+                    <label className="relative block cursor-pointer rounded-3xl border-2 p-8 transition-all duration-500 border-primary bg-primary/5 ring-8 ring-primary/5 shadow-2xl shadow-primary/10">
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="pay_at_hotel"
-                        checked={formData.paymentMethod === "pay_at_hotel"}
-                        onChange={handleInputChange}
+                        value="chapa"
+                        checked={true}
+                        readOnly
                         className="sr-only"
                       />
-                      <div className="text-center">
-                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
-                          <Home className="w-4 h-4" />
+                      <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-20 h-20 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 transform transition-transform group-hover:scale-110">
+                          <CreditCard className="w-10 h-10" />
                         </div>
-                        <div className="font-semibold">Pay at Hotel</div>
-                        <div className="text-xs text-muted-foreground mt-1">Pay when you arrive</div>
-                      </div>
-                    </label>
-
-                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
-                      formData.paymentMethod === "telebirr" 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:border-primary/50"
-                    }`}>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="telebirr"
-                        checked={formData.paymentMethod === "telebirr"}
-                        onChange={handleInputChange}
-                        className="sr-only"
-                      />
-                      <div className="text-center">
-                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
-                          <CreditCard className="w-4 h-4" />
+                        <div className="space-y-2">
+                          <h3 className="font-black text-2xl tracking-tight">Secure Online Payment</h3>
+                          <p className="text-muted-foreground text-lg max-w-sm mx-auto">
+                            Pay safely via <strong>Chapa</strong> using Telebirr, Bank Transfer, or Debit/Credit Cards.
+                          </p>
                         </div>
-                        <div className="font-semibold">Telebirr</div>
-                        <div className="text-xs text-muted-foreground mt-1">Pay with Telebirr</div>
-                      </div>
-                    </label>
-
-                    <label className={`relative flex-1 cursor-pointer rounded-xl border-2 p-4 transition-all ${
-                      formData.paymentMethod === "bank_transfer" 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:border-primary/50"
-                    }`}>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="bank_transfer"
-                        checked={formData.paymentMethod === "bank_transfer"}
-                        onChange={handleInputChange}
-                        className="sr-only"
-                      />
-                      <div className="text-center">
-                        <div className="mx-auto w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-2">
-                          <ShieldCheck className="w-4 h-4" />
+                        <div className="flex items-center gap-3 pt-2">
+                          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                          <span className="text-xs font-bold uppercase tracking-widest text-green-600">Encrypted & Secure</span>
                         </div>
-                        <div className="font-semibold">Bank Transfer</div>
-                        <div className="text-xs text-muted-foreground mt-1">Transfer to our bank</div>
                       </div>
                     </label>
                   </div>
 
-                  <div className="p-4 bg-muted/30 rounded-2xl border border-border text-sm text-muted-foreground flex gap-3 items-start">
-                    <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <p>
-                      {formData.paymentMethod === 'pay_at_hotel' 
-                        ? "You will pay the total amount at the property during check-in. No payment is required now." 
-                        : "You will be redirected to the secure Chapa payment gateway to complete your transaction."}
+                  <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/20 text-sm text-muted-foreground flex gap-4 items-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="font-medium">
+                      You will be redirected to the secure Chapa gateway to complete your payment. Once finished, your booking will be instantly confirmed.
                     </p>
                   </div>
                 </section>
@@ -717,17 +670,8 @@ const Booking = () => {
                         <>Processing...</>
                       ) : (
                         <>
-                          {formData.paymentMethod === 'pay_at_hotel' ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4" />
-                              Complete Booking
-                            </>
-                          ) : (
-                            <>
                               <CreditCard className="w-4 h-4" />
                               Proceed to Payment
-                            </>
-                          )}
                         </>
                       )}
                     </>

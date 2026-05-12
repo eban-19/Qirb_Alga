@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Upload, Download, X, FileText, Check, BedDouble, Home, DollarSign, Users, Shield } from 'lucide-react';
+import { Upload, Download, X, FileText, Check, BedDouble, Home, DollarSign, Users, Shield, AlertCircle } from 'lucide-react';
 import { BulkUploadData } from '../../data/types/dashboardTypes';
 
 interface BulkUploadModalProps {
@@ -17,6 +17,7 @@ interface BulkUploadModalProps {
   onConfirm: () => void;
   onDownloadTemplate: () => void;
   columns: { key: string; label: string }[];
+  errorMessage?: string;
 }
 
 export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
@@ -28,7 +29,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   onFileUpload,
   onConfirm,
   onDownloadTemplate,
-  columns
+  columns,
+  errorMessage
 }) => {
   const [isDragging, setIsDragging] = React.useState(false);
 
@@ -120,6 +122,17 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         </CardHeader>
         
         <CardContent className="space-y-6 sm:space-y-8 px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+          {errorMessage && (
+            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm mb-2">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-red-900">Upload Error</h4>
+                <p className="text-sm text-red-700 opacity-80">{errorMessage}</p>
+              </div>
+            </div>
+          )}
           {/* Enhanced Instructions */}
           <div className={`${theme.instructionsBg} rounded-xl p-3 sm:p-4 border relative overflow-hidden group`}>
             <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

@@ -16,14 +16,31 @@ export const useDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   type ViewMode = 'card' | 'table';
   const [viewModes, setViewModes] = useState<Record<string, ViewMode>>({
-    rooms: 'card',
-    bookings: 'card',
-    guests: 'card',
-    transactions: 'card',
-    staff: 'card'
+    rooms: 'table',
+    bookings: 'table',
+    guests: 'table',
+    transactions: 'table',
+    staff: 'table'
+  });
+
+  // --- PAGINATION & SELECTION STATE ---
+  const [pagination, setPagination] = useState<Record<string, { page: number, limit: number }>>({
+    rooms: { page: 1, limit: 10 },
+    bookings: { page: 1, limit: 10 },
+    guests: { page: 1, limit: 10 },
+    transactions: { page: 1, limit: 10 },
+    staff: { page: 1, limit: 10 }
+  });
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, (string | number)[]>>({
+    rooms: [],
+    bookings: [],
+    guests: [],
+    staff: []
   });
 
   // --- MODAL STATES ---
@@ -86,6 +103,11 @@ export const useDashboard = () => {
     currentPassword: '', newPassword: '', twoFactorEnabled: false
   });
 
+  // Image file states
+  const [pensionImageFile, setPensionImageFile] = useState<File | null>(null);
+  const [packageImageFile, setPackageImageFile] = useState<File | null>(null);
+  const [pensionProfileImageFile, setPensionProfileImageFile] = useState<File | null>(null);
+
   // --- ACTIONS ---
   const toggleViewMode = (section: keyof typeof viewModes) => {
     setViewModes(prev => ({
@@ -141,6 +163,28 @@ export const useDashboard = () => {
     propertySettings, setPropertySettings,
     businessProfile, setBusinessProfile,
     securitySettings, setSecuritySettings,
+    pensionImageFile, setPensionImageFile,
+    packageImageFile, setPackageImageFile,
+    pensionProfileImageFile, setPensionProfileImageFile,
+    errorMessage,
+    setErrorMessage,
+    pagination,
+    setPagination,
+    selectedRows,
+    setSelectedRows,
+    toggleSelection: (section: string, id: string | number) => {
+      setSelectedRows(prev => {
+        const current = prev[section] || [];
+        const exists = current.includes(id);
+        return {
+          ...prev,
+          [section]: exists ? current.filter(i => i !== id) : [...current, id]
+        };
+      });
+    },
+    clearSelection: (section: string) => {
+      setSelectedRows(prev => ({ ...prev, [section]: [] }));
+    },
 
     // Handlers
     handleLogout,
