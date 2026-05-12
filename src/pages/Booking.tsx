@@ -56,7 +56,6 @@ const Booking = () => {
     rooms: 1,
     fullName: "",
     phone: "",
-    specialRequests: "",
     paymentMethod: "chapa"
   });
 
@@ -215,7 +214,6 @@ const Booking = () => {
       payload.append('checkOut', formData.checkOut);
       payload.append('fullName', formData.fullName);
       payload.append('phone', formData.phone);
-      payload.append('specialRequests', formData.specialRequests);
       payload.append('totalPrice', total.toString());
       payload.append('rooms', formData.rooms.toString());
       if (idDocument) {
@@ -585,10 +583,6 @@ const Booking = () => {
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">Please upload a valid ID document or passport for verification.</p>
-                    </div>
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="specialRequests">{t.booking.specialRequests}</Label>
-                      <Textarea id="specialRequests" name="specialRequests" placeholder="Any special requests..." value={formData.specialRequests} onChange={handleInputChange} className="min-h-[120px] w-full rounded-2xl p-6" />
                     </div>
                   </div>
                 </section>

@@ -313,8 +313,6 @@ export const translations: Record<Language, TranslationSchema> = {
             phone: "Phone Number *",
             email: "Email Address (Optional)",
             emailOptional: "abebe@example.com",
-            specialRequests: "Special Requests (Optional)",
-            specialRequestsOptional: "Any special requirements or late arrival...",
             stepPayment: "Payment Method",
             payAtProperty: "Pay at Property",
             payAtPropertyDesc: "Pay when you arrive at the pension.",
