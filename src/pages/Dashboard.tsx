@@ -121,6 +121,7 @@ const Dashboard: React.FC = () => {
           activeTab={ui.activeTab}
           user={user}
           language={language}
+          onLogout={ui.handleLogout}
         />
 
         <div className="p-4 lg:p-8 max-w-[1600px] mx-auto">
