@@ -1,4 +1,5 @@
 import React from 'react';
+import { Language } from '@/lib/i18n';
 import { Search, Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -24,7 +25,7 @@ interface DashboardHeaderProps {
   setSearchQuery: (query: string) => void;
   activeTab: string;
   user: any;
-  language: string;
+  language: Language;
   onLogout: () => void;
 }
 

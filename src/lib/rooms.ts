@@ -25,6 +25,7 @@ export interface RoomPackage {
   price: number;
   description: string;
   image: string;
+  images?: string[];
   videoUrl?: string;
   services: string[];
   availableRooms: number;

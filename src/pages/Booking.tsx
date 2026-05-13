@@ -356,7 +356,7 @@ const Booking = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       
-      <main className="flex-grow pt-24 pb-16 container mx-auto px-4 lg:px-8">
+      <main className="flex-grow pt-24 pb-32 container mx-auto px-4 lg:px-8">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-4 h-4" /> {t.rooms.backToRooms}
         </Button>
@@ -369,7 +369,7 @@ const Booking = () => {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start relative border-t-0 lg:border-t lg:border-border lg:pt-8">
           
           {/* Left Column: Form */}
-          <div className="w-full lg:w-3/5 space-y-8">
+          <div className="w-full lg:w-[60%] space-y-8">
             <div className="hidden md:block mb-8">
               <h1 className="text-4xl font-heading font-bold text-foreground mb-2">{t.booking.secureBooking}</h1>
               <p className="text-muted-foreground text-lg">{t.booking.secureBookingDesc}</p>
@@ -681,8 +681,8 @@ const Booking = () => {
           </div>
 
           {/* Right Column: Room Details & Pricing */}
-          <div className="w-full lg:w-2/5">
-            <div className="sticky top-24 space-y-6">
+          <div className="w-full lg:w-[35%]">
+            <div className="lg:sticky lg:top-32 space-y-6 pb-12 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 scrollbar-hide">
               {/* Room Card */}
               <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
                 <div className="aspect-video relative">

@@ -30,15 +30,33 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={onClose}>
-      <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl font-bold">Create New Pension</CardTitle>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
+      <Card className="w-full max-w-4xl border-none shadow-2xl bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
+        <CardHeader className="pb-6 p-8">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create New Pension</h2>
+                <p className="text-sm text-slate-500 font-medium mt-0.5">Define your property details and public profile</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
+              <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </Button>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0 space-y-0">
           {/* Hero Map Section (Edge-to-Edge) */}
           <div className="w-full border-b border-slate-100">
-            <LocationPicker 
+            <LocationPicker
               onLocationSelect={(loc) => {
                 setNewPension({
                   ...newPension,
@@ -78,7 +96,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                 <Input
                   id="phone"
                   value={newPension.phone}
-                  onChange={(e) => setNewPension({...newPension, phone: e.target.value})}
+                  onChange={(e) => setNewPension({ ...newPension, phone: e.target.value })}
                   placeholder="Enter phone number"
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
@@ -90,7 +108,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                   id="email"
                   type="email"
                   value={newPension.email}
-                  onChange={(e) => setNewPension({...newPension, email: e.target.value})}
+                  onChange={(e) => setNewPension({ ...newPension, email: e.target.value })}
                   placeholder="Enter email"
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
@@ -102,7 +120,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                   id="capacity"
                   type="number"
                   value={newPension.capacity}
-                  onChange={(e) => setNewPension({...newPension, capacity: e.target.value})}
+                  onChange={(e) => setNewPension({ ...newPension, capacity: e.target.value })}
                   placeholder="e.g. 20"
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
@@ -157,7 +175,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                     const file = e.target.files?.[0];
                     if (file) {
                       setPensionImageFile(file);
-                      setNewPension({...newPension, image_url: file.name});
+                      setNewPension({ ...newPension, image_url: file.name });
                     }
                   }}
                   className="hidden"
@@ -174,9 +192,9 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button 
-                onClick={onCreatePension} 
-                disabled={!newPension.name || !newPension.address} 
+              <Button
+                onClick={onCreatePension}
+                disabled={!newPension.name || !newPension.address}
                 className="flex-1 h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl"
               >
                 Create Pension

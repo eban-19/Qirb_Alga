@@ -17,6 +17,7 @@ import { ReportsSection } from '../components/dashboard/ReportsSection';
 import { SettingsSection } from '../components/dashboard/SettingsSection';
 import { PensionProfileSection } from '../components/dashboard/PensionProfileSection';
 import { StaffSection } from '../components/dashboard/StaffSection';
+import { PackageTierSection } from '../components/dashboard/PackageTierSection';
 import { BookingSection } from '../components/dashboard/BookingSection';
 import { RoomsSection } from '../components/dashboard/RoomsSection';
 import { GuestsSection } from '../components/dashboard/GuestsSection';
@@ -90,7 +91,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50">
+    <div className="flex h-screen bg-slate-50/50 overflow-hidden">
       <DashboardSidebar
         mobileSidebarOpen={ui.mobileSidebarOpen}
         setMobileSidebarOpen={ui.setMobileSidebarOpen}
@@ -110,7 +111,7 @@ const Dashboard: React.FC = () => {
         isPensionOwner={isPensionOwner}
       />
 
-      <main className="flex-1 min-h-screen">
+      <main className="flex-1 h-full overflow-y-auto min-w-0 lg:pl-64">
         <DashboardHeader
           isSearchOpenMobile={ui.isSearchOpenMobile}
           setIsSearchOpenMobile={ui.setIsSearchOpenMobile}
@@ -138,6 +139,7 @@ const Dashboard: React.FC = () => {
                    ui.activeTab === "bookings" ? "Bookings Management" :
                    ui.activeTab === "rooms" ? "Rooms Management" :
                    ui.activeTab === "pension-profile" ? "Pension Profile" :
+                   ui.activeTab === "packages" ? "Package Tiers" :
                    ui.activeTab === "reports" ? "Reports & Analytics" :
                    ui.activeTab.startsWith("settings-") ? "Settings" :
                    ui.activeTab === "subscription" ? "Subscription Plans" :
@@ -232,7 +234,10 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "staff" && !status?.isRestricted && (
               <StaffSection
-                staff={data.staffData}
+                staff={data.staffData.slice(
+                  (ui.pagination.staff.page - 1) * ui.pagination.staff.limit,
+                  ui.pagination.staff.page * ui.pagination.staff.limit
+                )}
                 viewMode={ui.viewModes.staff}
                 onToggleView={() => ui.toggleViewMode('staff')}
                 onEditStaff={handlers.handleEditStaff}
@@ -242,6 +247,7 @@ const Dashboard: React.FC = () => {
                 downloadTemplate={() => {}}
                 pagination={ui.pagination.staff}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, staff: { ...ui.pagination.staff, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, staff: { ...ui.pagination.staff, limit, page: 1 } })}
                 selectedRows={ui.selectedRows.staff}
                 onToggleSelection={(id) => ui.toggleSelection('staff', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, staff: ids })}
@@ -252,13 +258,17 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "bookings" && !status?.isRestricted && (
               <BookingSection
-                bookings={data.bookings}
+                bookings={data.bookings.slice(
+                  (ui.pagination.bookings.page - 1) * ui.pagination.bookings.limit,
+                  ui.pagination.bookings.page * ui.pagination.bookings.limit
+                )}
                 viewMode={ui.viewModes.bookings}
                 onToggleView={() => ui.toggleViewMode('bookings')}
                 onUpdateStatus={handlers.handleUpdateBookingStatus}
                 onCompleteEarly={handlers.handleCompleteEarly}
                 pagination={ui.pagination.bookings}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, bookings: { ...ui.pagination.bookings, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, bookings: { ...ui.pagination.bookings, limit, page: 1 } })}
                 selectedRows={ui.selectedRows.bookings}
                 onToggleSelection={(id) => ui.toggleSelection('bookings', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
@@ -269,7 +279,10 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "rooms" && !status?.isRestricted && (
               <RoomsSection
-                rooms={data.roomsData}
+                rooms={data.roomsData.slice(
+                  (ui.pagination.rooms.page - 1) * ui.pagination.rooms.limit,
+                  ui.pagination.rooms.page * ui.pagination.rooms.limit
+                )}
                 viewMode={ui.viewModes.rooms}
                 onToggleView={() => ui.toggleViewMode('rooms')}
                 onDeleteRoom={handlers.handleDeleteRoom}
@@ -277,9 +290,11 @@ const Dashboard: React.FC = () => {
                 onBulkUpload={() => ui.setShowRoomsBulkUploadModal(true)}
                 pagination={ui.pagination.rooms}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, rooms: { ...ui.pagination.rooms, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, rooms: { ...ui.pagination.rooms, limit, page: 1 } })}
                 selectedRows={ui.selectedRows.rooms}
                 onToggleSelection={(id) => ui.toggleSelection('rooms', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, rooms: ids })}
+                onUpdateStatus={handlers.handleUpdateRoomStatus}
                 totalItems={data.dataTotals.rooms}
                 language={ui.language}
               />
@@ -287,11 +302,15 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "guests" && !status?.isRestricted && (
               <GuestsSection
-                guests={data.guestsData}
+                guests={data.guestsData.slice(
+                  (ui.pagination.guests.page - 1) * ui.pagination.guests.limit,
+                  ui.pagination.guests.page * ui.pagination.guests.limit
+                )}
                 viewMode={ui.viewModes.guests}
                 onToggleView={() => ui.toggleViewMode('guests')}
                 pagination={ui.pagination.guests}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, guests: { ...ui.pagination.guests, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, guests: { ...ui.pagination.guests, limit, page: 1 } })}
                 selectedRows={ui.selectedRows.guests}
                 onToggleSelection={(id) => ui.toggleSelection('guests', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, guests: ids })}
@@ -302,9 +321,13 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
-                transactions={data.recentTransactions}
+                transactions={data.recentTransactions.slice(
+                  (ui.pagination.transactions.page - 1) * ui.pagination.transactions.limit,
+                  ui.pagination.transactions.page * ui.pagination.transactions.limit
+                )}
                 pagination={ui.pagination.transactions}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, transactions: { ...ui.pagination.transactions, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, transactions: { ...ui.pagination.transactions, limit, page: 1 } })}
                 selectedRows={ui.selectedRows.transactions}
                 onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
@@ -317,17 +340,42 @@ const Dashboard: React.FC = () => {
               <PensionProfileSection
                 propertySettings={ui.propertySettings}
                 setPropertySettings={ui.setPropertySettings}
-                packages={data.packages}
-                onToggleMostPopular={handlers.handleToggleMostPopular}
-                onEditPackage={(pkg) => { ui.setEditingPackage(pkg); ui.setNewPackage({...pkg} as unknown as typeof ui.newPackage); ui.setShowAddPackageModal(true); }}
-                onDeletePackage={handlers.handleDeletePackage}
-                onAddNewPackage={() => { ui.setEditingPackage(null); ui.setShowAddPackageModal(true); }}
                 onSaveProfile={handlers.handleSavePropertySettings}
                 isUpdating={ui.isUpdating}
                 showSaveSuccess={ui.showSaveSuccess}
                 pensionProfileImageFile={ui.pensionProfileImageFile}
                 setPensionProfileImageFile={ui.setPensionProfileImageFile}
-                calculateAvailableRooms={(id) => data.roomsData.filter(r => String(r.package_id) === String(id) && r.status === 'Available').length}
+              />
+            )}
+
+            {ui.activeTab === "packages" && !status?.isRestricted && (
+              <PackageTierSection
+                packages={data.packages.slice(
+                  (ui.pagination.packages.page - 1) * ui.pagination.packages.limit,
+                  ui.pagination.packages.page * ui.pagination.packages.limit
+                )}
+                rooms={data.roomsData}
+                onToggleMostPopular={handlers.handleToggleMostPopular}
+                onEditPackage={(pkg) => { ui.setEditingPackage(pkg); ui.setNewPackage({...pkg} as unknown as typeof ui.newPackage); ui.setShowAddPackageModal(true); }}
+                onDeletePackage={handlers.handleDeletePackage}
+                onAddNewPackage={() => { 
+                  ui.setEditingPackage(null); 
+                  ui.setNewPackage({
+                    name: '', name_en: '', name_am: '', name_om: '', price: '',
+                    description: '', description_en: '', description_am: '', description_om: '',
+                    services: ['WiFi', 'Clean Room', 'Basic Amenities'],
+                    isMostPopular: false, image: '', customService: '', imageType: 'Normal'
+                  });
+                  ui.setShowAddPackageModal(true); 
+                }}
+                pagination={ui.pagination.packages}
+                onPageChange={(page) => ui.setPagination({ ...ui.pagination, packages: { ...ui.pagination.packages, page } })}
+                onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, packages: { ...ui.pagination.packages, limit, page: 1 } })}
+                selectedRows={ui.selectedRows.packages}
+                onToggleSelection={(id) => ui.toggleSelection('packages', id)}
+                onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, packages: ids })}
+                totalItems={data.dataTotals?.packages || data.packages.length}
+                language={ui.language}
               />
             )}
 
