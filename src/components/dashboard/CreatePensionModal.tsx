@@ -31,9 +31,9 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
-      <Card className="w-full max-w-4xl border-none shadow-2xl bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
-        <CardHeader className="pb-6 p-8">
+      <Card className="w-full max-w-4xl max-h-[95vh] border-none shadow-2xl bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shrink-0"></div>
+        <CardHeader className="pb-6 p-8 shrink-0">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
@@ -53,7 +53,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 space-y-0">
+        <CardContent className="p-0 space-y-0 overflow-y-auto custom-scrollbar flex-1">
           {/* Hero Map Section (Edge-to-Edge) */}
           <div className="w-full border-b border-slate-100">
             <LocationPicker
