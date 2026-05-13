@@ -23,7 +23,8 @@ export const useDashboardData = (ui?: any) => {
     rooms: 0,
     bookings: 0,
     guests: 0,
-    staff: 0
+    staff: 0,
+    packages: 0
   });
   
   // Stats State
@@ -69,34 +70,15 @@ export const useDashboardData = (ui?: any) => {
           const pensionId = Number(userPension.pension_id || userPension.id);
           setSelectedPensionId(String(pensionId));
           
-          // 2. Fetch Pension-specific data with pagination
+          // 2. Fetch Pension-specific data - fetch all for frontend pagination to ensure total count is accurate
           const results = await Promise.allSettled([
             apiService.getPackages(pensionId),
-            apiService.getRooms(pensionId, { 
-              page: ui?.pagination?.rooms?.page || 1, 
-              limit: ui?.pagination?.rooms?.limit || 10 
-            }),
-            apiService.getBookings({ 
-              pension_id: pensionId, 
-              page: ui?.pagination?.bookings?.page || 1, 
-              limit: ui?.pagination?.bookings?.limit || 10 
-            }),
-            apiService.getGuests(pensionId, { 
-              page: ui?.pagination?.guests?.page || 1, 
-              limit: ui?.pagination?.guests?.limit || 10 
-            }),
-            apiService.getStaff(pensionId, { 
-              page: ui?.pagination?.staff?.page || 1, 
-              limit: ui?.pagination?.staff?.limit || 10 
-            }),
-            apiService.getExpenses(pensionId, { 
-              page: 1, 
-              limit: 50 // Expenses might not need heavy pagination in overview
-            }),
-            apiService.getTransactions(pensionId, { 
-              page: ui?.pagination?.transactions?.page || 1, 
-              limit: ui?.pagination?.transactions?.limit || 10 
-            })
+            apiService.getRooms(pensionId, { limit: 1000 }),
+            apiService.getBookings({ pension_id: pensionId, limit: 1000 }),
+            apiService.getGuests(pensionId, { limit: 1000 }),
+            apiService.getStaff(pensionId, { limit: 1000 }),
+            apiService.getExpenses(pensionId, { limit: 50 }),
+            apiService.getTransactions(pensionId, { limit: 1000 })
           ]);
 
           const packagesResp = results[0].status === 'fulfilled' ? results[0].value : { success: false, data: [] };
@@ -111,7 +93,11 @@ export const useDashboardData = (ui?: any) => {
             console.warn('Some dashboard endpoints failed to load', results.filter(r => r.status === 'rejected'));
           }
 
-          if (packagesResp.success) setPackages(packagesResp.data || []);
+          if (packagesResp.success) {
+            const fetchedPackages = packagesResp.data || [];
+            setPackages(fetchedPackages);
+            setDataTotals(prev => ({ ...prev, packages: fetchedPackages.length }));
+          }
           if (roomsResp.success) {
             const roomsDataRaw = roomsResp.data;
             const rooms = (Array.isArray(roomsDataRaw) ? roomsDataRaw : (roomsDataRaw as any)?.items || []) as Room[];
@@ -324,6 +310,8 @@ export const useDashboardData = (ui?: any) => {
               ownerInfo: userPension.owner_info || '',
               roomDetails: userPension.room_details || '',
               amenities: Array.isArray(userPension.amenities) ? userPension.amenities : [],
+              latitude: userPension.latitude ? Number(userPension.latitude) : undefined,
+              longitude: userPension.longitude ? Number(userPension.longitude) : undefined,
             });
           }
         } else {

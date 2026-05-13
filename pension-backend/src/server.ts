@@ -30,6 +30,7 @@ import otpRoutes from './routes/otp';
 import paymentRoutes from './routes/payments';
 import subscriptionRoutes from './routes/subscriptions';
 import systemRoutes, { getSystemStatusController } from './routes/system';
+import availabilityRoutes from './routes/availability';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
 import scheduledCheckoutWorker from './services/scheduledCheckoutWorker';
@@ -118,6 +119,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/availability', availabilityRoutes);
 
 // System status endpoint
 app.get('/api/system/status', getSystemStatusController);
@@ -264,3 +266,4 @@ process.on('SIGINT', () => {
 
 
 export { app, io };
+// Triggering restart with fixed nodemon config...

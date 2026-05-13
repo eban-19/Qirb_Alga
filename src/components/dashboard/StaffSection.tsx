@@ -10,7 +10,21 @@ import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface StaffSectionProps {
   staff: Staff[];
@@ -23,6 +37,7 @@ interface StaffSectionProps {
   downloadTemplate: () => void;
   pagination?: { page: number; limit: number };
   onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
   selectedRows?: (string | number)[];
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
@@ -41,6 +56,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   downloadTemplate,
   pagination = { page: 1, limit: 10 },
   onPageChange,
+  onLimitChange,
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
@@ -49,39 +65,46 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
 }) => {
   // Ensure staff is always an array
   const safeStaff = Array.isArray(staff) ? staff : [];
+  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+    return pages;
+  };
   
   return (
     <div className="space-y-6">
       {/* Bulk Actions Bar */}
       {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-primary text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} Selected
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} selected
             </Badge>
-            <p className="text-sm font-medium hidden sm:block">Perform actions on all selected staff</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">{selectedRows.length === 1 ? '1 staff member selected' : `${selectedRows.length} staff members selected`}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
               size="sm" 
-              variant="ghost" 
-              className="text-white hover:bg-white/10 font-bold"
+              variant="outline"
+              className="font-bold text-slate-600 border-slate-200"
               onClick={() => onSelectAll?.([])}
             >
-              Clear Selection
+              Clear
             </Button>
             <Button 
               size="sm" 
-              className="bg-white text-primary hover:bg-blue-50 font-bold shadow-md"
+              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
               onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} staff members?`)) {
+                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} staff member${selectedRows.length > 1 ? 's' : ''}?`)) {
                   selectedRows.forEach(id => onDeleteStaff(id));
                   onSelectAll?.([]);
                 }
               }}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Bulk Delete
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
             </Button>
           </div>
         </div>
@@ -137,70 +160,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-none shadow-sm bg-blue-50/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium"><TranslationText text="Total Staff" language={language} /></p>
-                <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 bg-blue-500 rounded-full"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border-none shadow-sm bg-emerald-50/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-emerald-600 font-medium"><TranslationText text="Active" language={language} /></p>
-                <p className="text-2xl font-bold text-emerald-700">
-                  {safeStaff.filter(s => s.status === 'Active').length}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 bg-emerald-500 rounded-full"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-amber-50/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-amber-600 font-medium"><TranslationText text="On Leave" language={language} /></p>
-                <p className="text-2xl font-bold text-amber-700">
-                  {safeStaff.filter(s => s.status === 'On Leave').length}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 bg-amber-500 rounded-full"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-slate-50/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 font-medium"><TranslationText text="Departments" language={language} /></p>
-                <p className="text-2xl font-bold text-slate-700">
-                  {[...new Set(safeStaff.map(s => s.department))].length}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 bg-slate-500 rounded-full"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Content */}
       {viewMode === 'card' ? (
@@ -228,6 +188,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                       } text-white text-xs shadow-sm`}>
                         <TranslationText text={member.status} language={language} />
                       </Badge>
+
                     </div>
                   </div>
                 </div>
@@ -238,15 +199,10 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                       <User className="h-4 w-4" />
                       <TranslationText text="Role" language={language} />
                     </span>
-                    <span className="font-bold text-slate-900 text-sm">{member.role}</span>
+                    <span className="font-bold text-slate-900 text-sm">{member.role || "N/A"}</span>
+
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      <TranslationText text="Department" language={language} />
-                    </span>
-                    <span className="font-bold text-slate-900 text-sm">{member.department}</span>
-                  </div>
+
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <Phone className="h-4 w-4" />
@@ -263,26 +219,48 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 gap-1 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300"
-                    onClick={() => onEditStaff(member)}
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                    <TranslationText text="Edit" language={language} />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 gap-1 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-300"
-                    onClick={() => onDeleteStaff(member.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <TranslationText text="Delete" language={language} />
-                  </Button>
-                </div>
+                 <div className="pt-2 border-t border-slate-100 mt-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
+                        >
+                          <span className="flex items-center gap-2 font-bold">
+                            <TranslationText text="Actions" language={language} />
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                        <DropdownMenuItem 
+                          onClick={() => onEditStaff(member)}
+                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                          <TranslationText text="Edit Profile" language={language} />
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem 
+                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                        >
+                          <Mail className="h-4 w-4" />
+                          <TranslationText text="Send Message" language={language} />
+                        </DropdownMenuItem>
+ 
+                        <DropdownMenuSeparator className="bg-slate-100" />
+                        
+                        <DropdownMenuItem 
+                          onClick={() => onDeleteStaff(member.id)}
+                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <TranslationText text="Delete Staff" language={language} />
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                 </div>
+
               </CardContent>
             </Card>
           ))}
@@ -309,7 +287,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     <TableHead className="pl-4 whitespace-nowrap"><TranslationText text="Employee" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap">ID</TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Role" language={language} /></TableHead>
-                    <TableHead className="whitespace-nowrap"><TranslationText text="Department" language={language} /></TableHead>
+
                     <TableHead className="whitespace-nowrap"><TranslationText text="Salary" language={language} /></TableHead>
                     <TableHead className="whitespace-nowrap"><TranslationText text="Status" language={language} /></TableHead>
                     <TableHead className="text-right pr-4 whitespace-nowrap"><TranslationText text="Actions" language={language} /></TableHead>
@@ -334,14 +312,15 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           <div className="hidden sm:block flex-1 min-w-0">
                             <div className="font-medium text-slate-900 text-sm">{member.full_name}</div>
                             <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
-                              {member.role}
+                              {member.role || "N/A"}
                             </Badge>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{member.id}</TableCell>
-                      <TableCell className="text-sm">{member.role}</TableCell>
-                      <TableCell className="text-sm">{member.department}</TableCell>
+                      <TableCell className="text-sm">{member.role || "N/A"}</TableCell>
+
+
                       <TableCell className="text-sm">ETB {member.salary.toLocaleString()}</TableCell>
                       <TableCell>
                         <Badge className={`${
@@ -351,59 +330,114 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           <TranslationText text={member.status} language={language} />
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right pr-4">
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => onEditStaff(member)}
-                            className="hover:bg-blue-50 hover:text-blue-600"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => onDeleteStaff(member.id)}
-                            className="hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                       <TableCell className="text-right pr-4">
+                         <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                                >
+                                  <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                                <DropdownMenuItem 
+                                  onClick={() => onEditStaff(member)}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <TranslationText text="Edit" language={language} />
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                                >
+                                  <Mail className="h-4 w-4" />
+                                  <TranslationText text="Contact" language={language} />
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-slate-100" />
+                                <DropdownMenuItem 
+                                  onClick={() => onDeleteStaff(member.id)}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <TranslationText text="Delete" language={language} />
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                         </div>
+                       </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-semibold text-slate-900">{safeStaff.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> employees
+            {/* Unified Pagination Footer */}
+            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="text-sm font-bold text-slate-500">
+                Showing <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span> employees
               </div>
+
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
-                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={String(pagination.limit)}
+                    onValueChange={(val) => onLimitChange?.(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                      <div className="flex items-center">
+                        <span>{pagination.limit} / page</span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                    disabled={pagination.page <= 1}
+                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  {getPageNumbers().map(pageNum => (
+                    <Button
+                      key={pageNum}
+                      variant={pagination.page === pageNum ? "default" : "ghost"}
+                      onClick={() => onPageChange?.(pageNum)}
+                      className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
+                        pagination.page === pageNum 
+                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
+                          : "text-slate-500 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  ))}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                    disabled={pagination.page >= totalPages}
+                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -102,19 +102,32 @@ router.get('/verify/:txRef', async (req, res) => {
     const verification = await verifyPayment(txRef);
     
     if (verification.status === 'success' && verification.data.status === 'success') {
-      // Update payment status in DB
       const payment = await prisma.payment.update({
         where: { reference: txRef },
         data: { status: 'PAID' },
       });
 
-      // Update booking status
-      const booking = await prisma.booking.findFirst({ 
+      const booking = await prisma.booking.findUnique({ 
         where: { payment_id: payment.payment_id },
         include: {
           room: true,
           customer: true
         }
+      });
+
+      let pensionName = 'Your Pension';
+      if (booking?.room?.pension_id) {
+        const pension = await prisma.pension.findUnique({
+          where: { pension_id: booking.room.pension_id }
+        });
+        if (pension) pensionName = pension.name;
+      }
+      
+      console.log('✅ Found Booking for Slip:', {
+        bookingId: booking?.booking_id,
+        roomId: booking?.room_id,
+        pensionId: booking?.room?.pension_id,
+        pensionName
       });
       
       if (booking) {
@@ -141,7 +154,14 @@ router.get('/verify/:txRef', async (req, res) => {
         message: 'Payment verified successfully', 
         data: {
           ...verification.data,
-          booking: booking,
+          booking: {
+            ...booking,
+            room: {
+              ...booking?.room,
+              pension: { name: pensionName }
+            }
+          },
+          pension_name: pensionName,
           user: booking?.customer,
           reference: txRef,
           amount: payment.amount
@@ -149,9 +169,17 @@ router.get('/verify/:txRef', async (req, res) => {
       });
     }
 
-    res.status(400).json({ success: false, message: 'Payment verification failed', data: verification.data });
+    console.warn('⚠️ Payment Verification Unsuccessful:', verification);
+    res.status(400).json({ 
+      success: false, 
+      message: verification.message || 'Payment verification failed', 
+      data: verification.data 
+    });
   } catch (error: any) {
-    console.error('Payment Verify Error:', error);
+    console.error('❌ Payment Verify Route Error:', {
+      message: error.message,
+      txRef: req.params.txRef
+    });
     res.status(500).json({ success: false, message: error.message || 'Failed to verify payment' });
   }
 });

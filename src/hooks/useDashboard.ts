@@ -33,14 +33,16 @@ export const useDashboard = () => {
     bookings: { page: 1, limit: 10 },
     guests: { page: 1, limit: 10 },
     transactions: { page: 1, limit: 10 },
-    staff: { page: 1, limit: 10 }
+    staff: { page: 1, limit: 10 },
+    packages: { page: 1, limit: 10 }
   });
 
   const [selectedRows, setSelectedRows] = useState<Record<string, (string | number)[]>>({
     rooms: [],
     bookings: [],
     guests: [],
-    staff: []
+    staff: [],
+    packages: []
   });
 
   // --- MODAL STATES ---
@@ -79,11 +81,17 @@ export const useDashboard = () => {
     address: '', address_en: '', address_am: '', address_om: '',
     phone: '', email: '', capacity: '', image_url: '',
     owner_info: '', owner_info_en: '', owner_info_am: '', owner_info_om: '',
-    room_details: '', room_details_en: '', room_details_am: '', room_details_om: ''
+    room_details: '', room_details_en: '', room_details_am: '', room_details_om: '',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined
   });
 
   const [walkInForm, setWalkInForm] = useState({
-    guestName: '', phoneNumber: '', checkIn: '', checkOut: '', packageId: ''
+    guestName: '', 
+    phoneNumber: '', 
+    checkIn: new Date().toISOString().split('T')[0], 
+    checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+    packageId: ''
   });
 
   // Bulk upload states
@@ -94,7 +102,9 @@ export const useDashboard = () => {
   const [propertySettings, setPropertySettings] = useState({
     name: '', address: '', phone: '', email: '', description: '',
     imageUrl: '', ownerInfo: '', roomDetails: '', capacity: '',
-    amenities: [] as string[]
+    amenities: [] as string[],
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined
   });
   const [businessProfile, setBusinessProfile] = useState({
     businessName: '', businessEmail: '', businessPhone: ''

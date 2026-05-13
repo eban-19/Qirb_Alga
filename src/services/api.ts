@@ -523,7 +523,8 @@ class ApiService {
         return {
           ...pkg,
           services: Array.isArray(services) ? services : [],
-          image: pkg.image_url || pkg.image || null
+          image: pkg.image_url || pkg.image || null,
+          images: Array.isArray(pkg.images) ? pkg.images : []
         };
       });
     }

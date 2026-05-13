@@ -40,8 +40,9 @@ router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, re
     const staff = staffResult.map((s: any) => ({ 
       ...s, 
       id: s.staff_id,
-      full_name: s.name, // Keep original field name
-      name: s.name // Also provide name for compatibility
+      full_name: s.name,   // map name -> full_name
+      name: s.name,
+      role: s.position,    // map position -> role for frontend compatibility
     }));
     res.json({ success: true, data: staff });
   } catch (error: any) {

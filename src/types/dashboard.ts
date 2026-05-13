@@ -35,6 +35,9 @@ export interface Pension {
   room_details_om?: string;
   image_url?: string;
   status?: string;
+  latitude?: number;
+  longitude?: number;
+  amenities?: string[];
 }
 
 export interface Package {
@@ -52,6 +55,8 @@ export interface Package {
   services: string[];
   isMostPopular: boolean;
   image?: string;
+  images?: string[];
+  virtual_tour_url?: string;
   imageType?: 'Normal' | '3D';
   availableRooms?: number;
   customService?: string;

@@ -1,10 +1,20 @@
 import React from 'react';
+import { Language } from '@/lib/i18n';
 import { Search, Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import NotificationBell from '../NotificationBell';
 import { TranslationText } from '../TranslationText';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '../ui/dropdown-menu';
+import { LogOut } from 'lucide-react';
 
 interface DashboardHeaderProps {
   isSearchOpenMobile: boolean;
@@ -15,8 +25,9 @@ interface DashboardHeaderProps {
   setSearchQuery: (query: string) => void;
   activeTab: string;
   user: any;
-  language: string;
+  language: any;
   subscriptionStatus?: any;
+  onLogout: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -29,7 +40,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   activeTab,
   user,
   language,
-  subscriptionStatus
+  subscriptionStatus,
+  onLogout
 }) => {
   const isPro = subscriptionStatus?.hasActiveSubscription;
 
@@ -91,24 +103,44 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             <NotificationBell />
 
-            <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
-              <div className="hidden sm:flex flex-col items-end">
-                <p className="text-sm font-semibold text-slate-800">{user?.full_name || 'Admin User'}</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-slate-500">{user?.role || 'Administrator'}</p>
-                  {isPro && (
-                    <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-sm">
-                      PRO
-                    </span>
-                  )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-3 pl-2 border-l border-slate-200 cursor-pointer hover:bg-slate-50 p-1 rounded-full transition-colors">
+                  <div className="hidden sm:flex flex-col items-end">
+                    <p className="text-sm font-semibold text-slate-800">{user?.full_name || 'Admin User'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-slate-500">{user?.role || 'Administrator'}</p>
+                      {isPro && (
+                        <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-sm">
+                          PRO
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-2 ring-slate-100">
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {user?.full_name?.charAt(0)?.toUpperCase() || 'AU'}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
-              </div>
-              <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-2 ring-slate-100">
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                  {user?.full_name?.charAt(0)?.toUpperCase() || 'AU'}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                <DropdownMenuLabel className="font-normal p-4">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-bold leading-none text-slate-900">{user?.full_name || 'Admin User'}</p>
+                    <p className="text-xs leading-none text-slate-500">{user?.email || user?.role || 'Administrator'}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={onLogout}
+                  className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="font-bold">Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </>
       )}

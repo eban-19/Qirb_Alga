@@ -65,10 +65,16 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         />
       )}
 
-      <aside className={`fixed left-0 top-0 h-screen w-64 border-r bg-white shadow-sm z-50 transform transition-transform duration-300 ease-in-out flex-shrink-0 overflow-hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0`}>
+      <aside className={`fixed left-0 top-0 h-screen w-64 border-r bg-white shadow-sm z-50 transform transition-transform duration-300 ease-in-out flex-shrink-0 overflow-hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center px-6 border-b flex-shrink-0">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                setActiveTab('overview');
+                setMobileSidebarOpen(false);
+              }}
+            >
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <Home className="h-4 w-4 text-primary-foreground" />
               </div>

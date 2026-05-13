@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from './use-language';
 import apiService from '../services/api';
 import { Package, Staff, Room } from '../types/dashboard';
 
@@ -7,8 +7,7 @@ export const useDashboardHandlers = (
   ui: any,
   loadRealData: () => Promise<void>
 ) => {
-  const { i18n } = useTranslation();
-  const language = i18n.language;
+  const { language } = useLanguage();
 
   // --- PENSION HANDLERS ---
   const handleCreatePension = async () => {
@@ -211,6 +210,16 @@ export const useDashboardHandlers = (
     }
   };
 
+  const handleUpdateRoomStatus = async (roomId: string | number, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'Available' ? 'Occupied' : 'Available';
+      await apiService.updateRoom(Number(roomId), { availability_status: newStatus });
+      await loadRealData();
+    } catch (error) {
+      console.error('Update room status error:', error);
+    }
+  };
+
   const handleRoomFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -318,29 +327,41 @@ export const useDashboardHandlers = (
     try {
       const response = await apiService.uploadImage(file);
       if (response.success && response.data) {
-        ui.setNewPackage({ ...ui.newPackage, image: response.data.url });
+        ui.setNewPackage((prev: any) => {
+          const currentImages = prev.images || [];
+          const updatedImages = [...currentImages, response.data.url];
+          return {
+            ...prev,
+            images: updatedImages,
+            // Keep image for backward compatibility if needed
+            image: updatedImages.length > 0 ? updatedImages[0] : prev.image
+          };
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Package image upload error:', error);
+      alert(error.message || 'Failed to upload image. Please check file size and type.');
     }
   };
 
   const handleAddPackage = async () => {
     try {
-      let packageData = { ...ui.newPackage };
-      
-      // If there's a file to upload, do it first (though currently handled by handlePackageImageUpload)
-      // but we can also handle it here if ui.packageImageFile was used
+      let packageData = { 
+        ...ui.newPackage,
+        price: parseFloat(ui.newPackage.price) || 0
+      };
       
       if (ui.editingPackage) {
-        await apiService.updatePackage(data.selectedPensionId, ui.editingPackage.id, packageData);
+        const pkgId = ui.editingPackage.id || ui.editingPackage.package_id;
+        await apiService.updatePackage(data.selectedPensionId, pkgId, packageData);
       } else {
         await apiService.createPackage(data.selectedPensionId, packageData);
       }
       ui.setShowAddPackageModal(false);
       await loadRealData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save package error:', error);
+      alert(error.message || 'Failed to save package.');
     }
   };
 
@@ -385,6 +406,13 @@ export const useDashboardHandlers = (
     try {
       // Implement walk-in logic
       ui.setShowWalkInModal(false);
+      ui.setWalkInForm({
+        guestName: '', 
+        phoneNumber: '', 
+        checkIn: new Date().toISOString().split('T')[0], 
+        checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+        packageId: ''
+      });
       await loadRealData();
     } catch (error) {
       console.error('Walk-in booking error:', error);
@@ -412,10 +440,12 @@ export const useDashboardHandlers = (
         address: ui.propertySettings.address,
         phone: ui.propertySettings.phone,
         email: ui.propertySettings.email,
-        capacity: ui.propertySettings.capacity,
+        capacity: parseInt(ui.propertySettings.capacity) || 0,
         owner_info: ui.propertySettings.ownerInfo,
         room_details: ui.propertySettings.roomDetails,
-        image_url: ui.propertySettings.imageUrl
+        image_url: ui.propertySettings.imageUrl,
+        latitude: ui.propertySettings.latitude,
+        longitude: ui.propertySettings.longitude
       };
 
       // Upload profile image if selected
@@ -430,8 +460,9 @@ export const useDashboardHandlers = (
       await apiService.updatePension(data.selectedPensionId, finalSettings);
       ui.showSuccess();
       await loadRealData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save property settings error:', error);
+      alert(error.message || 'Failed to update property settings.');
     } finally {
       ui.setIsUpdating(false);
     }
@@ -523,6 +554,7 @@ export const useDashboardHandlers = (
     handleRoomFileUpload,
     handleConfirmRoomBulkUpload,
     handleDownloadRoomTemplate,
+    handleUpdateRoomStatus,
     handleAddPackage,
     handlePackageImageUpload,
     handleDeletePackage,
