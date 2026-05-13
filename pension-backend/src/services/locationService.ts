@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma';
 import { PensionStatus, ApprovalStatus, Prisma } from '@prisma/client';
+import geocodingService from './geocoding';
 
 // Coordinate interface
 export interface Coordinates {
@@ -112,64 +113,24 @@ class LocationService {
     }
   }
 
-  // Geocode address to coordinates (using OpenStreetMap Nominatim)
+  // Geocode address to coordinates (using OpenStreetMap Nominatim via GeocodingService)
   async geocodeAddress(address: string): Promise<Coordinates> {
     try {
-      // Using OpenStreetMap Nominatim API (free)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Geocoding service unavailable');
-      }
-      
-      const data = await response.json();
-      
-      if (data.length === 0) {
-        // Fallback to Addis Ababa coordinates
-        return { lat: 9.1450, lng: 38.7617 };
-      }
-      
+      const result = await geocodingService.geocodeAddress(address);
       return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon)
+        lat: result.lat,
+        lng: result.lng
       };
     } catch (error) {
-      console.error('Error geocoding address:', error);
+      console.error('Error geocoding address in LocationService:', error);
       // Fallback to Addis Ababa coordinates
       return { lat: 9.1450, lng: 38.7617 };
     }
   }
 
-  // Reverse geocode coordinates to address
+  // Reverse geocode coordinates to address (via GeocodingService)
   async reverseGeocode(lat: number, lng: number): Promise<Address> {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Reverse geocoding service unavailable');
-      }
-      
-      const data = await response.json();
-      
-      return {
-        city: data.address?.city || data.address?.town || 'Unknown',
-        region: data.address?.state || data.address?.region || 'Unknown',
-        country: data.address?.country || 'Ethiopia',
-        full_address: data.display_name || 'Unknown location'
-      };
-    } catch (error) {
-      console.error('Error reverse geocoding:', error);
-      return {
-        city: 'Addis Ababa',
-        region: 'Addis Ababa',
-        country: 'Ethiopia',
-        full_address: 'Addis Ababa, Ethiopia'
-      };
-    }
+    return await geocodingService.reverseGeocode(lat, lng);
   }
 
   // Update pension coordinates

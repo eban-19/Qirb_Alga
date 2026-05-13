@@ -4,7 +4,7 @@ class ApiService {
   private baseURL: string;
   private defaultHeaders: Record<string, string>;
 
-  constructor(baseURL: string = 'http://localhost:3005/api') {
+  constructor(baseURL: string = 'http://localhost:3006/api') {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
@@ -780,6 +780,22 @@ class ApiService {
     return this.request('/notifications/test', {
       method: 'POST',
       body: JSON.stringify({ title, message, type })
+    });
+  }
+
+  // System Settings methods
+  async getSystemSettings(): Promise<ApiResponse<Record<string, string>>> {
+    return this.request('/system/settings');
+  }
+
+  async getRawSystemSettings(): Promise<ApiResponse<any[]>> {
+    return this.request('/system/settings/raw');
+  }
+
+  async updateSystemSettings(settings: Record<string, string | number>): Promise<ApiResponse<any>> {
+    return this.request('/system/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
     });
   }
 }

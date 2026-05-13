@@ -15,6 +15,8 @@ export const useAdminDashboardData = () => {
     if (path.includes('/approvals')) return 'pension-approval';
     if (path.includes('/bookings')) return 'bookings';
     if (path.includes('/alerts')) return 'alerts';
+    if (path.includes('/payments')) return 'payments';
+    if (path.includes('/settings')) return 'settings';
     return 'overview';
   };
 
@@ -39,6 +41,10 @@ export const useAdminDashboardData = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState<PensionOwner | null>(null);
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [paymentStats, setPaymentStats] = useState<any>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Update active tab when route changes
   useEffect(() => {
@@ -57,7 +63,7 @@ export const useAdminDashboardData = () => {
         apiService.getAllBookings(),
         apiService.getAdminMetrics(),
         apiService.getSystemAlerts(),
-        fetch('http://localhost:3005/api/admin/pensions/all', {
+        fetch('http://localhost:3006/api/admin/pensions/all', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -181,6 +187,37 @@ export const useAdminDashboardData = () => {
     });
   }, [subscribeToOwnerUpdates, subscribeToPropertyUpdates, subscribeToBookingUpdates, subscribeToAlertUpdates, subscribeToMetricsUpdates]);
 
+  const fetchPaymentData = async () => {
+    try {
+      setPaymentLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const [plansRes, subsRes, statsRes] = await Promise.all([
+        fetch('http://localhost:3006/api/admin-payments/plans', { headers }).then(res => res.json()),
+        fetch('http://localhost:3006/api/admin-payments/subscriptions', { headers }).then(res => res.json()),
+        fetch('http://localhost:3006/api/admin-payments/stats', { headers }).then(res => res.json())
+      ]);
+
+      if (plansRes.success) setPlans(plansRes.data);
+      if (subsRes.success) setSubscriptions(subsRes.data);
+      if (statsRes.success) setPaymentStats(statsRes.data);
+    } catch (error) {
+      console.error('Failed to fetch payment data:', error);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'payments') {
+      fetchPaymentData();
+    }
+  }, [activeTab]);
+
   return {
     activeTab, setActiveTab,
     searchTerm, setSearchTerm,
@@ -194,7 +231,12 @@ export const useAdminDashboardData = () => {
     loading, setLoading,
     selectedOwner, setSelectedOwner,
     showOwnerDetails, setShowOwnerDetails,
+    plans, setPlans,
+    subscriptions, setSubscriptions,
+    paymentStats, setPaymentStats,
+    paymentLoading, setPaymentLoading,
     connectionStatus,
-    fetchAdminData
+    fetchAdminData,
+    fetchPaymentData
   };
 };

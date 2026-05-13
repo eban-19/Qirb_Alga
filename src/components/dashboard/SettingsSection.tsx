@@ -9,7 +9,8 @@ import {
   Shield, 
   ShieldCheck, 
   AlertCircle, 
-  Save 
+  Save,
+  Zap
 } from 'lucide-react';
 
 interface SettingsSectionProps {
@@ -25,6 +26,7 @@ interface SettingsSectionProps {
   onToggleTwoFactor: () => void;
   showSaveSuccess: boolean;
   subscriptionStatus?: any;
+  onUpgradeClick?: () => void;
 }
 
 export const SettingsSection: React.FC<SettingsSectionProps> = ({
@@ -39,7 +41,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   onSaveSecuritySettings,
   onToggleTwoFactor,
   showSaveSuccess,
-  subscriptionStatus
+  subscriptionStatus,
+  onUpgradeClick
 }) => {
   const sub = subscriptionStatus?.subscription;
   const isPro = subscriptionStatus?.hasActiveSubscription;
@@ -121,12 +124,23 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           <Card className="mt-6 border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
             <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-blue-500 to-purple-400" />
             <CardHeader className="pb-4">
-              <CardTitle className="text-2xl font-bold flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <span>Subscription Management</span>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <span>Subscription Management</span>
+                </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onUpgradeClick}
+                  className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 font-bold gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  Upgrade
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-2xl bg-slate-50 border border-slate-100 gap-4">

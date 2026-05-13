@@ -970,7 +970,7 @@ export async function translateText(text: string, language: Language): Promise<s
   if (language === 'en') return text;
   
   try {
-    const response = await fetch('http://localhost:3005/api/translations/translate', {
+    const response = await fetch('http://localhost:3006/api/translations/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.trim(), targetLanguage: language })
@@ -988,7 +988,7 @@ export async function translateTextBatch(texts: string[], language: Language): P
   if (language === 'en') return texts;
   
   try {
-    const response = await fetch('http://localhost:3005/api/translations/batch', {
+    const response = await fetch('http://localhost:3006/api/translations/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 

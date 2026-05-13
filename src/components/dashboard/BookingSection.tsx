@@ -349,7 +349,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   useEffect(() => {
     const loadPackages = async () => {
       try {
-        const response = await fetch('http://localhost:3005/api/packages');
+        const response = await fetch('http://localhost:3006/api/packages');
         const data = await response.json();
         if (data.success) {
           setPackages(data.data || []);
@@ -368,7 +368,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
 
     try {
-      const response = await fetch('http://localhost:3005/api/walk-in-bookings', {
+      const response = await fetch('http://localhost:3006/api/walk-in-bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -430,7 +430,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const getFullImageUrl = (imagePath: string | undefined | null): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    if (imagePath.startsWith('/uploads/')) return `http://localhost:3005${imagePath}`;
+    if (imagePath.startsWith('/uploads/')) return `http://localhost:3006${imagePath}`;
     return imagePath;
   };
 

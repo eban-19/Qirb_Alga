@@ -367,6 +367,7 @@ const Dashboard: React.FC = () => {
                 onToggleTwoFactor={() => {}}
                 showSaveSuccess={ui.showSaveSuccess}
                 subscriptionStatus={status}
+                onUpgradeClick={() => ui.setActiveTab("subscription")}
               />
             )}
           </div>

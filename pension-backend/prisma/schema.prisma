@@ -42,6 +42,7 @@ model User {
 
   payments           Payment[]
   subscriptions      Subscription[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -424,6 +425,7 @@ model SubscriptionPlan {
   duration_days   Int
   features        Json?
   is_active       Boolean        @default(true)
+  is_public       Boolean        @default(true)
   created_at      DateTime       @default(now()) @db.Timestamp(0)
   updated_at      DateTime       @default(now()) @updatedAt @db.Timestamp(0)
 
@@ -440,6 +442,9 @@ model Subscription {
   start_date      DateTime           @default(now())
   end_date        DateTime
   status          SubscriptionStatus @default(ACTIVE)
+  is_free         Boolean            @default(false)
+  admin_override  Boolean            @default(false)
+  override_reason String?            @db.Text
   created_at      DateTime           @default(now()) @db.Timestamp(0)
   updated_at      DateTime           @default(now()) @updatedAt @db.Timestamp(0)
 
@@ -466,5 +471,30 @@ model PhoneVerification {
 
   @@index([phone, code])
   @@map("phone_verifications")
+}
+
+model AuditLog {
+  log_id      Int      @id @default(autoincrement())
+  user_id     Int?     // Admin who performed the action
+  action      String   @db.VarChar(100) // e.g., "PLAN_CREATED", "SUB_OVERRIDE"
+  entity_type String   @db.VarChar(50)  // e.g., "SUBSCRIPTION", "PAYMENT"
+  entity_id   Int?     // ID of the target entity
+  details     String?  @db.Text
+  ip_address  String?  @db.VarChar(45)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+
+  admin       User?    @relation(fields: [user_id], references: [user_id])
+
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  setting_id  Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(50) // e.g., "VAT_PERCENTAGE", "SERVICE_FEE_PERCENTAGE"
+  value       String   @db.Text
+  description String?  @db.Text
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  @@map("system_settings")
 }
 

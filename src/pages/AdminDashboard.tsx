@@ -5,6 +5,8 @@ import { PropertiesTab } from "@/components/admin/PropertiesTab";
 import PensionApprovalInline from "@/components/admin/PensionApprovalInline";
 import { AlertsTab } from "@/components/admin/AlertsTab";
 import { BookingsTab } from "@/components/admin/BookingsTab";
+import { PaymentsTab } from "@/components/admin/PaymentsTab";
+import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 import { useAdminHandlers } from "@/hooks/useAdminHandlers";
@@ -58,6 +60,21 @@ export default function AdminDashboard() {
 
         <TabsContent value="alerts">
           <AlertsTab alerts={ui.alerts} />
+        </TabsContent>
+        
+        <TabsContent value="payments">
+          <PaymentsTab 
+            plans={ui.plans}
+            subscriptions={ui.subscriptions}
+            owners={ui.owners}
+            stats={ui.paymentStats}
+            loading={ui.paymentLoading}
+            onRefresh={ui.fetchPaymentData}
+          />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <SystemSettingsTab />
         </TabsContent>
       </Tabs>
       

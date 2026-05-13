@@ -1,7 +1,6 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
-import { authenticateToken } from '../middleware/auth';
-import { checkSubscription } from '../middleware/checkSubscription';
+import { authenticateToken, requireSubscription } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -52,7 +51,7 @@ router.get('/pensions/:pensionId', authenticateToken as any, async (req: any, re
 });
 
 // Add staff member
-router.post('/pensions/:pensionId', authenticateToken as any, checkSubscription as any, async (req: any, res: express.Response) => {
+router.post('/pensions/:pensionId', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
@@ -104,7 +103,7 @@ router.post('/pensions/:pensionId', authenticateToken as any, checkSubscription 
 });
 
 // Update staff member
-router.put('/:id', authenticateToken as any, checkSubscription as any, async (req: any, res: express.Response) => {
+router.put('/:id', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -159,7 +158,7 @@ router.put('/:id', authenticateToken as any, checkSubscription as any, async (re
 });
 
 // Delete staff member
-router.delete('/:id', authenticateToken as any, checkSubscription as any, async (req: any, res: express.Response) => {
+router.delete('/:id', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;

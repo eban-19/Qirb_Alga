@@ -15,7 +15,7 @@ const SubscriptionPlans = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await fetch('http://localhost:3005/api/subscriptions/plans');
+        const response = await fetch('http://localhost:3006/api/subscriptions/plans');
         const data = await response.json();
         if (data.success) {
           setPlans(data.data);
@@ -34,7 +34,7 @@ const SubscriptionPlans = () => {
     setIsInitializing(planId);
 
     try {
-      const response = await fetch('http://localhost:3005/api/subscriptions/initialize', {
+      const response = await fetch('http://localhost:3006/api/subscriptions/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,14 +108,23 @@ const SubscriptionPlans = () => {
               </div>
 
               <div className="space-y-4 pt-6 border-t border-border">
-                {JSON.parse(plan.features).map((feature: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <Check className="w-4 h-4 text-green-600" />
-                    </div>
-                    <span className="text-muted-foreground font-medium">{feature}</span>
-                  </div>
-                ))}
+                {(() => {
+                  try {
+                    const features = typeof plan.features === 'string' 
+                      ? (plan.features.startsWith('[') ? JSON.parse(plan.features) : [plan.features])
+                      : (Array.isArray(plan.features) ? plan.features : []);
+                    return features.map((feature: string, idx: number) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-muted-foreground font-medium">{feature}</span>
+                      </div>
+                    ));
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
               </div>
             </div>
 

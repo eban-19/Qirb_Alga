@@ -1,6 +1,6 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireSubscription } from '../middleware/auth';
 import upload from '../middleware/upload';
 import * as fs from 'fs';
 import { RoomStatus } from '@prisma/client';
@@ -100,7 +100,7 @@ router.get('/pensions/:pensionId/packages', authenticateToken as any, async (req
 });
 
 // Create new package for a pension
-router.post('/pensions/:pensionId/packages', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
+router.post('/pensions/:pensionId/packages', authenticateToken as any, requireSubscription as any, upload.single('image'), async (req: any, res: express.Response) => {
   try {
     const { pensionId } = req.params;
     const userId = req.user.userId;
@@ -158,7 +158,7 @@ router.post('/pensions/:pensionId/packages', authenticateToken as any, upload.si
 });
 
 // Update existing package
-router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
+router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any, requireSubscription as any, upload.single('image'), async (req: any, res: express.Response) => {
   try {
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
@@ -229,7 +229,7 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any,
 });
 
 // Delete package
-router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken as any, async (req: any, res: express.Response) => {
+router.delete('/pensions/:pensionId/packages/:packageId', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const { pensionId, packageId } = req.params;
     const userId = req.user.userId;
