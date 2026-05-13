@@ -34,6 +34,7 @@ interface DashboardSidebarProps {
   getIcon: (name: string) => LucideIcon;
   t: any;
   isPensionOwner: () => boolean;
+  subscriptionStatus?: any;
 }
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
@@ -52,7 +53,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   sidebarLinks,
   getIcon,
   t,
-  isPensionOwner
+  isPensionOwner,
+  subscriptionStatus
 }) => {
   return (
     <>
@@ -76,7 +78,12 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <Home className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">PensionHub</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg leading-none">PensionHub</span>
+                {subscriptionStatus?.hasActiveSubscription && (
+                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Premium</span>
+                )}
+              </div>
             </div>
           </div>
 

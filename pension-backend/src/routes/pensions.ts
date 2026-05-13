@@ -1,6 +1,6 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
-import { authenticateToken, requireAdmin, requireOwnerApproval } from '../middleware/auth';
+import { authenticateToken, requireAdmin, requireOwnerApproval, requireSubscription } from '../middleware/auth';
 import geocodingService from '../services/geocoding';
 import { getMultilingualText } from '../utils/multilingual';
 import { Prisma } from '@prisma/client';
@@ -259,7 +259,7 @@ router.get('/properties/:id', async (req: express.Request, res: express.Response
 });
 
 // Create new pension (protected)
-router.post('/', authenticateToken as any, async (req: any, res: express.Response) => {
+router.post('/', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const {
@@ -335,7 +335,7 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
 });
 
 // Update pension (protected)
-router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
+router.put('/:id', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const id = parseInt(req.params.id);

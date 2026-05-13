@@ -1,9 +1,8 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireSubscription } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
 import { RoomStatus, Prisma } from '@prisma/client';
-import { checkSubscription } from '../middleware/checkSubscription';
 
 const router = express.Router();
 
@@ -127,7 +126,7 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
 });
 
 // Create new room (protected)
-router.post('/', authenticateToken as any, async (req: any, res: express.Response) => {
+router.post('/', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const { 
@@ -219,7 +218,7 @@ router.post('/', authenticateToken as any, async (req: any, res: express.Respons
 });
 
 // Update room (protected)
-router.put('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
+router.put('/:id', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const id = parseInt(req.params.id);
@@ -283,7 +282,7 @@ router.put('/:id', authenticateToken as any, async (req: any, res: express.Respo
 });
 
 // Delete room (protected)
-router.delete('/:id', authenticateToken as any, async (req: any, res: express.Response) => {
+router.delete('/:id', authenticateToken as any, requireSubscription as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId;
     const id = parseInt(req.params.id);

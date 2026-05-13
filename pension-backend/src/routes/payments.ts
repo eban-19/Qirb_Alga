@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { initializePayment, verifyPayment } from '../services/chapaService';
+import { SMSService } from '../services/sms.service';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -134,6 +135,18 @@ router.get('/verify/:txRef', async (req, res) => {
           where: { booking_id: booking.booking_id }, 
           data: { status: 'Confirmed' } 
         });
+
+        // Send Confirmation SMS
+        if (booking.customer?.phone) {
+          try {
+            const slipLink = `${process.env.FRONTEND_URL}/booking/success?ref=${txRef}`;
+            const message = `Payment Received! Thank you ${booking.customer.full_name} for booking Room ${booking.room?.room_number || 'Assigned'}. View your digital slip here: ${slipLink}`;
+            await SMSService.sendSMS(booking.customer.phone, message);
+            console.log(`✅ Confirmation SMS sent to ${booking.customer.phone}`);
+          } catch (smsError) {
+            console.error('⚠️ Failed to send confirmation SMS:', smsError);
+          }
+        }
       }
 
       return res.json({ 
@@ -204,7 +217,11 @@ router.post('/webhook', async (req, res) => {
 
       // Update booking status on webhook
       const booking = await prisma.booking.findFirst({ 
-        where: { payment_id: payment.payment_id } 
+        where: { payment_id: payment.payment_id },
+        include: {
+          room: true,
+          customer: true
+        }
       });
       
       if (booking) {
@@ -213,6 +230,18 @@ router.post('/webhook', async (req, res) => {
           data: { status: 'Confirmed' } 
         });
         console.log(`✅ Booking ${booking.booking_id} confirmed via webhook`);
+
+        // Send Confirmation SMS
+        if (booking.customer?.phone) {
+          try {
+            const slipLink = `${process.env.FRONTEND_URL}/booking/success?ref=${tx_ref}`;
+            const message = `Payment Received! Thank you ${booking.customer.full_name} for booking Room ${booking.room?.room_number || 'Assigned'}. View your digital slip here: ${slipLink}`;
+            await SMSService.sendSMS(booking.customer.phone, message);
+            console.log(`✅ Confirmation SMS sent to ${booking.customer.phone} via webhook`);
+          } catch (smsError) {
+            console.error('⚠️ Failed to send confirmation SMS via webhook:', smsError);
+          }
+        }
       }
     }
     res.status(200).send('OK');

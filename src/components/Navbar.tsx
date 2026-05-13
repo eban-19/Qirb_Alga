@@ -41,7 +41,7 @@ const Navbar = () => {
     const cleanId = trackId.replace(/[^0-9]/g, '');
 
     try {
-      const response = await fetch(`http://localhost:3005/api/public/bookings/${cleanId}/status`);
+      const response = await fetch(`http://localhost:3006/api/public/bookings/${cleanId}/status`);
       const data = await response.json();
 
       if (data.success) {
