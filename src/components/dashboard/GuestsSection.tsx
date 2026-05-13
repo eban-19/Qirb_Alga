@@ -14,13 +14,21 @@ import {
   CalendarCheck, 
   DollarSign,
   MessageSquare,
-  Edit
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
-
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GuestsSectionProps {
   guests: any[];
@@ -28,6 +36,7 @@ interface GuestsSectionProps {
   onToggleView: () => void;
   pagination?: { page: number; limit: number };
   onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
   selectedRows?: (string | number)[];
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
@@ -41,6 +50,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   onToggleView,
   pagination = { page: 1, limit: 10 },
   onPageChange,
+  onLimitChange,
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
@@ -49,19 +59,23 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
 }) => {
   // Ensure guests is always an array
   const safeGuests = Array.isArray(guests) ? guests : [];
+  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+    return pages;
+  };
   
   return (
     <div className="space-y-6">
-      {/* ... keep top part as is ... */}
       <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
         <Button
           variant={viewMode === "card" ? "default" : "ghost"}
           size="sm"
           onClick={onToggleView}
           className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
+            viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
@@ -72,9 +86,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
           size="sm"
           onClick={onToggleView}
           className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
+            viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
           }`}
         >
           <BarChart3 className="h-4 w-4" />
@@ -90,10 +102,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardContent className="p-6 relative">
                 <div className="absolute top-4 right-4">
-                  <Checkbox 
-                    checked={selectedRows.includes(guest.id)}
-                    onCheckedChange={() => onToggleSelection?.(guest.id)}
-                  />
+                  <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
                 </div>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
@@ -102,14 +111,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                     </Avatar>
                     <div className="space-y-1">
                       <h3 className="font-bold text-slate-900 text-lg group-hover:text-purple-600 transition-colors">{guest.name}</h3>
-                      <p className="text-sm text-slate-600 flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {guest.email}
-                      </p>
-                      <p className="text-sm text-slate-600 flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {guest.phone}
-                      </p>
+                      <p className="text-sm text-slate-600 flex items-center gap-1"><Phone className="h-3 w-3" />{guest.phone}</p>
                     </div>
                   </div>
                   <Badge className={`${
@@ -121,31 +123,19 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
-                      <Building className="h-4 w-4 text-purple-600" />
-                      <TranslationText text="Nationality" language={language} />
-                    </span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><Building className="h-4 w-4 text-purple-600" /><TranslationText text="Nationality" language={language} /></span>
                     <span className="font-bold text-slate-900">{guest.nationality}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
-                      <BedDouble className="h-4 w-4 text-purple-600" />
-                      <TranslationText text="Room" language={language} />
-                    </span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><BedDouble className="h-4 w-4 text-purple-600" /><TranslationText text="Room" language={language} /></span>
                     <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium">
-                      <CalendarCheck className="h-4 w-4 text-purple-600" />
-                      <TranslationText text="Total Bookings" language={language} />
-                    </span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><CalendarCheck className="h-4 w-4 text-purple-600" /><TranslationText text="Total Bookings" language={language} /></span>
                     <span className="font-bold text-slate-900">{guest.totalBookings}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 shadow-sm">
-                    <span className="text-sm font-bold text-emerald-700 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      <TranslationText text="Total Spent" language={language} />
-                    </span>
+                    <span className="text-sm font-bold text-emerald-700 flex items-center gap-2"><DollarSign className="h-4 w-4" /><TranslationText text="Total Spent" language={language} /></span>
                     <span className="font-bold text-emerald-700 text-lg">ETB {guest.totalSpent.toLocaleString()}</span>
                   </div>
                 </div>
@@ -167,11 +157,8 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       <Checkbox 
                         checked={safeGuests.length > 0 && selectedRows.length === safeGuests.length}
                         onCheckedChange={(checked) => {
-                          if (checked) {
-                            onSelectAll?.(safeGuests.map(g => g.id));
-                          } else {
-                            onSelectAll?.([]);
-                          }
+                          if (checked) onSelectAll?.(safeGuests.map(g => g.id));
+                          else onSelectAll?.([]);
                         }}
                       />
                     </TableHead>
@@ -182,47 +169,30 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                     <TableHead className="font-bold"><TranslationText text="Status" language={language} /></TableHead>
                     <TableHead className="text-right font-bold"><TranslationText text="Total Bookings" language={language} /></TableHead>
                     <TableHead className="text-right font-bold"><TranslationText text="Total Spent" language={language} /></TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Actions" language={language} /></TableHead>
+                    <TableHead className="font-bold text-right"><TranslationText text="Actions" language={language} /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {safeGuests.map((guest) => (
                     <TableRow key={guest.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(guest.id) ? 'bg-blue-50/30' : ''}`}>
                       <TableCell className="px-4">
-                        <Checkbox 
-                          checked={selectedRows.includes(guest.id)}
-                          onCheckedChange={() => onToggleSelection?.(guest.id)}
-                        />
+                        <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-bold text-slate-900">{guest.name}</p>
-                          <p className="text-sm text-slate-500">{guest.email}</p>
-                        </div>
-                      </TableCell>
+                      <TableCell><p className="font-bold text-slate-900">{guest.name}</p></TableCell>
                       <TableCell className="font-medium">{guest.phone}</TableCell>
                       <TableCell>{guest.nationality}</TableCell>
                       <TableCell className="font-bold text-purple-700">{guest.room_number || guest.roomId || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge className={`${
-                          guest.status === 'Checked In' ? 'bg-emerald-500' :
-                          guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
-                        } text-white text-xs shadow-sm`}>
-                          <TranslationText text={guest.status} language={language} />
-                        </Badge>
+                          guest.status === 'Checked In' ? 'bg-emerald-500' : guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
+                        } text-white text-xs shadow-sm`}><TranslationText text={guest.status} language={language} /></Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600">
-                        ETB {guest.totalSpent.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" className="hover:bg-purple-50 hover:text-purple-600">
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-blue-600">
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
+                      <TableCell className="text-right font-bold text-emerald-600">ETB {guest.totalSpent.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" className="hover:bg-purple-50 hover:text-purple-600"><MessageSquare className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-blue-600"><Edit className="h-3.5 w-3.5" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -231,33 +201,40 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               </Table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-semibold text-slate-900">{safeGuests.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> guests
+            {/* Unified Pagination Footer */}
+            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="text-sm font-bold text-slate-500">
+                Showing <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span> guests
               </div>
+
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
-                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                <div className="flex items-center gap-2">
+                  <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
+                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                      <div className="flex items-center"><span>{pagination.limit} / page</span></div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  {getPageNumbers().map(pageNum => (
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                      {pageNum}
+                    </Button>
+                  ))}
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

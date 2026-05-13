@@ -33,14 +33,16 @@ export const useDashboard = () => {
     bookings: { page: 1, limit: 10 },
     guests: { page: 1, limit: 10 },
     transactions: { page: 1, limit: 10 },
-    staff: { page: 1, limit: 10 }
+    staff: { page: 1, limit: 10 },
+    packages: { page: 1, limit: 10 }
   });
 
   const [selectedRows, setSelectedRows] = useState<Record<string, (string | number)[]>>({
     rooms: [],
     bookings: [],
     guests: [],
-    staff: []
+    staff: [],
+    packages: []
   });
 
   // --- MODAL STATES ---

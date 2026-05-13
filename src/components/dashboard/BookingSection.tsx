@@ -41,7 +41,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-
 interface BookingSectionProps {
   bookings: any[];
   viewMode: "card" | "table";
@@ -50,6 +49,7 @@ interface BookingSectionProps {
   onCompleteEarly: (id: string | number) => void;
   pagination?: { page: number; limit: number };
   onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
   selectedRows?: (string | number)[];
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
@@ -87,7 +87,6 @@ const BookingCard = ({
   onToggleSelection?: (id: string | number) => void;
   onUpdateStatus: (id: string | number, status: string) => void;
 }) => {
-  // Try different possible room fields
   const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
   const bookingId = booking.id || booking.booking_id;
   
@@ -104,21 +103,12 @@ const BookingCard = ({
         <div className="flex justify-between items-start mb-4 pr-8">
           <div className="space-y-2">
             <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || <TranslationText text="Guest" language={language} />}</h3>
-            {(booking.user_email || booking.user_phone || booking.phone) && (
+            {(booking.user_phone || booking.phone) && (
               <p className="text-sm text-slate-600 flex items-center gap-1">
-                {booking.user_email ? (
-                  <>
-                    <Mail className="h-3 w-3" />
-                    {booking.user_email}
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    {booking.user_phone || booking.phone}
-                  </>
-                )}
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {booking.user_phone || booking.phone}
               </p>
             )}
           </div>
@@ -225,6 +215,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onCompleteEarly,
   pagination = { page: 1, limit: 10 },
   onPageChange,
+  onLimitChange,
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
@@ -249,14 +240,20 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [selectedIdUrl, setSelectedIdUrl] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed' | 'pending' | 'confirmed'>('all');
 
-  // Filter bookings based on active filter
   const filteredBookings = bookings.filter(b => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') return b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'pending';
     return b.status?.toLowerCase() === activeFilter;
   });
 
-  // Scroll lock when modal is open
+  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+    return pages;
+  };
+
   useEffect(() => {
     if (showEarlyCheckoutConfirm) {
       document.body.style.overflow = 'hidden';
@@ -266,7 +263,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
   }, [showEarlyCheckoutConfirm]);
 
-  // Message management functions
   const addMessage = (bookingId: string | number, type: 'success' | 'error' | 'processing', message: string) => {
     const newMessage: InlineMessage = {
       bookingId,
@@ -275,8 +271,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       timestamp: Date.now()
     };
     setInlineMessages(prev => [...prev.filter(msg => msg.bookingId !== bookingId), newMessage]);
-    
-    // Auto-remove success and error messages after 5 seconds
     if (type === 'success' || type === 'error') {
       setTimeout(() => {
         setInlineMessages(prev => prev.filter(msg => msg.timestamp !== newMessage.timestamp));
@@ -288,45 +282,25 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     setInlineMessages(prev => prev.filter(msg => msg.bookingId !== bookingId));
   };
 
-  // Inline Message Component
   const InlineMessageComponent: React.FC<{ bookingId: string | number }> = ({ bookingId }) => {
     const message = inlineMessages.find(msg => msg.bookingId === bookingId);
-    
     if (!message) return null;
 
     const getMessageStyles = () => {
       switch (message.type) {
-        case 'success':
-          return 'bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100/50';
-        case 'error':
-          return 'bg-gradient-to-r from-red-50 to-rose-50 border-rose-200 text-rose-800 shadow-rose-100/50';
-        case 'processing':
-          return 'bg-gradient-to-r from-blue-50 to-cyan-50 border-cyan-200 text-cyan-800 shadow-cyan-100/50';
-        default:
-          return 'bg-gradient-to-r from-gray-50 to-slate-50 border-slate-200 text-slate-800 shadow-slate-100/50';
+        case 'success': return 'bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100/50';
+        case 'error': return 'bg-gradient-to-r from-red-50 to-rose-50 border-rose-200 text-rose-800 shadow-rose-100/50';
+        case 'processing': return 'bg-gradient-to-r from-blue-50 to-cyan-50 border-cyan-200 text-cyan-800 shadow-cyan-100/50';
+        default: return 'bg-gradient-to-r from-gray-50 to-slate-50 border-slate-200 text-slate-800 shadow-slate-100/50';
       }
     };
 
     const getMessageIcon = () => {
       switch (message.type) {
-        case 'success':
-          return (
-            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L9 7" />
-            </svg>
-          );
-        case 'error':
-          return (
-            <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          );
-        case 'processing':
-          return (
-            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-          );
-        default:
-          return null;
+        case 'success': return <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L9 7" /></svg>;
+        case 'error': return <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+        case 'processing': return <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>;
+        default: return null;
       }
     };
 
@@ -345,15 +319,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     );
   };
 
-  // Load packages for walk-in booking
   useEffect(() => {
     const loadPackages = async () => {
       try {
         const response = await fetch('http://localhost:3005/api/packages');
         const data = await response.json();
-        if (data.success) {
-          setPackages(data.data || []);
-        }
+        if (data.success) setPackages(data.data || []);
       } catch (error) {
         console.error('Failed to load packages:', error);
       }
@@ -361,45 +332,11 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     loadPackages();
   }, []);
 
-  const handleWalkInSubmit = async () => {
-    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3005/api/walk-in-bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guestName: walkInForm.guestName,
-          phoneNumber: walkInForm.phoneNumber,
-          packageId: walkInForm.packageId,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setShowWalkInModal(false);
-        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '', checkIn: '', checkOut: '' });
-        alert('Walk-in booking created successfully!');
-      } else {
-        alert('Failed to create booking: ' + result.message);
-      }
-    } catch (error) {
-      console.error('Error creating walk-in booking:', error);
-      alert('Failed to create booking');
-    }
-  };
-
   const handleEarlyCheckoutWithMessages = async (bookingId: string | number) => {
     if (!inlineMessagesEnabled) {
       await onCompleteEarly(bookingId);
       return;
     }
-
     try {
       addMessage(bookingId, 'processing', 'Processing early checkout...');
       await onCompleteEarly(bookingId);
@@ -486,18 +423,13 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     { id: 'confirmed', label: 'Confirmed Stays', color: 'text-emerald-600' },
                     { id: 'completed', label: 'Past Bookings', color: 'text-indigo-600' }
                   ].map((filter) => (
-                    <SelectItem 
-                      key={filter.id} 
-                      value={filter.id}
-                      className="rounded-lg focus:bg-slate-50 cursor-pointer"
-                    >
+                    <SelectItem key={filter.id} value={filter.id} className="rounded-lg focus:bg-slate-50 cursor-pointer">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${
                           filter.id === 'all' ? 'bg-slate-400' :
                           filter.id === 'active' ? 'bg-blue-400' :
                           filter.id === 'pending' ? 'bg-amber-400' :
-                          filter.id === 'confirmed' ? 'bg-emerald-400' :
-                          'bg-indigo-400'
+                          filter.id === 'confirmed' ? 'bg-emerald-400' : 'bg-indigo-400'
                         }`} />
                         <span className={`font-medium ${filter.color}`}>
                           <TranslationText text={filter.label} language={language} />
@@ -516,9 +448,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           size="sm"
           onClick={onToggleView}
           className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
+            viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
@@ -529,9 +459,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           size="sm"
           onClick={onToggleView}
           className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" 
-              ? "bg-primary text-white shadow-lg shadow-primary/25" 
-              : "hover:bg-white hover:text-primary hover:shadow-md"
+            viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
           }`}
         >
           <BarChart3 className="h-4 w-4" />
@@ -575,11 +503,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                       <Checkbox 
                         checked={bookings.length > 0 && selectedRows.length === bookings.length}
                         onCheckedChange={(checked) => {
-                          if (checked) {
-                            onSelectAll?.(bookings.map(b => b.id || b.booking_id));
-                          } else {
-                            onSelectAll?.([]);
-                          }
+                          if (checked) onSelectAll?.(bookings.map(b => b.id || b.booking_id));
+                          else onSelectAll?.([]);
                         }}
                       />
                     </TableHead>
@@ -596,14 +521,10 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   {filteredBookings.map((booking) => {
                     const bookingId = booking.id || booking.booking_id;
                     const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
-                    
                     return (
                     <TableRow key={bookingId} className={`hover:bg-blue-50/50 transition-colors group ${selectedRows.includes(bookingId) ? 'bg-blue-50/30' : ''}`}>
                       <TableCell className="px-4">
-                        <Checkbox 
-                          checked={selectedRows.includes(bookingId)}
-                          onCheckedChange={() => onToggleSelection?.(bookingId)}
-                        />
+                        <Checkbox checked={selectedRows.includes(bookingId)} onCheckedChange={() => onToggleSelection?.(bookingId)} />
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
@@ -612,100 +533,58 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</p>
-                            {(booking.user_email || booking.user_phone || booking.phone) && (
+                            {(booking.user_phone || booking.phone) && (
                               <p className="text-sm text-slate-500 flex items-center gap-1">
-                                {booking.user_email ? (
-                                  <>
-                                    <Mail className="h-3 w-3" />
-                                    {booking.user_email}
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                    </svg>
-                                    {booking.user_phone || booking.phone}
-                                  </>
-                                )}
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                {booking.user_phone || booking.phone}
                               </p>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-slate-50 text-slate-700 font-medium border-slate-200">
-                          {roomInfo}
-                        </Badge>
-                      </TableCell>
+                      <TableCell><Badge variant="outline" className="bg-slate-50 text-slate-700 font-medium border-slate-200">{roomInfo}</Badge></TableCell>
                       <TableCell className="text-slate-600">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell className="text-slate-600">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-right font-bold text-slate-900">
-                        ETB {(booking.total_price || 0).toLocaleString()}
-                      </TableCell>
+                      <TableCell className="text-right font-bold text-slate-900">ETB {(booking.total_price || 0).toLocaleString()}</TableCell>
                       <TableCell>
                         <Badge className={`${
-                          booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
-                          booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' :
-                          booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500 shadow-blue-500/25' :
-                          'bg-slate-500'
-                        } text-white border-none px-3 py-1 font-medium shadow-sm`}>
-                          {booking.status}
-                        </Badge>
+                          booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500' :
+                          booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500' :
+                          booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500' : 'bg-slate-500'
+                        } text-white border-none px-3 py-1 font-medium shadow-sm`}>{booking.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300"
-                            >
-                              <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
-                              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-                            {booking.status?.toLowerCase() === 'pending' && (
-                              <DropdownMenuItem 
-                                onClick={() => onUpdateStatus(bookingId, 'Confirmed')}
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                <TranslationText text="Approve" language={language} />
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300">
+                                <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                              {booking.status?.toLowerCase() === 'pending' && (
+                                <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'Confirmed')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors">
+                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Approve" language={language} />
+                                </DropdownMenuItem>
+                              )}
+                              {booking.id_document_url && (
+                                <DropdownMenuItem onClick={() => handleViewId(booking.id_document_url)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors">
+                                  <IdCard className="h-4 w-4" /><TranslationText text="View ID" language={language} />
+                                </DropdownMenuItem>
+                              )}
+                              {booking.status?.toLowerCase() === 'confirmed' && (
+                                <DropdownMenuItem onClick={() => handleEarlyCheckoutClick(bookingId)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors">
+                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Complete Early" language={language} />
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator className="bg-slate-100" />
+                              <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'cancelled')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors">
+                                <X className="h-4 w-4" /><TranslationText text="Cancel Booking" language={language} />
                               </DropdownMenuItem>
-                            )}
-                            
-                            {booking.id_document_url && (
-                              <DropdownMenuItem 
-                                onClick={() => handleViewId(booking.id_document_url)}
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
-                              >
-                                <IdCard className="h-4 w-4" />
-                                <TranslationText text="View ID" language={language} />
-                              </DropdownMenuItem>
-                            )}
-
-                            {booking.status?.toLowerCase() === 'confirmed' && (
-                              <DropdownMenuItem 
-                                onClick={() => handleEarlyCheckoutClick(bookingId)}
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                <TranslationText text="Complete Early" language={language} />
-                              </DropdownMenuItem>
-                            )}
-
-                            <DropdownMenuSeparator className="bg-slate-100" />
-                            
-                            <DropdownMenuItem 
-                              onClick={() => onUpdateStatus(bookingId, 'cancelled')}
-                              className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                              <TranslationText text="Cancel Booking" language={language} />
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                     );
@@ -714,38 +593,43 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               </Table>
             </div>
             {filteredBookings.length === 0 && (
-              <div className="py-20 text-center bg-white">
-                <p className="text-slate-400 font-medium italic">No bookings found for this filter.</p>
-              </div>
+              <div className="py-20 text-center bg-white"><p className="text-slate-400 font-medium italic">No bookings found for this filter.</p></div>
             )}
 
-            {/* Pagination Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-semibold text-slate-900">{bookings.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> bookings
+            {/* Unified Pagination Footer */}
+            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="text-sm font-bold text-slate-500">
+                Showing <span className="text-slate-900">{bookings.length}</span> of <span className="text-slate-900">{totalItems}</span> bookings
               </div>
+
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
-                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                <div className="flex items-center gap-2">
+                  <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
+                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                      <div className="flex items-center"><span>{pagination.limit} / page</span></div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  {getPageNumbers().map(pageNum => (
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                      {pageNum}
+                    </Button>
+                  ))}
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -765,26 +649,19 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       {showEarlyCheckoutConfirm && ReactDOM.createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowEarlyCheckoutConfirm(false)}>
           <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-            <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-              <AlertCircle className="w-8 h-8 text-amber-600" />
-            </div>
+            <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6 mx-auto"><AlertCircle className="w-8 h-8 text-amber-600" /></div>
             <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Confirm Early Checkout</h3>
             <p className="text-slate-600 text-center mb-8">Are you sure you want to complete this booking early and make the room available?</p>
-            
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setShowEarlyCheckoutConfirm(false)}>Cancel</Button>
-              <Button 
-                className="flex-1 rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25"
-                disabled={isProcessingEarlyCheckout}
-                onClick={async () => {
+              <Button className="flex-1 rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25" disabled={isProcessingEarlyCheckout} onClick={async () => {
                   if (pendingEarlyCheckoutId) {
                     setIsProcessingEarlyCheckout(true);
                     await handleEarlyCheckoutWithMessages(pendingEarlyCheckoutId);
                     setIsProcessingEarlyCheckout(false);
                     setShowEarlyCheckoutConfirm(false);
                   }
-                }}
-              >
+                }}>
                 {isProcessingEarlyCheckout ? 'Processing...' : 'Confirm'}
               </Button>
             </div>
@@ -798,95 +675,21 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
-                  <IdCard className="h-5 w-5" />
-                </div>
+                <div className="p-2 rounded-xl bg-purple-100 text-purple-600"><IdCard className="h-5 w-5" /></div>
                 <h3 className="text-xl font-bold text-slate-900">ID Document</h3>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowIdModal(false)} className="rounded-xl"><X className="h-5 w-5" /></Button>
             </div>
-            
             <div className="flex-1 overflow-auto p-8 bg-slate-50 flex items-center justify-center">
-              <img 
-                src={getFullImageUrl(selectedIdUrl)} 
-                alt="ID Document" 
-                className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-2xl border-4 border-white"
-              />
+              <img src={getFullImageUrl(selectedIdUrl)} alt="ID Document" className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-2xl border-4 border-white" />
             </div>
-            
             <div className="p-6 border-t bg-white flex justify-end gap-3">
               <Button variant="outline" className="rounded-xl px-6" onClick={() => window.open(getFullImageUrl(selectedIdUrl), '_blank')}>Open Full</Button>
-              <Button className="rounded-xl px-8 bg-slate-900 text-white" onClick={() => setShowIdModal(false)}>Close</Button>
+              <Button onClick={() => setShowIdModal(false)} className="rounded-xl px-8 bg-blue-600 hover:bg-blue-700">Close</Button>
             </div>
           </div>
         </div>,
         document.body
-      )}
-
-      {/* Walk-In Booking Modal */}
-      {showWalkInModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add Walk-In Booking</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowWalkInModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Guest Name</label>
-              <input
-                type="text"
-                value={walkInForm.guestName}
-                onChange={(e) => setWalkInForm(prev => ({ ...prev, guestName: e.target.value }))}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter guest name"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone Number</label>
-              <input
-                type="tel"
-                value={walkInForm.phoneNumber}
-                onChange={(e) => setWalkInForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter phone number"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Package</label>
-              <select
-                value={walkInForm.packageId}
-                onChange={(e) => setWalkInForm(prev => ({ ...prev, packageId: e.target.value }))}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">Select a package</option>
-                {packages.map(pkg => (
-                  <option key={pkg.package_id} value={pkg.package_id}>
-                    {pkg.name} - ETB {pkg.price_per_night}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 mt-6">
-            <Button variant="outline" onClick={() => setShowWalkInModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleWalkInSubmit}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Create Booking
-            </Button>
-          </div>
-        </div>
-      </div>
       )}
     </div>
   );

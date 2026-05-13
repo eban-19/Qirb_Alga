@@ -6,13 +6,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   LayoutDashboard, 
   BarChart3, 
-  TrashIcon 
+  TrashIcon,
+  ChevronLeft, 
+  ChevronRight, 
+  MoreVertical, 
+  Edit2, 
+  RotateCcw, 
+  CheckCircle2, 
+  XCircle, 
+  ChevronDown 
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
-
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RoomsSectionProps {
   rooms: any[];
@@ -23,9 +42,11 @@ interface RoomsSectionProps {
   onBulkUpload?: () => void;
   pagination?: { page: number; limit: number };
   onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
   selectedRows?: (string | number)[];
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
+  onUpdateStatus?: (roomId: string | number, currentStatus: string) => void;
   totalItems?: number;
   language?: any;
 }
@@ -39,6 +60,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onBulkUpload,
   pagination = { page: 1, limit: 10 },
   onPageChange,
+  onLimitChange,
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
@@ -47,6 +69,16 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
 }) => {
   // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
   
   return (
     <div className="space-y-6">
@@ -193,24 +225,49 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 gap-2 hover:bg-red-50 hover:text-red-600 transition-all duration-300 h-10"
-                        onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
-                        disabled={room.status === 'Occupied'}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        <span className="hidden sm:inline">
-                          {room.status === 'Occupied' ? (
-                            <TranslationText text="Occupied" language={language} />
-                          ) : (
-                            <TranslationText text="Delete" language={language} />
-                          )}
-                        </span>
-                      </Button>
-                    </div>
+                     <div className="flex gap-2">
+                       <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                           <Button 
+                             variant="outline" 
+                             className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
+                           >
+                             <span className="flex items-center gap-2 font-bold">
+                               <TranslationText text="Actions" language={language} />
+                             </span>
+                             <ChevronDown className="h-4 w-4 opacity-50" />
+                           </Button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                           <DropdownMenuItem 
+                             onClick={() => onUpdateStatus?.(room.id, room.status)}
+                             disabled={room.status === 'Occupied'}
+                             className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
+                           >
+                             <RotateCcw className="h-4 w-4" />
+                             <div className="flex flex-col text-left">
+                               <span className="font-bold text-sm">Toggle Status</span>
+                               <span className="text-[10px] text-slate-500">
+                                 {room.status === 'Occupied' ? 'Active booking' : (room.status === 'Available' ? 'Mark as Occupied' : 'Mark as Available')}
+                               </span>
+                             </div>
+                           </DropdownMenuItem>
+                           <div className="h-px bg-slate-100 my-1" />
+                           <DropdownMenuItem 
+                             onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                             disabled={room.status === 'Occupied'}
+                             className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 transition-colors text-red-500"
+                           >
+                             <TrashIcon className="h-4 w-4" />
+                             <div className="flex flex-col text-left">
+                               <span className="font-bold text-sm">Delete Room</span>
+                               <span className="text-[10px] text-slate-500">Remove permanently</span>
+                             </div>
+                           </DropdownMenuItem>
+                         </DropdownMenuContent>
+                       </DropdownMenu>
+                     </div>
+
                   </CardContent>
                 </Card>
               ))}
@@ -254,7 +311,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                     <TableHead className="font-bold">
                       <TranslationText text="Capacity" language={language} />
                     </TableHead>
-                    <TableHead className="font-bold">
+                    <TableHead className="font-bold text-right pr-4">
                       <TranslationText text="Actions" language={language} />
                     </TableHead>
                   </TableRow>
@@ -293,17 +350,39 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         </TableCell>
                         <TableCell>{room.capacity}</TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="hover:bg-red-50 hover:text-red-600"
-                              onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
-                              disabled={room.status === 'Occupied'}
-                              title={room.status === 'Occupied' ? 'Cannot delete occupied room' : 'Delete room'}
-                            >
-                              <TrashIcon className="h-3.5 w-3.5" />
-                            </Button>
+                          <div className="flex justify-end pr-4">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                                >
+                                  <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                                <DropdownMenuItem 
+                                  onClick={() => onUpdateStatus?.(room.id, room.status)}
+                                  disabled={room.status === 'Occupied'}
+                                  className={`flex items-center gap-2 p-2.5 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
+                                >
+                                  {room.status === 'Available' ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                                  <span className="font-medium text-sm">
+                                    {room.status === 'Occupied' ? 'Locked (Occupied)' : (room.status === 'Available' ? 'Mark Occupied' : 'Mark Available')}
+                                  </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                                  disabled={room.status === 'Occupied'}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                  <span className="font-medium text-sm">Delete Room</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -313,33 +392,68 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               </Table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-semibold text-slate-900">{safeRooms.length}</span> of <span className="font-semibold text-slate-900">{totalItems}</span> rooms
+            {/* Unified Pagination Footer */}
+            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="text-sm font-bold text-slate-500">
+                Showing <span className="text-slate-900">{safeRooms.length}</span> of <span className="text-slate-900">{totalItems}</span> rooms
               </div>
+
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm">
-                  Page {pagination.page} of {Math.ceil(totalItems / pagination.limit) || 1}
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={String(pagination.limit)}
+                    onValueChange={(val) => onLimitChange?.(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                      <div className="flex items-center">
+                        <span>{pagination.limit} / page</span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= (Math.ceil(totalItems / pagination.limit) || 1)}
-                  className="h-9 px-3 rounded-xl border-slate-200 hover:bg-white transition-all shadow-sm"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                    disabled={pagination.page <= 1}
+                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  {getPageNumbers().map(pageNum => (
+                    <Button
+                      key={pageNum}
+                      variant={pagination.page === pageNum ? "default" : "ghost"}
+                      onClick={() => onPageChange?.(pageNum)}
+                      className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
+                        pagination.page === pageNum 
+                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
+                          : "text-slate-500 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  ))}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                    disabled={pagination.page >= totalPages}
+                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

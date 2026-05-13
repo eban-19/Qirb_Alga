@@ -17,7 +17,7 @@ interface UploadedFile {
 /**
  * Helper function to upload file locally
  */
-const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
+const uploadToCloudinary = async (file: any): Promise<string> => {
   try {
     console.log(' Uploading file locally:', file.filename);
     
@@ -27,9 +27,23 @@ const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
     
-    // Move file to uploads directory
+    // Move file to uploads directory ONLY if it's not already there
     const localPath = path.join(uploadsDir, file.filename);
-    fs.renameSync(file.path, localPath);
+    
+    // Multer diskStorage might already save it here, so check before renaming
+    if (file.path && file.path !== localPath) {
+      try {
+        fs.renameSync(file.path, localPath);
+      } catch (renameError: any) {
+        // Fallback for cross-device move
+        if (renameError.code === 'EXDEV') {
+          fs.copyFileSync(file.path, localPath);
+          fs.unlinkSync(file.path);
+        } else {
+          throw renameError;
+        }
+      }
+    }
     
     console.log(' File saved locally:', localPath);
     
@@ -72,7 +86,18 @@ router.post('/test', upload.single('image'), async (req: any, res: express.Respo
 });
 
 // Upload a single image
-router.post('/single', authenticateToken as any, upload.single('image'), async (req: any, res: express.Response) => {
+router.post('/single', authenticateToken as any, (req: any, res: any, next: any) => {
+  upload.single('image')(req, res, (err: any) => {
+    if (err) {
+      console.error('Multer upload error:', err);
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message || 'File upload failed' 
+      });
+    }
+    next();
+  });
+}, async (req: any, res: express.Response) => {
   try {
     console.log('Authenticated upload route hit');
     
@@ -84,7 +109,7 @@ router.post('/single', authenticateToken as any, upload.single('image'), async (
 
     res.json({
       success: true,
-      message: 'File uploaded to Cloudinary successfully',
+      message: 'File uploaded successfully',
       data: {
         filename: req.file.filename,
         url: cloudUrl,
@@ -95,7 +120,7 @@ router.post('/single', authenticateToken as any, upload.single('image'), async (
     console.error('Upload error details:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Upload failed', 
+      message: 'Upload processing failed', 
       error: error.message 
     });
   }

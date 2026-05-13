@@ -10,10 +10,11 @@ const router = express.Router();
 interface PackageData {
   name: string;
   description: string;
-  price: number;
+  price: any; // Use any to handle string from frontend
   services: any[];
   isMostPopular: boolean;
   image?: string;
+  images?: string[];
 }
 
 interface UploadedFile {
@@ -136,10 +137,11 @@ router.post('/pensions/:pensionId/packages', authenticateToken as any, upload.si
           pension_id: pId,
           name: packageData.name,
           description: packageData.description,
-          price: packageData.price,
+          price: parseFloat(packageData.price) || 0,
           inclusions: packageData.services || [],
           is_most_popular: !!packageData.isMostPopular,
-          image_url: imageUrl,
+          image_url: imageUrl || (packageData.images && packageData.images.length > 0 ? packageData.images[0] : ''),
+          images: packageData.images || [],
           name_ml: { en: packageData.name },
           description_ml: { en: packageData.description }
         }
@@ -207,10 +209,11 @@ router.put('/pensions/:pensionId/packages/:packageId', authenticateToken as any,
         data: {
           name: packageData.name !== undefined ? packageData.name : existingPackage.name,
           description: packageData.description !== undefined ? packageData.description : existingPackage.description,
-          price: packageData.price !== undefined ? packageData.price : existingPackage.price,
+          price: packageData.price !== undefined ? parseFloat(packageData.price) : existingPackage.price,
           inclusions: (packageData.services !== undefined ? packageData.services : existingPackage.inclusions) as any,
           is_most_popular: packageData.isMostPopular !== undefined ? !!packageData.isMostPopular : existingPackage.is_most_popular,
-          image_url: imageUrl,
+          image_url: imageUrl || (packageData.images && packageData.images.length > 0 ? packageData.images[0] : existingPackage.image_url),
+          images: packageData.images !== undefined ? packageData.images : (existingPackage.images as any),
           name_ml: (packageData.name !== undefined ? { en: packageData.name } : existingPackage.name_ml) as any,
           description_ml: (packageData.description !== undefined ? { en: packageData.description } : existingPackage.description_ml) as any
         }

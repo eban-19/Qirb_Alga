@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X } from "lucide-react";
+import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,6 +57,9 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | undefined>(room.videoUrl || room.images[0]);
   const [activeMediaType, setActiveMediaType] = useState<'video'|'image'>(room.videoUrl ? 'video' : 'image');
   const mapsUrl = getGoogleMapsNavigationUrl(room);
+  
+  // State to track active image per package name
+  const [activePackageImages, setActivePackageImages] = useState<Record<string, string>>({});
 
   // Reset when room changes
   useEffect(() => {
@@ -93,13 +96,13 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   };
 
   return (
-    <div className="w-full bg-background pt-24 pb-16 min-h-screen">
+    <div className="w-full bg-background pt-20 pb-16 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8">
         
         {/* Header & Back Button */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <div>
-            <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="sm" className="mt-4 mb-2 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
             <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{tr(room.name_ml || room.name)}</h1>
@@ -117,39 +120,11 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
         </div>
 
         {/* Layout: Content */}
-        <div className="max-w-5xl mx-auto space-y-16">
+        <div className="max-w-7xl mx-auto space-y-10">
           
-          {/* About Section */}
-          <section className="space-y-6">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.aboutTitle || "About the Property"}</h2>
-              <div className="h-1 w-20 bg-primary rounded-full"></div>
-            </div>
-            
-            <div className="bg-card border border-border p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
-              <p className="text-lg leading-relaxed text-muted-foreground">{tr(room.description_ml || room.description)}</p>
-              
-              <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-border">
-                <div>
-                  <h3 className="font-semibold text-lg text-foreground mb-2 flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-primary" />
-                    {t.rooms.ownerInfoTitle}
-                  </h3>
-                  <p className="text-muted-foreground">{tr(room.owner_info_ml || room.ownerInfo)}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-foreground mb-2 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    {t.rooms.roomDetailsTitle}
-                  </h3>
-                  <p className="text-muted-foreground">{tr(room.room_details_ml || room.roomDetails)}</p>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Packages Tabs */}
-          <section className="space-y-8" style={{ scrollBehavior: 'auto' }}>
+          <section className="space-y-4" style={{ scrollBehavior: 'auto' }}>
             <div className="space-y-4 text-center md:text-left">
               <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
               <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
@@ -157,7 +132,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               
-              <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-8 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
+              <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-6 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
                 {sortedPackages.map((pkg) => (
                   <TabsTrigger
                     key={pkg.name}
@@ -173,7 +148,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                 const isPopular = pkg.isMostPopular;
                 return (
                   <TabsContent key={pkg.name} value={pkg.name} className="mt-0 focus-visible:outline-none scroll-mt-0">
-                    <div className={`grid lg:grid-cols-2 gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isPopular ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
+                    <div className={`grid lg:grid-cols-[1fr_1.4fr] gap-8 md:gap-12 bg-card rounded-3xl p-6 md:p-10 border-2 transition-all ${isPopular ? 'border-primary shadow-xl' : 'border-border shadow-md'}`}>
                       
                       {/* Package Details */}
                       <div className="flex flex-col justify-center order-2 lg:order-1">
@@ -266,13 +241,13 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                       </div>
 
                       {/* Package Media Demo */}
-                      <div className="order-1 lg:order-2">
-                        <div className="relative w-full h-64 md:h-full lg:min-h-[400px] rounded-2xl overflow-hidden shadow-inner group bg-muted border border-border">
+                      <div className="order-1 lg:order-2 space-y-4">
+                        <div className="relative w-full h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-inner group bg-muted border border-border">
                           {pkg.videoUrl ? (
                             <>
                               <video 
                                 src={pkg.videoUrl} 
-                                poster={getFullImageUrl(pkg.image)}
+                                poster={getFullImageUrl(activePackageImages[pkg.name] || pkg.image)}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 autoPlay 
                                 loop 
@@ -284,45 +259,124 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                               </div>
                             </>
                           ) : (
-                            (() => {
-                              const imageSrc = getFullImageUrl(pkg.image);
-                              console.log('🔍 Package image rendering:', {
-                                packageName: pkg.name,
-                                originalImage: pkg.image,
-                                finalSrc: imageSrc
-                              });
-                              return (
-                                <img 
-                                  src={imageSrc}
-                                  alt={pkg.name} 
-                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                                  onError={(e) => {
-                                    console.error('🔍 Image load error:', {
-                                      packageName: pkg.name,
-                                      src: imageSrc,
-                                      error: e
-                                    });
-                                  }}
-                                  onLoad={(e) => {
-                                    console.log('🔍 Image loaded successfully:', {
-                                      packageName: pkg.name,
-                                      src: imageSrc
-                                    });
-                                  }}
-                                />
-                              );
-                            })()
+                            <img 
+                              src={getFullImageUrl(activePackageImages[pkg.name] || pkg.image)}
+                              alt={pkg.name} 
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                            />
+                          )}
+
+                          {/* Next/Prev Navigation Buttons */}
+                          {pkg.images && pkg.images.length > 1 && (
+                            <div className="absolute inset-0 flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-12 w-12 rounded-full bg-white/80 backdrop-blur-sm pointer-events-auto shadow-lg hover:bg-white"
+                                onClick={() => {
+                                  const images = pkg.images || [];
+                                  const current = activePackageImages[pkg.name] || pkg.image;
+                                  const idx = images.indexOf(current);
+                                  const prevIdx = (idx - 1 + images.length) % images.length;
+                                  setActivePackageImages(prev => ({ ...prev, [pkg.name]: images[prevIdx] }));
+                                }}
+                              >
+                                <ChevronLeft className="h-6 w-6" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-12 w-12 rounded-full bg-white/80 backdrop-blur-sm pointer-events-auto shadow-lg hover:bg-white"
+                                onClick={() => {
+                                  const images = pkg.images || [];
+                                  const current = activePackageImages[pkg.name] || pkg.image;
+                                  const idx = images.indexOf(current);
+                                  const nextIdx = (idx + 1) % images.length;
+                                  setActivePackageImages(prev => ({ ...prev, [pkg.name]: images[nextIdx] }));
+                                }}
+                              >
+                                <ChevronRight className="h-6 w-6" />
+                              </Button>
+                            </div>
                           )}
                         </div>
-                      </div>
 
+                        {/* Thumbnail gallery if multiple images exist */}
+                        {pkg.images && pkg.images.length > 1 && (
+                          <div className="flex flex-wrap gap-4 overflow-x-auto pb-2 custom-scrollbar">
+                            {pkg.images.map((img: string, i: number) => {
+                              const currentActive = activePackageImages[pkg.name] || pkg.image;
+                              const isActive = currentActive === img;
+                              
+                              return (
+                                <button 
+                                  key={i}
+                                  onClick={() => setActivePackageImages(prev => ({ ...prev, [pkg.name]: img }))}
+                                  className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 shadow-sm ${
+                                    isActive 
+                                      ? 'border-primary shadow-md z-10' 
+                                      : 'border-transparent opacity-60 grayscale-[0.5] blur-[1px] hover:opacity-100 hover:grayscale-0 hover:blur-0'
+                                  }`}
+                                >
+                                  <img src={getFullImageUrl(img)} className="w-full h-full object-cover" alt="" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Package Description Moved Outside the Grid Box */}
+                    {(pkg.description || pkg.description_ml) && (
+                      <div className="mt-8 p-8 bg-card rounded-3xl border border-border shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                            <Sparkles className="w-5 h-5" />
+                          </div>
+                          <h4 className="text-xl font-bold text-foreground">
+                            {t.rooms.packageDescription || "About this Package"}
+                          </h4>
+                        </div>
+                        <p className="text-lg leading-relaxed text-muted-foreground whitespace-pre-line">
+                          {tr(pkg.description_ml || pkg.description)}
+                        </p>
+                      </div>
+                    )}
                   </TabsContent>
                 );
               })}
             </Tabs>
           </section>
 
+          {/* About Section Moved to Bottom */}
+          <section className="space-y-6 pt-12 border-t border-border">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.aboutTitle || "About the Property"}</h2>
+              <div className="h-1 w-20 bg-primary rounded-full"></div>
+            </div>
+            
+            <div className="bg-card border border-border p-6 md:p-8 rounded-3xl shadow-sm space-y-6 transition-all hover:shadow-md">
+              <p className="text-lg leading-relaxed text-muted-foreground">{tr(room.description_ml || room.description)}</p>
+              
+              <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-border/50">
+                <div className="p-6 rounded-2xl bg-muted/20 border border-border/30">
+                  <h3 className="font-bold text-lg text-foreground mb-3 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                    {t.rooms.ownerInfoTitle}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">{tr(room.owner_info_ml || room.ownerInfo)}</p>
+                </div>
+                <div className="p-6 rounded-2xl bg-muted/20 border border-border/30">
+                  <h3 className="font-bold text-lg text-foreground mb-3 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    {t.rooms.roomDetailsTitle}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">{tr(room.room_details_ml || room.roomDetails)}</p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 

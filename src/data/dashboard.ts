@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   Contact, 
   FileCheck,
-  Home
+  Home,
+  Package
 } from 'lucide-react';
 
 export const sidebarLinks = [
@@ -21,6 +22,7 @@ export const sidebarLinks = [
   { id: "guests", labelKey: "guests", icon: "UserCircle" },
   { id: "staff", labelKey: "staff", icon: "Users" },
   { id: "pension-profile", labelKey: "pensionProfile", icon: "Building" },
+  { id: "packages", labelKey: "packages", icon: "Package" },
   { id: "transactions", labelKey: "transactions", icon: "ArrowLeftRight" },
   { id: "reports", labelKey: "reports", icon: "BarChart3" },
   {
@@ -49,7 +51,8 @@ export const getIcon = (name: string) => {
     ShieldCheck,
     Contact,
     FileCheck,
-    Home
+    Home,
+    Package
   };
   return icons[name] || LayoutDashboard;
 };

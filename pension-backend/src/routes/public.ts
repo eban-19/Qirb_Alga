@@ -20,6 +20,7 @@ interface Package {
   availableRoomsCount?: number;
   image_url?: string | null;
   is_most_popular?: number | boolean;
+  images?: string[];
 }
 
 interface Pension {
@@ -153,7 +154,8 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
             return [];
           })(),
           availableRooms: pkg.availableRoomsCount || 0,
-          isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
+          isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
+          images: Array.isArray(pkg.images) ? pkg.images : []
         }))
       };
     }));
@@ -277,7 +279,8 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
           return [];
         })(),
         availableRooms: pkg.availableRoomsCount || 0,
-        isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true
+        isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
+        images: Array.isArray(pkg.images) ? pkg.images : []
       }))
     };
 
