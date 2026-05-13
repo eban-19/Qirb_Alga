@@ -324,6 +324,8 @@ export const useDashboardData = (ui?: any) => {
               ownerInfo: userPension.owner_info || '',
               roomDetails: userPension.room_details || '',
               amenities: Array.isArray(userPension.amenities) ? userPension.amenities : [],
+              latitude: userPension.latitude ? Number(userPension.latitude) : undefined,
+              longitude: userPension.longitude ? Number(userPension.longitude) : undefined,
             });
           }
         } else {

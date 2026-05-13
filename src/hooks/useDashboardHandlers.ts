@@ -421,7 +421,9 @@ export const useDashboardHandlers = (
         capacity: ui.propertySettings.capacity,
         owner_info: ui.propertySettings.ownerInfo,
         room_details: ui.propertySettings.roomDetails,
-        image_url: ui.propertySettings.imageUrl
+        image_url: ui.propertySettings.imageUrl,
+        latitude: ui.propertySettings.latitude,
+        longitude: ui.propertySettings.longitude
       };
 
       // Upload profile image if selected

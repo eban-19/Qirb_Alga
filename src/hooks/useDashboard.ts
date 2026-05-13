@@ -79,7 +79,9 @@ export const useDashboard = () => {
     address: '', address_en: '', address_am: '', address_om: '',
     phone: '', email: '', capacity: '', image_url: '',
     owner_info: '', owner_info_en: '', owner_info_am: '', owner_info_om: '',
-    room_details: '', room_details_en: '', room_details_am: '', room_details_om: ''
+    room_details: '', room_details_en: '', room_details_am: '', room_details_om: '',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined
   });
 
   const [walkInForm, setWalkInForm] = useState({
@@ -98,7 +100,9 @@ export const useDashboard = () => {
   const [propertySettings, setPropertySettings] = useState({
     name: '', address: '', phone: '', email: '', description: '',
     imageUrl: '', ownerInfo: '', roomDetails: '', capacity: '',
-    amenities: [] as string[]
+    amenities: [] as string[],
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined
   });
   const [businessProfile, setBusinessProfile] = useState({
     businessName: '', businessEmail: '', businessPhone: ''

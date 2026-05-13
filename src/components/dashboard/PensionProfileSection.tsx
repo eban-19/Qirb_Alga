@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { LocationPicker } from '../ui/LocationPicker';
 import { 
   Building, 
   MapPin, 
@@ -94,6 +95,22 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 placeholder="e.g., Bole, Addis Ababa"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
+              
+              <div className="mt-4 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                <LocationPicker 
+                  onLocationSelect={(loc) => {
+                    setPropertySettings({
+                      ...propertySettings,
+                      address: loc.address,
+                      latitude: loc.lat,
+                      longitude: loc.lng
+                    });
+                  }}
+                  initialLat={propertySettings.latitude}
+                  initialLng={propertySettings.longitude}
+                  initialAddress={propertySettings.address}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">

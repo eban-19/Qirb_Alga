@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
@@ -34,6 +34,7 @@ const SearchField = ({ provider, onLocationSelect }: { provider: any, onLocation
     const searchControl = new (GeoSearchControl as any)({
       provider,
       style: 'bar',
+      position: 'topleft',
       showMarker: false,
       showPopup: false,
       autoClose: true,
@@ -146,12 +147,29 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         <MapContainer 
           center={position || defaultCenter} 
           zoom={13} 
+          maxZoom={21}
           style={{ height: '100%', width: '100%' }}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <LayersControl position="bottomright">
+            <LayersControl.BaseLayer checked name="Street View">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maxZoom={21}
+                maxNativeZoom={19}
+              />
+            </LayersControl.BaseLayer>
+            
+            <LayersControl.BaseLayer name="Satellite View">
+              <TileLayer
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={21}
+                maxNativeZoom={19}
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
+
           <SearchField provider={provider} onLocationSelect={onLocationSelect} />
           <MapEvents onMapClick={handleMapClick} />
           {position && <Marker position={position} />}
