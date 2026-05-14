@@ -1,7 +1,7 @@
 import * as jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { Response, NextFunction } from 'express';
-import { Role, UserStatus } from '@prisma/client';
+import { Role, UserStatus, SubscriptionStatus } from '@prisma/client';
 
 // Middleware to authenticate JWT token
 const authenticateToken = (req: any, res: Response, next: NextFunction) => {
@@ -75,6 +75,61 @@ const requireOwnerApproval = async (req: any, res: Response, next: NextFunction)
   }
 };
 
+// Middleware to check if user has active subscription
+const requireSubscription = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.userId;
+
+    // Admin bypass
+    if (req.user.role === 'admin' || req.user.role === Role.Admin) {
+      return next();
+    }
+
+    // Only owners need subscriptions
+    if (req.user.role !== Role.Owner && req.user.role !== 'owner') {
+      return next();
+    }
+
+    // Check user for trial status
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { created_at: true }
+    });
+
+    if (user) {
+      const trialDays = 14;
+      const trialExpiry = new Date(user.created_at!.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      if (new Date() < trialExpiry) {
+        return next(); // Trial is active
+      }
+    }
+
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        owner_id: userId,
+        status: SubscriptionStatus.ACTIVE,
+        end_date: { gt: new Date() }
+      }
+    });
+
+    if (!subscription) {
+      return res.status(403).json({
+        success: false,
+        message: 'Active subscription or trial required to access this feature',
+        requiresSubscription: true
+      });
+    }
+
+    next();
+  } catch (error: any) {
+    console.error('Subscription check error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error checking subscription status'
+    });
+  }
+};
+
 // Middleware to check user role
 const requireRole = (roles: string[]) => {
   return (req: any, res: Response, next: NextFunction) => {
@@ -107,5 +162,6 @@ export {
   authenticateToken,
   requireRole,
   requireAdmin,
-  requireOwnerApproval
+  requireOwnerApproval,
+  requireSubscription
 };

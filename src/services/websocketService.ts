@@ -36,7 +36,7 @@ class WebSocketService {
     this.isConnecting = true;
 
     try {
-      const wsUrl = `ws://localhost:3005/ws?token=${encodeURIComponent(token)}`;
+      const wsUrl = `ws://localhost:3006/ws?token=${encodeURIComponent(token)}`;
       console.log('🔌 Connecting to WebSocket:', wsUrl);
 
       this.ws = new WebSocket(wsUrl);

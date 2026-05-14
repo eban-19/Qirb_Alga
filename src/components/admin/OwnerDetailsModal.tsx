@@ -15,7 +15,7 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
     // If it's already a full URL, return as is
     if (documentPath.startsWith('http')) return documentPath;
     // Otherwise, prepend backend URL
-    return `http://localhost:3005${documentPath}`;
+    return `http://localhost:3006${documentPath}`;
   };
 
   return (

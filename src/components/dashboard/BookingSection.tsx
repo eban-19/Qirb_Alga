@@ -322,7 +322,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   useEffect(() => {
     const loadPackages = async () => {
       try {
-        const response = await fetch('http://localhost:3005/api/packages');
+        const response = await fetch('http://localhost:3006/api/packages');
         const data = await response.json();
         if (data.success) setPackages(data.data || []);
       } catch (error) {
@@ -332,6 +332,38 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     loadPackages();
   }, []);
 
+  const handleWalkInSubmit = async () => {
+    if (!walkInForm.guestName || !walkInForm.phoneNumber || !walkInForm.packageId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3006/api/walk-in-bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guestName: walkInForm.guestName,
+          phoneNumber: walkInForm.phoneNumber,
+          packageId: walkInForm.packageId,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowWalkInModal(false);
+        setWalkInForm({ guestName: '', phoneNumber: '', packageId: '', checkIn: '', checkOut: '' });
+        alert('Walk-in booking created successfully!');
+      } else {
+        alert('Failed to create booking: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error creating walk-in booking:', error);
+      alert('Failed to create booking');
+    }
+  };
   const handleEarlyCheckoutWithMessages = async (bookingId: string | number) => {
     if (!inlineMessagesEnabled) {
       await onCompleteEarly(bookingId);
@@ -367,7 +399,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const getFullImageUrl = (imagePath: string | undefined | null): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    if (imagePath.startsWith('/uploads/')) return `http://localhost:3005${imagePath}`;
+    if (imagePath.startsWith('/uploads/')) return `http://localhost:3006${imagePath}`;
     return imagePath;
   };
 

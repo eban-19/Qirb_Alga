@@ -127,6 +127,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 { href: '/dashboard/admin/properties', label: 'Properties', icon: 'Building' },
                 { href: '/dashboard/admin/approvals', label: 'Pension Approvals', icon: 'CheckCircle' },
                 { href: '/dashboard/admin/bookings', label: 'Bookings', icon: 'CalendarCheck' },
+                { href: '/dashboard/admin/payments', label: 'Payments', icon: 'CreditCard' },
                 { href: '/dashboard/admin/alerts', label: 'Alerts', icon: 'Bell' }
               ].map((item) => (
                 <button

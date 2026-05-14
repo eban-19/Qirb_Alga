@@ -111,7 +111,7 @@ export const useAdminDashboard = () => {
         apiService.getAllBookings().catch(() => ({ data: [] })),
         apiService.getAdminMetrics().catch(() => ({ data: null })),
         apiService.getSystemAlerts().catch(() => ({ data: [] })),
-        fetch('http://localhost:3005/api/admin/pensions/all', {
+        fetch('http://localhost:3006/api/admin/pensions/all', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

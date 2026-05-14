@@ -23,16 +23,18 @@ import staffRoutes from './routes/staff';
 import uploadRoutes from './routes/uploads';
 import expenseRoutes from './routes/expenses';
 import adminRoutes from './routes/admin';
+import adminPaymentRoutes from './routes/admin-payments';
 import notificationRoutes from './routes/notifications';
 import translationRoutes from './routes/translations';
 import otpRoutes from './routes/otp';
 import paymentRoutes from './routes/payments';
 import subscriptionRoutes from './routes/subscriptions';
+import systemRoutes, { getSystemStatusController } from './routes/system';
 import availabilityRoutes from './routes/availability';
-import { getSystemStatusController } from './routes/system';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
 import scheduledCheckoutWorker from './services/scheduledCheckoutWorker';
+import subscriptionWorker from './services/subscriptionWorker';
 
 dotenv.config();
 
@@ -57,13 +59,13 @@ app.use('/uploads', (req, res, next) => {
 });
 
 // Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-
 app.use(cors({
   origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:4173', 'http://127.0.0.1:8081'],
   credentials: true
+}));
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 app.use(morgan('combined'));
@@ -93,8 +95,11 @@ app.use('/uploads', (req, res, next) => {
   })(req, res, next);
 });
 
-// API Routes
+// Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin-payments', adminPaymentRoutes);
+
+// API Routes
 app.use('/api/pensions', pensionRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/packages', packageRoutes);
@@ -113,6 +118,7 @@ app.use('/api/translations', translationRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/system', systemRoutes);
 app.use('/api/availability', availabilityRoutes);
 
 // System status endpoint
@@ -202,6 +208,7 @@ const startServer = async () => {
       
       wsServer.initialize(server);
       scheduledCheckoutWorker.start();
+      subscriptionWorker.start();
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -218,8 +225,9 @@ process.on('SIGTERM', () => {
 
   console.log('🛑 SIGTERM received, shutting down gracefully');
 
-  // Stop scheduled checkout worker
+  // Stop scheduled workers
   scheduledCheckoutWorker.stop();
+  subscriptionWorker.stop();
 
   server.close(() => {
 
@@ -237,8 +245,9 @@ process.on('SIGINT', () => {
 
   console.log('🛑 SIGINT received, shutting down gracefully');
 
-  // Stop scheduled checkout worker
+  // Stop scheduled workers
   scheduledCheckoutWorker.stop();
+  subscriptionWorker.stop();
 
   server.close(() => {
 

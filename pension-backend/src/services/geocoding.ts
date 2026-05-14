@@ -6,6 +6,13 @@ interface Coordinates {
   displayName: string;
 }
 
+interface Address {
+  city: string;
+  region: string;
+  country: string;
+  full_address: string;
+}
+
 /**
  * Simple geocoding service using OpenStreetMap Nominatim API (Free)
  * Converts address string to latitude/longitude coordinates
@@ -54,8 +61,16 @@ class GeocodingService {
       // Remove duplicates and try each variation
       const uniqueVariations = [...new Set(addressVariations)];
       
-      for (const variation of uniqueVariations) {
+      for (let i = 0; i < uniqueVariations.length; i++) {
+        const variation = uniqueVariations[i];
         try {
+          // Add 1 second delay between variations to comply with Nominatim policy
+          // (Skip delay for the very first attempt to keep it fast if it succeeds)
+          if (i > 0) {
+            console.log(`⏱️ Waiting 1s before trying next variation...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
           console.log(`🔍 Trying address variation: "${variation}"`);
           const query = encodeURIComponent(variation);
           const url = `${this.baseUrl}?q=${query}&format=json&limit=1&addressdetails=1`;
@@ -67,8 +82,8 @@ class GeocodingService {
             console.log(`✅ Found ${precision} coordinates for "${variation}":`, result);
             return result;
           }
-        } catch (error) {
-          console.log(`⚠️ Variation failed: "${variation}" - trying next...`);
+        } catch (error: any) {
+          console.log(`⚠️ Variation failed: "${variation}" (${error.message}) - trying next...`);
           continue;
         }
       }
@@ -193,11 +208,62 @@ class GeocodingService {
     }
   }
 
-  private async makeGeocodingRequest(url: string, originalAddress: string): Promise<Coordinates> {
+  private async makeGeocodingRequest(url: string, originalAddress: string, retryCount = 0): Promise<Coordinates> {
+    try {
+      const data = await this.makeRequest(url, retryCount);
+      const results = JSON.parse(data);
+      
+      if (results && results.length > 0) {
+        const result = results[0];
+        return {
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon),
+          displayName: result.display_name || originalAddress
+        };
+      } else {
+        throw new Error('No results found');
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  /**
+   * Convert coordinates to address
+   * @param lat - Latitude
+   * @param lng - Longitude
+   * @returns Promise<Address>
+   */
+  async reverseGeocode(lat: number, lng: number): Promise<Address> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+      
+      const response = await this.makeRequest(url);
+      const data = JSON.parse(response);
+      
+      return {
+        city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
+        region: data.address?.state || data.address?.region || 'Unknown',
+        country: data.address?.country || 'Ethiopia',
+        full_address: data.display_name || 'Unknown location'
+      };
+    } catch (error: any) {
+      console.error('❌ Reverse geocoding error:', error.message);
+      return {
+        city: 'Addis Ababa',
+        region: 'Addis Ababa',
+        country: 'Ethiopia',
+        full_address: 'Addis Ababa, Ethiopia'
+      };
+    }
+  }
+
+  private async makeRequest(url: string, retryCount = 0): Promise<string> {
     return new Promise((resolve, reject) => {
       const request = https.get(url, {
         headers: {
-          'User-Agent': this.userAgent
+          'User-Agent': this.userAgent,
+          'Accept': 'application/json'
         }
       }, (response) => {
         let data = '';
@@ -207,37 +273,35 @@ class GeocodingService {
         });
         
         response.on('end', () => {
-          try {
-            const results = JSON.parse(data);
-            
-            if (results && results.length > 0) {
-              const result = results[0];
-              const coordinates: Coordinates = {
-                lat: parseFloat(result.lat),
-                lng: parseFloat(result.lon),
-                displayName: result.display_name || originalAddress
-              };
-              
-              console.log(`✅ Geocoded "${originalAddress}" to:`, coordinates);
-              resolve(coordinates);
-            } else {
-              reject(new Error('No results found'));
-            }
-          } catch (parseError: any) {
-            console.error('❌ Error parsing geocoding response:', parseError);
-            reject(parseError);
+          if (response.statusCode !== 200) {
+            reject(new Error(`API returned status ${response.statusCode}`));
+            return;
           }
+
+          resolve(data);
         });
       });
 
-      request.on('error', (error) => {
-        console.error('❌ Geocoding request error:', error);
+      request.on('error', async (error: any) => {
+        // Handle ECONNRESET / socket hang up with a single retry
+        if ((error.code === 'ECONNRESET' || error.message.includes('socket hang up')) && retryCount < 1) {
+          console.log(`🔄 Connection reset, retrying request (attempt ${retryCount + 1})...`);
+          try {
+            await new Promise(resolveDelay => setTimeout(resolveDelay, 1000)); // Delay before retry
+            const retryResult = await this.makeRequest(url, retryCount + 1);
+            resolve(retryResult);
+          } catch (retryError) {
+            reject(retryError);
+          }
+          return;
+        }
+
         reject(error);
       });
 
-      request.setTimeout(10000, () => {
+      request.setTimeout(15000, () => {
         request.destroy();
-        reject(new Error('Geocoding request timeout'));
+        reject(new Error('Request timeout'));
       });
     });
   }

@@ -24,7 +24,7 @@ export const useSubscription = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3005/api/subscriptions/status/${user.id}`);
+      const response = await fetch(`http://localhost:3006/api/subscriptions/status/${user.id}`);
       const data = await response.json();
       if (data.success) {
         setStatus(data.data);

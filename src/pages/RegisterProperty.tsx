@@ -123,7 +123,7 @@ const RegisterProperty = () => {
           const formDataUpload = new FormData();
           formDataUpload.append('image', formData.idDocument);
           
-          const uploadResponse = await fetch('http://localhost:3005/api/uploads/test', {
+          const uploadResponse = await fetch('http://localhost:3006/api/uploads/test', {
             method: 'POST',
             body: formDataUpload,
           });

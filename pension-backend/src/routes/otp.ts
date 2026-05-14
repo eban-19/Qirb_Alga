@@ -1,5 +1,5 @@
 import express from 'express';
-import { createVerification, verifyOTP } from '../services/otpService';
+import { OTPService } from '../services/otp.service';
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.post('/send', async (req, res) => {
   }
 
   try {
-    const result = await createVerification(phone);
-    res.json(result);
+    await OTPService.sendOTP(phone);
+    res.json({ success: true, message: 'OTP sent successfully via SMS' });
   } catch (error: any) {
     console.error('OTP Send Error:', error);
     res.status(500).json({ success: false, message: error.message || 'Failed to send OTP' });
@@ -29,8 +29,12 @@ router.post('/verify', async (req, res) => {
   }
 
   try {
-    const result = await verifyOTP(phone, code);
-    res.json(result);
+    const isVerified = await OTPService.verifyOTP(phone, code);
+    if (isVerified) {
+      res.json({ success: true, message: 'Phone verified successfully' });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid or expired OTP code' });
+    }
   } catch (error: any) {
     console.error('OTP Verify Error:', error);
     res.status(400).json({ success: false, message: error.message || 'Verification failed' });
