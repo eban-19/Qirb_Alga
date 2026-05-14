@@ -33,7 +33,7 @@ class WebSocketServer {
   async handleConnection(ws: WebSocket, req: any) {
     try {
       // Extract token from query params or headers
-      const url = new URL(req.url, 'http://localhost:3005');
+      const url = new URL(req.url!, 'http://localhost:3006');
       const token = url.searchParams.get('token') || 
                     req.headers.authorization?.replace('Bearer ', '');
 
