@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('staff', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, staff: ids })}
                 totalItems={data.dataTotals.staff}
-                language={ui.language}
+                language={language}
               />
             )}
 
@@ -273,7 +273,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('bookings', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
                 totalItems={data.dataTotals.bookings}
-                language={ui.language}
+                language={language}
               />
             )}
 
@@ -296,7 +296,7 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, rooms: ids })}
                 onUpdateStatus={handlers.handleUpdateRoomStatus}
                 totalItems={data.dataTotals.rooms}
-                language={ui.language}
+                language={language}
               />
             )}
 
@@ -315,7 +315,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('guests', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, guests: ids })}
                 totalItems={data.dataTotals.guests}
-                language={ui.language}
+                language={language}
               />
             )}
 
@@ -332,7 +332,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
                 totalItems={data.dataTotals.transactions}
-                language={ui.language}
+                language={language}
               />
             )}
 
@@ -375,7 +375,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('packages', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, packages: ids })}
                 totalItems={data.dataTotals?.packages || data.packages.length}
-                language={ui.language}
+                language={language}
               />
             )}
 
