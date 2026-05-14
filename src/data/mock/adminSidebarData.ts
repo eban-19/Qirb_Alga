@@ -27,12 +27,6 @@ export interface SidebarLink {
 
 export const adminSidebarLinks: SidebarLink[] = [
   {
-    id: "dashboard-label",
-    label: "Dashboard",
-    icon: "LayoutDashboard",
-    isStatic: true
-  },
-  {
     id: "overview",
     label: "Overview",
     icon: "LayoutDashboard",
@@ -42,7 +36,7 @@ export const adminSidebarLinks: SidebarLink[] = [
   {
     id: "owners",
     label: "Owners",
-    icon: "Users", 
+    icon: "Users",
     href: "/dashboard/admin/owners",
     badge: null
   },
@@ -50,7 +44,7 @@ export const adminSidebarLinks: SidebarLink[] = [
     id: "properties",
     label: "Properties",
     icon: "Building",
-    href: "/dashboard/admin/properties", 
+    href: "/dashboard/admin/properties",
     badge: null
   },
   {
@@ -91,7 +85,7 @@ export const adminSidebarLinks: SidebarLink[] = [
 ];
 
 export const updateAlertsBadge = (count: number): SidebarLink[] => {
-  return adminSidebarLinks.map(link => 
+  return adminSidebarLinks.map(link =>
     link.id === "alerts" ? { ...link, badge: count.toString() } : link
   );
 };
@@ -118,7 +112,7 @@ export const getAdminIcon = (iconName: string) => {
 export const getBadgeVariant = (badgeType: string | null) => {
   // YouTube-style notification colors
   if (!badgeType || badgeType === "0") return null;
-  
+
   const count = parseInt(badgeType);
   if (count > 0) {
     return "destructive"; // Red color like YouTube notifications
