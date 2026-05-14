@@ -70,6 +70,9 @@ export default function AdminDashboard() {
             stats={ui.paymentStats}
             loading={ui.paymentLoading}
             onRefresh={ui.fetchPaymentData}
+            onExtendSubscription={handlers.handleExtendSubscription}
+            onTerminateFreeAccess={handlers.handleTerminateFreeAccess}
+            onToggleSubscriptionStatus={handlers.handleToggleSubscriptionStatus}
           />
         </TabsContent>
 
