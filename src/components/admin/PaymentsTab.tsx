@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -13,15 +12,20 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Tabs, TabsContent, TabsList, TabsTrigger 
 } from "@/components/ui/tabs";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { 
   CreditCard, Plus, Edit, Trash2, Calendar, User, Shield, 
   TrendingUp, Activity, CheckCircle, AlertTriangle, Clock,
-  ArrowUpRight, DollarSign, Gift
+  ArrowUpRight, DollarSign, Gift, MoreVertical, Ban, CheckCircle2, ZapOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { OverrideModal } from "./OverrideModal";
 import { PlanModal } from "./PlanModal";
+import { ExtendSubscriptionModal } from "./ExtendSubscriptionModal";
+import { ConfirmActionModal } from "./ConfirmActionModal";
 
 interface PaymentsTabProps {
   plans: any[];
@@ -30,6 +34,9 @@ interface PaymentsTabProps {
   stats: any;
   loading: boolean;
   onRefresh: () => void;
+  onExtendSubscription?: (subscriptionId: number, durationDays: number) => Promise<void>;
+  onTerminateFreeAccess?: (subscriptionId: number) => Promise<void>;
+  onToggleSubscriptionStatus?: (subscriptionId: number, status: "ACTIVE" | "DEACTIVATED") => Promise<void>;
 }
 
 export function PaymentsTab({ 
@@ -38,12 +45,32 @@ export function PaymentsTab({
   owners,
   stats, 
   loading,
-  onRefresh 
+  onRefresh,
+  onExtendSubscription,
+  onTerminateFreeAccess,
+  onToggleSubscriptionStatus
 }: PaymentsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState("subscriptions");
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  
+  // New Modals State
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: React.ReactNode;
+    confirmText: string;
+    variant: "destructive" | "default";
+    action: () => Promise<void>;
+  } | null>(null);
+
+  const handleOpenConfirm = (title: string, description: string, confirmText: string, variant: "destructive" | "default", action: () => Promise<void>) => {
+    setConfirmAction({ title, description, confirmText, variant, action });
+    setIsConfirmModalOpen(true);
+  };
 
   const metrics = [
     {
@@ -207,17 +234,94 @@ export function PaymentsTab({
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn(
-                          "font-medium border-none",
-                          sub.status === 'ACTIVE' && new Date(sub.end_date) > new Date() ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                        )}>
-                          {sub.status === 'ACTIVE' && new Date(sub.end_date) > new Date() ? "Active" : "Expired"}
-                        </Badge>
+                        {(() => {
+                          const now = new Date();
+                          const endDate = new Date(sub.end_date);
+                          const isExpired = endDate < now;
+                          
+                          if (sub.status === 'DEACTIVATED') {
+                            return <Badge className="bg-slate-100 text-slate-700 border-none">Deactivated</Badge>;
+                          }
+                          if (sub.status === 'CANCELLED') {
+                            return <Badge className="bg-slate-100 text-slate-700 border-none">Cancelled</Badge>;
+                          }
+                          if (sub.is_free) {
+                            return <Badge className="bg-purple-100 text-purple-700 border-none">Free Access</Badge>;
+                          }
+                          if (isExpired) {
+                            return <Badge className="bg-red-100 text-red-700 border-none">Expired</Badge>;
+                          }
+                          return <Badge className="bg-green-100 text-green-700 border-none">Active</Badge>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                          Extend
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100">
+                              <MoreVertical className="h-4 w-4 text-slate-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-slate-200">
+                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
+                              setSelectedSubscription(sub);
+                              setIsExtendModalOpen(true);
+                            }}>
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium text-slate-700">Extend Subscription</span>
+                            </DropdownMenuItem>
+                            
+                            {sub.is_free && (
+                              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
+                                handleOpenConfirm(
+                                  "Terminate Free Access",
+                                  `Are you sure you want to revoke free access for ${sub.owner?.full_name}? This will expire their subscription immediately.`,
+                                  "Terminate Access",
+                                  "destructive",
+                                  async () => {
+                                    if (onTerminateFreeAccess) await onTerminateFreeAccess(sub.subscription_id);
+                                  }
+                                );
+                              }}>
+                                <ZapOff className="h-4 w-4 text-red-600" />
+                                <span className="font-medium text-red-600">Terminate Free Access</span>
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuSeparator />
+
+                            {sub.status !== 'DEACTIVATED' ? (
+                              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
+                                handleOpenConfirm(
+                                  "Deactivate Subscription",
+                                  `Are you sure you want to deactivate ${sub.owner?.full_name}'s subscription? They will lose access to restricted features.`,
+                                  "Deactivate",
+                                  "destructive",
+                                  async () => {
+                                    if (onToggleSubscriptionStatus) await onToggleSubscriptionStatus(sub.subscription_id, "DEACTIVATED");
+                                  }
+                                );
+                              }}>
+                                <Ban className="h-4 w-4 text-amber-600" />
+                                <span className="font-medium text-amber-600">Deactivate Subscription</span>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
+                                handleOpenConfirm(
+                                  "Activate Subscription",
+                                  `Are you sure you want to reactivate ${sub.owner?.full_name}'s subscription?`,
+                                  "Activate",
+                                  "default",
+                                  async () => {
+                                    if (onToggleSubscriptionStatus) await onToggleSubscriptionStatus(sub.subscription_id, "ACTIVE");
+                                  }
+                                );
+                              }}>
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                <span className="font-medium text-green-600">Activate Subscription</span>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -329,6 +433,31 @@ export function PaymentsTab({
         onClose={() => setIsPlanModalOpen(false)}
         plan={selectedPlan}
         onSuccess={onRefresh}
+      />
+
+      <ExtendSubscriptionModal 
+        isOpen={isExtendModalOpen}
+        onClose={() => {
+          setIsExtendModalOpen(false);
+          setSelectedSubscription(null);
+        }}
+        subscription={selectedSubscription}
+        onExtend={async (id, days) => {
+          if (onExtendSubscription) await onExtendSubscription(id, days);
+        }}
+      />
+
+      <ConfirmActionModal 
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setConfirmAction(null);
+        }}
+        title={confirmAction?.title || ""}
+        description={confirmAction?.description || ""}
+        confirmText={confirmAction?.confirmText || "Confirm"}
+        variant={confirmAction?.variant || "default"}
+        onConfirm={confirmAction?.action || (async () => {})}
       />
     </div>
   );
