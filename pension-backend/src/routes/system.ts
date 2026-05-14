@@ -1,99 +1,101 @@
-import { Request, Response } from 'express';
+import * as express from 'express';
 import prisma from '../lib/prisma';
-import fs from 'fs';
-import path from 'path';
+import { authenticateToken, requireAdmin } from '../middleware/auth';
 
-interface SystemStatus {
-  status: 'online' | 'offline' | 'degraded';
-  uptime: number;
-  database: boolean;
-  api: boolean;
-  storage: boolean;
-  lastCheck: string;
-  responseTime: number;
-}
+const router = express.Router();
 
-const getSystemStatus = async (): Promise<SystemStatus> => {
-  const startTime = Date.now();
+// Initialize default settings if they don't exist
+const initializeSettings = async () => {
+  const defaults = [
+    { key: 'VAT_PERCENTAGE', value: '15', description: 'Value Added Tax percentage' },
+    { key: 'SERVICE_FEE_PERCENTAGE', value: '5', description: 'Service fee percentage for bookings' }
+  ];
+
+  for (const setting of defaults) {
+    const existing = await prisma.systemSetting.findUnique({
+      where: { key: setting.key }
+    });
+
+    if (!existing) {
+      await prisma.systemSetting.create({
+        data: setting
+      });
+      console.log(`✅ Initialized setting: ${setting.key}=${setting.value}`);
+    }
+  }
+};
+
+// Get all system settings (Public for VAT/Service Fee)
+router.get('/settings', async (req: express.Request, res: express.Response) => {
+  try {
+    const settings = await prisma.systemSetting.findMany();
+    const settingsMap = settings.reduce((acc: any, curr) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+    
+    res.json({ success: true, data: settingsMap });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get raw settings (Admin only)
+router.get('/settings/raw', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const settings = await prisma.systemSetting.findMany({
+      orderBy: { key: 'asc' }
+    });
+    res.json({ success: true, data: settings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Update settings (Admin only)
+router.put('/settings', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  const { settings } = req.body; // Expecting { key: value }
   
   try {
-    // Check database connection
-    const databaseStatus = await checkDatabase();
-    
-    // Check API functionality
-    const apiStatus = await checkAPI();
-    
-    // Check storage (uploads directory)
-    const storageStatus = checkStorage();
-    
-    const responseTime = Date.now() - startTime;
-    
-    // Determine overall status
-    const allSystemsUp = databaseStatus && apiStatus && storageStatus;
-    const someSystemsDown = !databaseStatus || !apiStatus || !storageStatus;
-    
-    return {
-      status: allSystemsUp ? 'online' : someSystemsDown ? 'degraded' : 'offline',
-      uptime: process.uptime(),
-      database: databaseStatus,
-      api: apiStatus,
-      storage: storageStatus,
-      lastCheck: new Date().toISOString(),
-      responseTime
-    };
-  } catch (error) {
-    return {
-      status: 'offline',
-      uptime: process.uptime(),
-      database: false,
-      api: false,
-      storage: false,
-      lastCheck: new Date().toISOString(),
-      responseTime: Date.now() - startTime
-    };
-  }
-};
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, message: 'Invalid settings format' });
+    }
 
-const checkDatabase = async (): Promise<boolean> => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
+    const updates = [];
+    for (const [key, value] of Object.entries(settings)) {
+      updates.push(
+        prisma.systemSetting.upsert({
+          where: { key },
+          update: { value: String(value) },
+          create: { key, value: String(value) }
+        })
+      );
+    }
 
-const checkAPI = async (): Promise<boolean> => {
-  try {
-    // Check if API routes are responsive
-    return true; // For now, assume API is working if we can reach this endpoint
-  } catch (error) {
-    return false;
+    await prisma.$transaction(updates);
+    
+    res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
-const checkStorage = (): boolean => {
-  try {
-    const uploadsPath = path.join(__dirname, '../../uploads');
-    return fs.existsSync(uploadsPath);
-  } catch (error) {
-    return false;
-  }
-};
+// Run initialization
+initializeSettings().catch(err => console.error('Failed to initialize system settings:', err));
 
-export const getSystemStatusController = async (req: Request, res: Response) => {
+export const getSystemStatusController = async (req: express.Request, res: express.Response) => {
   try {
-    const status = await getSystemStatus();
+    const dbStatus = await prisma.$queryRaw`SELECT 1`.then(() => 'Connected').catch(() => 'Disconnected');
     res.json({
       success: true,
-      data: status,
-      timestamp: new Date().toISOString()
+      status: 'OK',
+      timestamp: new Date(),
+      database: dbStatus,
+      uptime: process.uptime()
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get system status',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export default router;

@@ -23,7 +23,7 @@ const BookingSuccess = () => {
 
       try {
         // 1. Verify Payment
-        const verifyRes = await fetch(`http://localhost:3005/api/payments/verify/${txRef}`);
+        const verifyRes = await fetch(`http://localhost:3006/api/payments/verify/${txRef}`);
         const verifyData = await verifyRes.json();
         
         console.log('🔍 Verification Data Received:', verifyData);

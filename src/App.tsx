@@ -77,6 +77,16 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/dashboard/admin/payments" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               
               {/* Footer Pages */}
               <Route path="/about" element={<About />} />

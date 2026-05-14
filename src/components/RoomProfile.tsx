@@ -37,12 +37,12 @@ const getFullImageUrl = (imagePath: string | undefined | null): string => {
   
   // If it's an uploaded file path (/uploads/), prepend the backend URL
   if (imagePath.startsWith('/uploads/')) {
-    return `http://localhost:3005${imagePath}`;
+    return `http://localhost:3006${imagePath}`;
   }
   
   // If it's a relative path without /uploads/, prepend it
   const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  return `http://localhost:3005/uploads${normalizedPath}`;
+  return `http://localhost:3006/uploads${normalizedPath}`;
 };
 
 interface RoomProfileProps {

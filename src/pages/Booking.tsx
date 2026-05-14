@@ -29,12 +29,12 @@ const getFullImageUrl = (imagePath: string | undefined | null): string => {
   
   // If it's an uploaded file path (/uploads/), prepend the backend URL
   if (imagePath.startsWith('/uploads/')) {
-    return `http://localhost:3005${imagePath}`;
+    return `http://localhost:3006${imagePath}`;
   }
   
   // If it's a relative path without /uploads/, prepend it
   const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  return `http://localhost:3005/uploads${normalizedPath}`;
+  return `http://localhost:3006/uploads${normalizedPath}`;
 };
 
 const Booking = () => {
@@ -93,7 +93,7 @@ const Booking = () => {
     }
     setIsSendingOtp(true);
     try {
-      const response = await fetch('http://localhost:3005/api/otp/send', {
+      const response = await fetch('http://localhost:3006/api/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: formData.phone })
@@ -119,7 +119,7 @@ const Booking = () => {
       return;
     }
     try {
-      const response = await fetch('http://localhost:3005/api/otp/verify', {
+      const response = await fetch('http://localhost:3006/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: formData.phone, code: otpCode })
@@ -169,15 +169,39 @@ const Booking = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const [systemSettings, setSystemSettings] = useState<Record<string, string>>({
+    VAT_PERCENTAGE: "15",
+    SERVICE_FEE_PERCENTAGE: "0"
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('http://localhost:3006/api/system/settings');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setSystemSettings(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch system settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   // Calculate pricing
   const checkInDate = new Date(formData.checkIn);
   const checkOutDate = new Date(formData.checkOut);
   const diffTime = checkOutDate.getTime() - checkInDate.getTime();
   const diffDays = diffTime > 0 ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 1; // Default to 1 night if invalid
 
+  const vatRate = parseFloat(systemSettings.VAT_PERCENTAGE) / 100;
+  const serviceFeeRate = parseFloat(systemSettings.SERVICE_FEE_PERCENTAGE) / 100;
+
   const subtotal = (selectedPackage?.price || 0) * diffDays * formData.rooms;
-  const tax = subtotal * 0.15; // Assuming 15% VAT for realism
-  const total = subtotal + tax;
+  const tax = subtotal * vatRate;
+  const serviceFee = subtotal * serviceFeeRate;
+  const total = subtotal + tax + serviceFee;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -220,7 +244,7 @@ const Booking = () => {
         payload.append('idDocument', idDocument);
       }
 
-      const response = await fetch('http://localhost:3005/api/public/bookings', {
+      const response = await fetch('http://localhost:3006/api/public/bookings', {
         method: 'POST',
         body: payload
       });
@@ -236,7 +260,7 @@ const Booking = () => {
         const fName = nameParts[0] || 'Guest';
         const lName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'User';
 
-        const paymentResponse = await fetch('http://localhost:3005/api/payments/initialize-booking', {
+        const paymentResponse = await fetch('http://localhost:3006/api/payments/initialize-booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -315,6 +339,16 @@ const Booking = () => {
                   <span className="text-sm text-muted-foreground">Check-out</span>
                   <span className="text-sm font-semibold">{formData.checkOut}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">VAT ({systemSettings.VAT_PERCENTAGE}%)</span>
+                  <span className="text-sm font-semibold">ETB {tax.toLocaleString()}</span>
+                </div>
+                {parseFloat(systemSettings.SERVICE_FEE_PERCENTAGE) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Service Fee ({systemSettings.SERVICE_FEE_PERCENTAGE}%)</span>
+                    <span className="text-sm font-semibold">ETB {serviceFee.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-dashed border-border">
                   <span className="text-sm font-bold">Payment Method</span>
                   <span className="text-sm font-semibold text-amber-600">Pay at Hotel</span>
@@ -720,9 +754,15 @@ const Booking = () => {
                     <span className="font-semibold">ETB {subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">VAT (15%)</span>
+                    <span className="text-sm text-muted-foreground">VAT ({systemSettings.VAT_PERCENTAGE}%)</span>
                     <span className="font-semibold">ETB {tax.toLocaleString()}</span>
                   </div>
+                  {parseFloat(systemSettings.SERVICE_FEE_PERCENTAGE) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Service Fee ({systemSettings.SERVICE_FEE_PERCENTAGE}%)</span>
+                      <span className="font-semibold">ETB {serviceFee.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="font-bold">Total</span>
                     <span className="font-bold text-lg text-primary">ETB {total.toLocaleString()}</span>

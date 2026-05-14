@@ -398,14 +398,14 @@ export const getFullImageUrl = (imagePath: string | undefined | null): string =>
   // If it's an uploaded file path (/uploads/), prepend the backend URL with cache-busting
   if (imagePath.startsWith('/uploads/')) {
     const timestamp = Date.now(); // Cache-busting parameter
-    const fullUrl = `http://localhost:3005${imagePath}?t=${timestamp}`;
+    const fullUrl = `http://localhost:3006${imagePath}?t=${timestamp}`;
     console.log('🔍 Backend uploaded file, constructed full URL with cache-busting:', fullUrl);
     return fullUrl;
   }
   
   // Default: assume it's a backend file with cache-busting
   const timestamp = Date.now();
-  const fullUrl = `http://localhost:3005${imagePath}?t=${timestamp}`;
+  const fullUrl = `http://localhost:3006${imagePath}?t=${timestamp}`;
   console.log('🔍 Default backend file, constructed full URL with cache-busting:', fullUrl);
   return fullUrl;
 };

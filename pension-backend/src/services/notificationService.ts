@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
+import axios from 'axios';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -128,6 +129,50 @@ class NotificationService {
         });
       }
       throw error;
+    }
+  }
+
+  /**
+   * Send SMS notification
+   */
+  async sendSmsNotification(userId: number, message: string): Promise<void> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { user_id: userId },
+        select: { phone: true }
+      });
+
+      if (!user || !user.phone) {
+        console.warn(`⚠️ No phone number found for user ${userId}, skipping SMS.`);
+        return;
+      }
+
+      const username = process.env.AFRICASTALKING_USERNAME || 'sandbox';
+      const apiKey = process.env.AFRICASTALKING_API_KEY;
+
+      if (!apiKey) {
+        console.warn('⚠️ Africa\'s Talking API Key not configured, skipping SMS.');
+        return;
+      }
+
+      // Africa's Talking API implementation
+      const url = 'https://api.africastalking.com/version1/messaging';
+      const data = new URLSearchParams();
+      data.append('username', username);
+      data.append('to', user.phone);
+      data.append('message', message);
+
+      const response = await axios.post(url, data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'apikey': apiKey
+        }
+      });
+
+      console.log(`✅ SMS sent to ${user.phone}:`, response.data);
+    } catch (error: any) {
+      console.error('❌ Error sending SMS notification:', error.response?.data || error.message);
     }
   }
 

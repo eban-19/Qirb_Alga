@@ -109,6 +109,7 @@ const Dashboard: React.FC = () => {
         getIcon={getIcon}
         t={t}
         isPensionOwner={isPensionOwner}
+        subscriptionStatus={status}
       />
 
       <main className="flex-1 h-full overflow-y-auto min-w-0 lg:pl-64">
@@ -122,6 +123,7 @@ const Dashboard: React.FC = () => {
           activeTab={ui.activeTab}
           user={user}
           language={language}
+          subscriptionStatus={status}
           onLogout={ui.handleLogout}
         />
 
@@ -203,7 +205,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {status?.trial.isActive && !status.isRestricted && (
+            {status?.trial.isActive && !status.isRestricted && !status.hasActiveSubscription && (
               <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <Zap className="w-5 h-5 text-primary" />
@@ -413,6 +415,8 @@ const Dashboard: React.FC = () => {
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => {}}
                 showSaveSuccess={ui.showSaveSuccess}
+                subscriptionStatus={status}
+                onUpgradeClick={() => ui.setActiveTab("subscription")}
               />
             )}
           </div>

@@ -10,7 +10,8 @@ import {
   TrendingUp,
   Settings,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react';
 
 export interface SidebarLink {
@@ -72,6 +73,20 @@ export const adminSidebarLinks: SidebarLink[] = [
     icon: "Bell",
     href: "/dashboard/admin/alerts",
     badge: null // No badge since notifications are in header
+  },
+  {
+    id: "payments",
+    label: "Payments & Plans",
+    icon: "CreditCard",
+    href: "/dashboard/admin/payments",
+    badge: null
+  },
+  {
+    id: "system-settings",
+    label: "System Settings",
+    icon: "Settings",
+    href: "/dashboard/admin/settings",
+    badge: null
   }
 ];
 
@@ -94,7 +109,8 @@ export const getAdminIcon = (iconName: string) => {
     TrendingUp,
     Settings,
     Shield,
-    AlertTriangle
+    AlertTriangle,
+    CreditCard
   };
   return icons[iconName] || LayoutDashboard;
 };

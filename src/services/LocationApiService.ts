@@ -1,7 +1,7 @@
 // Simple API service without axios dependency
 import { Coordinates, MapPension, NearbyPension, Address, LocationSearchResult } from '../types/location';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3005/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3006/api';
 
 class LocationApiService {
   // Simple fetch wrapper

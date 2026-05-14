@@ -56,7 +56,7 @@ const PensionApprovalInline: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const endpoint = 'http://localhost:3005/api/admin/pensions/all';
+      const endpoint = 'http://localhost:3006/api/admin/pensions/all';
       
       const response = await fetch(endpoint, {
         headers: {
@@ -94,7 +94,7 @@ const PensionApprovalInline: React.FC = () => {
       console.log('🔍 selectedPension.pension_id:', selectedPension?.pension_id);
       console.log('🔍 selectedPension.id:', selectedPension?.id);
       
-      const response = await fetch(`http://localhost:3005/api/admin/pensions/${pensionId}/approve`, {
+      const response = await fetch(`http://localhost:3006/api/admin/pensions/${pensionId}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -132,7 +132,7 @@ const PensionApprovalInline: React.FC = () => {
       setActionLoading(`reject-${pensionId}`);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:3005/api/admin/pensions/${pensionId}/reject`, {
+      const response = await fetch(`http://localhost:3006/api/admin/pensions/${pensionId}/reject`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

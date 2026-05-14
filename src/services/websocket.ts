@@ -24,7 +24,7 @@ class WebSocketService {
   private reconnectDelay = 1000;
   private isConnecting = false;
 
-  constructor(private url: string = 'ws://localhost:3005/ws') {}
+  constructor(private url: string = 'ws://localhost:3006/ws') {}
 
   connect(callbacks: WebSocketCallbacks) {
     if (this.isConnecting || (this.ws && this.ws.readyState === WebSocket.OPEN)) {
@@ -36,7 +36,7 @@ class WebSocketService {
 
     try {
       const token = localStorage.getItem('token');
-      const wsUrl = token ? `ws://localhost:3005/ws?token=${encodeURIComponent(token)}` : 'ws://localhost:3005/ws';
+      const wsUrl = token ? `ws://localhost:3006/ws?token=${encodeURIComponent(token)}` : 'ws://localhost:3006/ws';
       console.log('🔌 Connecting to WebSocket:', wsUrl);
       this.ws = new WebSocket(wsUrl);
 
