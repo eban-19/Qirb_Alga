@@ -13,9 +13,9 @@ interface AdminSidebarProps {
   onCloseMobile?: () => void;
 }
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ 
-  className, 
-  collapsed = false, 
+const AdminSidebar: React.FC<AdminSidebarProps> = ({
+  className,
+  collapsed = false,
   onToggleCollapse,
   isMobile = false,
   onCloseMobile
@@ -41,7 +41,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     const Icon = getAdminIcon(link.icon);
     const active = link.href ? isActiveLink(link.href) : false;
     const badgeVariant = getBadgeVariant(link.badge);
-    
+
     // Static Dashboard label (non-clickable)
     if (link.isStatic) {
       return (
@@ -79,9 +79,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               "absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
               active && "opacity-100"
             )} />
-            
+
             <Icon className="w-4 h-4 relative z-10 flex-shrink-0" />
-            
+
             {(!collapsed || isMobile) && (
               <>
                 <span className="font-medium relative z-10 flex-1 text-left text-sm">
@@ -120,8 +120,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             collapsed && !isMobile && "justify-center"
           )}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className={cn("w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg", collapsed && !isMobile && "hidden")}>
+                {/* <svg className=" hidden w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"> */}
+                <svg
+                  className=" w-6 h-6 text-white"
+
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -155,6 +160,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {/* Admin account moved to header */}
         </div>
       </div>
+
     </TooltipProvider>
   );
 };

@@ -33,7 +33,7 @@ export const useDashboardData = (ui?: any) => {
   const [actualRoomStats, setActualRoomStats] = useState({ totalRooms: 0, availableRooms: 0 });
   const [selectedPensionId, setSelectedPensionId] = useState<string>('');
 
-  const loadRealData = useCallback(async (forcedPensionId?: string) => {
+  const loadRealData = useCallback(async (pensionIdOverride?: string) => {
     if (!user) {
       setLoading(false);
       return;
@@ -56,31 +56,32 @@ export const useDashboardData = (ui?: any) => {
         const fetchedPensions = (Array.isArray(pensionsResp.data) ? pensionsResp.data : (pensionsResp.data as any)?.items || []) as Pension[];
         setPensions(fetchedPensions);
         
-        // Find user's pension
-        let userPension: Pension | undefined;
+        // Find the active pension: priority is override > already selected > user's first > first in list
+        const effectiveId = pensionIdOverride || selectedPensionId;
         
-        const targetPensionId = forcedPensionId || selectedPensionId;
-        
-        if (targetPensionId) {
-          userPension = fetchedPensions.find((p: Pension) => 
-            String(p.pension_id || p.id) === String(targetPensionId)
-          );
-        }
+        let activePension = fetchedPensions.find((p: Pension) => 
+          String(p.pension_id || p.id) === String(effectiveId)
+        );
 
-        if (!userPension) {
-          userPension = fetchedPensions.find((p: Pension) => 
+        // If no match found for current ID, find user's first pension
+        if (!activePension) {
+          activePension = fetchedPensions.find((p: Pension) => 
             String(p.owner_id) === String(user.id)
           );
         }
 
-        // Fallback to the first pension if user has none (useful for admin viewing the dashboard)
-        if (!userPension && fetchedPensions.length > 0) {
-          userPension = fetchedPensions[0];
+        // Fallback to the first pension if user has none
+        if (!activePension && fetchedPensions.length > 0) {
+          activePension = fetchedPensions[0];
         }
         
-        if (userPension) {
-          const pensionId = Number(userPension.pension_id || userPension.id);
-          setSelectedPensionId(String(pensionId));
+        if (activePension) {
+          const pensionId = Number(activePension.pension_id || activePension.id);
+          
+          // Sync the selection state
+          if (String(pensionId) !== String(selectedPensionId)) {
+            setSelectedPensionId(String(pensionId));
+          }
           
           // 2. Fetch Pension-specific data - fetch all for frontend pagination to ensure total count is accurate
           const results = await Promise.allSettled([
@@ -312,22 +313,22 @@ export const useDashboardData = (ui?: any) => {
           // Update property settings state
           if (ui?.setPropertySettings) {
             ui.setPropertySettings({
-              name: userPension.name || '',
-              address: userPension.address || '',
-              description: userPension.description || '',
-              email: userPension.email || '',
-              phone: userPension.phone || '',
-              capacity: userPension.capacity ? String(userPension.capacity) : '',
-              imageUrl: userPension.image_url || '',
-              ownerInfo: userPension.owner_info || '',
-              roomDetails: userPension.room_details || '',
-              amenities: Array.isArray(userPension.amenities) ? userPension.amenities : [],
-              latitude: userPension.latitude ? Number(userPension.latitude) : undefined,
-              longitude: userPension.longitude ? Number(userPension.longitude) : undefined,
+              name: activePension.name || '',
+              address: activePension.address || '',
+              description: activePension.description || '',
+              email: activePension.email || '',
+              phone: activePension.phone || '',
+              capacity: activePension.capacity ? String(activePension.capacity) : '',
+              imageUrl: activePension.image_url || '',
+              ownerInfo: activePension.owner_info || '',
+              roomDetails: activePension.room_details || '',
+              amenities: Array.isArray(activePension.amenities) ? activePension.amenities : [],
+              latitude: activePension.latitude ? Number(activePension.latitude) : undefined,
+              longitude: activePension.longitude ? Number(activePension.longitude) : undefined,
             });
           }
         } else {
-          console.warn('⚠️ No pension found for user:', user.id);
+          console.warn('⚠️ No active pension found');
         }
       }
     } catch (err: any) {
@@ -336,7 +337,7 @@ export const useDashboardData = (ui?: any) => {
     } finally {
       setLoading(false);
     }
-  }, [user, ui?.pagination]);
+  }, [user, ui?.pagination, selectedPensionId]);
 
   useEffect(() => {
     loadRealData();

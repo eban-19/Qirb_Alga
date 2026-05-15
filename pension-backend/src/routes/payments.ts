@@ -136,6 +136,20 @@ router.get('/verify/:txRef', async (req, res) => {
           data: { status: 'Confirmed' } 
         });
 
+        // Auto-occupy room if check-in is today
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const checkIn = new Date(booking.check_in_date || today);
+        checkIn.setHours(0,0,0,0);
+
+        if (checkIn <= today && booking.room_id) {
+          await prisma.room.update({
+            where: { room_id: booking.room_id },
+            data: { availability_status: 'Occupied', last_status_update: new Date() }
+          });
+          console.log(`📡 AUTO-OCCUPY: Room ${booking.room_id} marked as Occupied immediately after payment`);
+        }
+
         // Send Confirmation SMS
         if (booking.customer?.phone) {
           try {
@@ -229,6 +243,20 @@ router.post('/webhook', async (req, res) => {
           where: { booking_id: booking.booking_id }, 
           data: { status: 'Confirmed' } 
         });
+
+        // Auto-occupy room if check-in is today
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const checkIn = new Date(booking.check_in_date || today);
+        checkIn.setHours(0,0,0,0);
+
+        if (checkIn <= today && booking.room_id) {
+          await prisma.room.update({
+            where: { room_id: booking.room_id },
+            data: { availability_status: 'Occupied', last_status_update: new Date() }
+          });
+        }
+        
         console.log(`✅ Booking ${booking.booking_id} confirmed via webhook`);
 
         // Send Confirmation SMS

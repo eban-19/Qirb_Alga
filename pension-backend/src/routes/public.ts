@@ -21,6 +21,8 @@ interface Package {
   image_url?: string | null;
   is_most_popular?: number | boolean;
   images?: string[];
+  capacity?: number;
+  beds?: number;
 }
 
 interface Pension {
@@ -157,7 +159,9 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
             })(),
             availableRooms: pkg.availableRoomsCount || 0,
             isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
-            images: Array.isArray(pkg.images) ? pkg.images : []
+            images: Array.isArray(pkg.images) ? pkg.images : [],
+            capacity: pkg.rooms[0]?.capacity || 0,
+            beds: pkg.rooms[0]?.number_of_beds || 0
           }))
       };
     }));
@@ -206,11 +210,7 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       include: {
         packages: {
           include: {
-            rooms: {
-              where: {
-                availability_status: RoomStatus.Available
-              }
-            }
+            rooms: true
           }
         }
       }
@@ -222,7 +222,7 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
 
     const packages = p.packages.map((pkg: any) => ({
       ...pkg,
-      availableRoomsCount: pkg.rooms.length
+      availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
     }));
 
     const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
@@ -284,7 +284,9 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
           })(),
           availableRooms: pkg.availableRoomsCount || 0,
           isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
-          images: Array.isArray(pkg.images) ? pkg.images : []
+          images: Array.isArray(pkg.images) ? pkg.images : [],
+          capacity: pkg.rooms[0]?.capacity || 0,
+          beds: pkg.rooms[0]?.number_of_beds || 0
         }))
     };
 
@@ -551,6 +553,8 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       return res.status(400).json({ success: false, message: 'No available rooms for the selected dates' });
     }
 
+    const isToday = checkInDate.toDateString() === new Date().toDateString();
+
     const booking = await prisma.$transaction(async (tx) => {
       const b = await tx.booking.create({
         data: {
@@ -562,7 +566,9 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
           status: BookingStatus.Confirmed,
           walk_in_guest_name: guestName,
           walk_in_guest_phone: phoneNumber,
-          booking_source: BookingSource.Walk_In
+          booking_source: BookingSource.Walk_In,
+          is_walk_in: true,
+          actual_check_in: isToday ? new Date() : null
         }
       });
 

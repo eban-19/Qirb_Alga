@@ -104,11 +104,9 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                         key={String(pension.pension_id || pension.id)} 
                         value={String(pension.pension_id || pension.id)}
                       >
-                        <div className="flex items-center gap-2 py-1">
+                        <div className="flex items-center gap-3 py-1.5">
                           <Building className="h-4 w-4 text-slate-500" />
-                          <div className="flex-1 min-w-0">
-                            <span className="truncate text-sm font-medium">{pension.name}</span>
-                          </div>
+                          <span className="truncate text-sm font-semibold">{pension.name}</span>
                         </div>
                       </SelectItem>
                     ))}

@@ -52,6 +52,13 @@ class ScheduledCheckoutWorker {
     const startTime = Date.now();
 
     try {
+      // 1. Process automated check-ins (mark rooms as Occupied if stay starts today)
+      const checkInResult = await bookingService.processAutoCheckIns();
+      if (checkInResult.success && (checkInResult.processed || 0) > 0) {
+        console.log(`📡 Auto-checkin: Processed ${checkInResult.processed} room(s)`);
+      }
+
+      // 2. Get overdue bookings (mark rooms as Available if stay ended)
       console.log('🔍 Scheduled checkout worker: Checking for overdue checkouts...');
       console.log(`📅 Current time: ${new Date().toISOString()}`);
 

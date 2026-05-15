@@ -443,6 +443,13 @@ class ApiService {
     });
   }
 
+  async createWalkInBooking(bookingData: any): Promise<ApiResponse<any>> {
+    return this.request('/public/walk-in-bookings', {
+      method: 'POST',
+      body: JSON.stringify(bookingData),
+    });
+  }
+
   // Staff Management methods
   async getStaff(pensionId: number, params: {
     page?: number;

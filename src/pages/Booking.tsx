@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar, AlertCircle, Users, Bed } from "lucide-react";
 import { toast } from "sonner";
 
 // Helper function to construct full URLs for images (same as in RoomProfile)
@@ -733,6 +733,16 @@ const Booking = () => {
                   <div>
                     <h3 className="font-bold text-lg">{room.name}</h3>
                     <p className="text-muted-foreground text-sm">{selectedPackage.name}</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      <span>{selectedPackage.capacity || 0} Guests</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                      <Bed className="w-3.5 h-3.5 text-primary" />
+                      <span>{selectedPackage.beds || 0} Beds</span>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Per Night</span>

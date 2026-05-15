@@ -108,6 +108,24 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                 />
               </div>
 
+              <div className="md:col-span-2">
+                <Label htmlFor="room_details" className="text-sm font-bold text-slate-700">Room Details *</Label>
+                <textarea
+                  id="room_details"
+                  rows={2}
+                  className="flex min-h-[60px] w-full rounded-xl border border-slate-200 bg-slate-50/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all mt-1.5"
+                  value={language === 'en' ? newPension.room_details_en : language === 'am' ? newPension.room_details_am : newPension.room_details_om}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (language === 'en') setNewPension({ ...newPension, room_details_en: value, room_details: value });
+                    else if (language === 'am') setNewPension({ ...newPension, room_details_am: value });
+                    else setNewPension({ ...newPension, room_details_om: value });
+                  }}
+                  placeholder="e.g. Single and double rooms with private bathroom options..."
+                  required
+                />
+              </div>
+
               <div>
                 <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">Total Capacity (Rooms)</Label>
                 <Input

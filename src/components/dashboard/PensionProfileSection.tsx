@@ -35,6 +35,29 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
   pensionProfileImageFile,
   setPensionProfileImageFile,
 }) => {
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+
+  const getFullImageUrl = (imagePath: string | undefined | null): string => {
+    if (!imagePath) return '';
+    if (typeof imagePath !== 'string') return '';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
+    
+    // Normalize path
+    let normalizedPath = imagePath;
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/' + normalizedPath;
+    }
+    
+    // If it doesn't already contain 'uploads', assume it belongs in uploads
+    if (!normalizedPath.toLowerCase().includes('uploads')) {
+      normalizedPath = '/uploads' + normalizedPath;
+    }
+    
+    return `http://localhost:3006${normalizedPath}`;
+  };
+
+  const currentImageUrl = propertySettings?.imageUrl || propertySettings?.image_url;
+  const displayUrl = previewUrl || getFullImageUrl(currentImageUrl);
   return (
     <div className="space-y-6">
       {showSaveSuccess && (
@@ -132,6 +155,20 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-purple-600" /> Pension Image
               </Label>
+              
+              {displayUrl && (
+                <div className="relative w-full h-40 rounded-xl overflow-hidden mb-2 border border-slate-100 group">
+                  <img 
+                    src={displayUrl} 
+                    alt="Pension Preview" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <p className="text-white text-xs font-bold">Current Image</p>
+                  </div>
+                </div>
+              )}
+
               <Input
                 type="file"
                 accept="image/*"
@@ -139,7 +176,12 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                   const file = e.target.files?.[0];
                   if (file) {
                     setPensionProfileImageFile(file);
-                    setPropertySettings({ ...propertySettings, imageUrl: file.name });
+                    // Create local preview
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setPreviewUrl(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
                   }
                 }}
                 className="cursor-pointer border-slate-200 bg-slate-50/30 h-11 py-1.5"

@@ -65,6 +65,38 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
         </Button>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedRows.length > 0 && (
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} selected
+            </Badge>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected transactions</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+              onClick={() => onSelectAll?.([])}
+            >
+              Clear Selection
+            </Button>
+            <Button 
+              size="sm" 
+              className="bg-primary hover:bg-primary/90 text-white font-bold shadow-sm"
+              onClick={() => {
+                alert(`Exporting ${selectedRows.length} selected transactions.`);
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Selected
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
         <CardContent className="p-0">
           <div className="overflow-x-auto">

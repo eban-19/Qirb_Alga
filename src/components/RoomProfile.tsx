@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight, Users, Bed } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -169,6 +169,18 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             ETB {pkg.price.toLocaleString()}
                           </span>
                           <span className="text-lg text-muted-foreground">{t.propertyCard.perNight || "/ night"}</span>
+                        </div>
+
+                        {/* Capacity & Beds Badges */}
+                        <div className="flex flex-wrap items-center gap-3 mb-6">
+                          <div className="flex items-center gap-2 text-slate-700 bg-slate-100 px-4 py-2 rounded-xl text-sm font-bold border border-slate-200/50 shadow-sm">
+                            <Users className="w-4 h-4 text-blue-600" />
+                            <span>{pkg.capacity || 0} {t.rooms.guestsLabel || "Guests"}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-700 bg-slate-100 px-4 py-2 rounded-xl text-sm font-bold border border-slate-200/50 shadow-sm">
+                            <Bed className="w-4 h-4 text-emerald-600" />
+                            <span>{pkg.beds || 0} {t.rooms.bedsLabel || "Beds"}</span>
+                          </div>
                         </div>
                         
                         <div className="mb-4">

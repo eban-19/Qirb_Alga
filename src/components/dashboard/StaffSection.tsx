@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -10,6 +10,7 @@ import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { ChevronLeft, ChevronRight, ChevronDown, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -63,6 +64,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   totalItems = 0,
   language
 }) => {
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   // Ensure staff is always an array
   const safeStaff = Array.isArray(staff) ? staff : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
@@ -85,6 +87,20 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             <p className="text-sm font-medium text-slate-600 hidden sm:block">{selectedRows.length === 1 ? '1 staff member selected' : `${selectedRows.length} staff members selected`}</p>
           </div>
           <div className="flex items-center gap-2">
+            {selectedRows.length === 1 && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100 shadow-sm"
+                onClick={() => {
+                  const member = staff.find(s => String(s.id) === String(selectedRows[0]));
+                  if (member) onEditStaff(member);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-1.5" />
+                Edit Profile
+              </Button>
+            )}
             <Button 
               size="sm" 
               variant="outline"
@@ -96,12 +112,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             <Button 
               size="sm" 
               className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} staff member${selectedRows.length > 1 ? 's' : ''}?`)) {
-                  selectedRows.forEach(id => onDeleteStaff(id));
-                  onSelectAll?.([]);
-                }
-              }}
+              onClick={() => setShowConfirmDelete(true)}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
               {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
@@ -109,6 +120,18 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={() => {
+          selectedRows.forEach(id => onDeleteStaff(id));
+          onSelectAll?.([]);
+        }}
+        title={selectedRows.length === 1 ? "Delete Staff Member" : "Delete Staff Members"}
+        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this staff member" : "these " + selectedRows.length + " staff members"}? This will remove all their records from the system.`}
+        itemCount={selectedRows.length}
+      />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
