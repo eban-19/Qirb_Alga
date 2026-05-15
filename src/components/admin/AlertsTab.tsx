@@ -19,9 +19,10 @@ interface SystemAlert {
 
 interface AlertsTabProps {
   alerts: SystemAlert[];
+  onAlertAction: (action: string, alertId: string) => void;
 }
 
-export function AlertsTab({ alerts }: AlertsTabProps) {
+export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Safe handling with fallbacks
@@ -113,7 +114,39 @@ export function AlertsTab({ alerts }: AlertsTabProps) {
                       </Badge>
                     </div>
                     <p className="text-slate-600 text-sm mb-2">{alert.message}</p>
-                    <p className="text-slate-400 text-xs">{alert.createdAt}</p>
+                    <div className="flex items-center gap-4 mt-3">
+                      <p className="text-slate-400 text-xs">{alert.createdAt}</p>
+                      {alert.status !== 'resolved' && (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-[10px] text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => onAlertAction('resolve', alert.id)}
+                          >
+                            Mark Resolved
+                          </Button>
+                          {alert.status === 'open' && (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => onAlertAction('investigate', alert.id)}
+                            >
+                              Investigate
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 ml-auto"
+                        onClick={() => onAlertAction('delete', alert.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -76,6 +76,8 @@ interface OwnersTabProps {
 
   onOwnerAction: (action: string, ownerId: string, owner?: PensionOwner) => void;
 
+  onBulkOwnerAction?: (action: string, ownerIds: string[], onSuccess: () => void) => void;
+
 }
 
 
@@ -92,7 +94,9 @@ export function OwnersTab({
 
   onFilterChange, 
 
-  onOwnerAction 
+  onOwnerAction,
+
+  onBulkOwnerAction
 
 }: OwnersTabProps) {
 
@@ -102,6 +106,16 @@ export function OwnersTab({
   const [selectedOwnerIds, setSelectedOwnerIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isBulkLoading, setIsBulkLoading] = useState<string | null>(null);
+
+  const handleBulkAction = (action: string) => {
+    if (!onBulkOwnerAction) return;
+    setIsBulkLoading(action);
+    onBulkOwnerAction(action, Array.from(selectedOwnerIds), () => {
+      setSelectedOwnerIds(new Set());
+      setIsBulkLoading(null);
+    });
+  };
 
 
 
@@ -364,6 +378,75 @@ export function OwnersTab({
         <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-blue-100 to-indigo-100 rounded-3xl opacity-50"></div>
         <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl border-2 border-white/50 shadow-2xl">
           <div className="p-8">
+            {/* Bulk Actions Toolbar */}
+            {selectedOwnerIds.size > 0 && (
+              <div className="mb-6 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-4">
+                <div className="flex items-center gap-4">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-3 py-1">
+                    {selectedOwnerIds.size} selected
+                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-green-600 border-green-200 hover:bg-green-50"
+                      onClick={() => handleBulkAction('approve')}
+                      disabled={isBulkLoading !== null}
+                    >
+                      {isBulkLoading === 'approve' ? 'Approving...' : 'Approve'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => handleBulkAction('reject')}
+                      disabled={isBulkLoading !== null}
+                    >
+                      {isBulkLoading === 'reject' ? 'Rejecting...' : 'Reject'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                      onClick={() => handleBulkAction('suspend')}
+                      disabled={isBulkLoading !== null}
+                    >
+                      {isBulkLoading === 'suspend' ? 'Suspending...' : 'Suspend'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => handleBulkAction('reactivate')}
+                      disabled={isBulkLoading !== null}
+                    >
+                      {isBulkLoading === 'reactivate' ? 'Reactivating...' : 'Reactivate'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete ${selectedOwnerIds.size} owners?`)) {
+                          handleBulkAction('delete');
+                        }
+                      }}
+                      disabled={isBulkLoading !== null}
+                    >
+                      {isBulkLoading === 'delete' ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setSelectedOwnerIds(new Set())}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  <X className="w-4 h-4 mr-1" /> Clear
+                </Button>
+              </div>
+            )}
+
             {/* Enhanced Table Layout */}
             <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
               <Table>
@@ -485,7 +568,7 @@ export function OwnersTab({
                               {(owner.status === 'verified' || owner.status === 'approved') && (
                                 <>
                                   <DropdownMenuItem 
-                                    onClick={() => onOwnerAction(owner.id, "suspend", owner)}
+                                    onClick={() => onOwnerAction("suspend", owner.id, owner)}
                                     className="flex items-center gap-2 text-orange-600 hover:bg-orange-50"
                                   >
                                     <Shield className="w-4 h-4" />
@@ -499,7 +582,7 @@ export function OwnersTab({
                               {owner.status === 'suspended' && (
                                 <>
                                   <DropdownMenuItem 
-                                    onClick={() => onOwnerAction(owner.id, "reactivate", owner)}
+                                    onClick={() => onOwnerAction("reactivate", owner.id, owner)}
                                     className="flex items-center gap-2 text-green-600 hover:bg-green-50"
                                   >
                                     <Check className="w-4 h-4" />

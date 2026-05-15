@@ -23,6 +23,7 @@ import Terms from "./pages/Terms.tsx";
 import About from "./pages/About.tsx";
 import HowItWorks from "./pages/HowItWorks.tsx";
 import PaymentConfirmation from "./pages/PaymentConfirmation.tsx";
+import AdminNotificationsPage from "./pages/AdminNotificationsPage";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,16 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/dashboard/admin/customers" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/staffs" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard/admin/properties" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
@@ -85,6 +96,26 @@ const App = () => (
               <Route path="/dashboard/admin/settings" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings/account" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings/financial" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings/security" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/notifications" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminNotificationsPage />
                 </ProtectedRoute>
               } />
               

@@ -181,6 +181,27 @@ router.get('/stats', authenticateToken as any, requireAdmin as any, async (req: 
       }
     });
 
+    // Calculate trends (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentRevenue = await prisma.payment.aggregate({
+      where: { status: PaymentStatus.PAID, created_at: { gte: thirtyDaysAgo } },
+      _sum: { amount: true }
+    });
+
+    const newActiveSubs = await prisma.subscription.count({
+      where: { status: SubscriptionStatus.ACTIVE, created_at: { gte: thirtyDaysAgo } }
+    });
+
+    const recentExpiredSubs = await prisma.subscription.count({
+      where: { status: SubscriptionStatus.EXPIRED, updated_at: { gte: thirtyDaysAgo } }
+    });
+
+    const newFreeUsers = await prisma.subscription.count({
+      where: { is_free: true, created_at: { gte: thirtyDaysAgo } }
+    });
+
     res.json({
       success: true,
       data: {
@@ -188,6 +209,10 @@ router.get('/stats', authenticateToken as any, requireAdmin as any, async (req: 
         activeSubscriptions: activeSubs,
         expiredSubscriptions: expiredSubs,
         freeAccessUsers: freeUsers,
+        revenueTrend: `+${recentRevenue._sum.amount || 0} ETB this month`,
+        activeSubsTrend: `+${newActiveSubs} this month`,
+        expiredSubsTrend: `+${recentExpiredSubs} this month`,
+        freeUsersTrend: `+${newFreeUsers} this month`,
         recentPayments
       }
     });
@@ -276,13 +301,46 @@ router.post('/subscriptions/:id/terminate-free', authenticateToken as any, requi
   }
 });
 
-// Toggle Subscription Status (Activate/Deactivate)
+// Terminate Subscription (General)
+router.post('/subscriptions/:id/terminate', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  try {
+    const updatedSub = await prisma.subscription.update({
+      where: { subscription_id: parseInt(String(id)) },
+      data: { 
+        end_date: new Date(), 
+        status: SubscriptionStatus.EXPIRED 
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        user_id: parseInt(String((req as any).user.userId)),
+        action: 'SUB_TERMINATE',
+        entity_type: 'SUBSCRIPTION',
+        entity_id: updatedSub.subscription_id,
+        details: `Terminated subscription ID ${id}`
+      }
+    });
+
+    res.json({ success: true, data: updatedSub });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Toggle Subscription Status (Activate/Cancel)
 router.post('/subscriptions/:id/toggle-status', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   const { id } = req.params;
-  const { status } = req.body; // Expects 'ACTIVE' or 'DEACTIVATED'
+  let { status } = req.body; // Expects 'ACTIVE' or 'CANCELLED'
   
   try {
-    if (status !== 'ACTIVE' && status !== 'DEACTIVATED' && status !== 'CANCELLED') {
+    // Map DEACTIVATED to CANCELLED for backwards compatibility with older clients
+    if (status === 'DEACTIVATED') {
+      status = 'CANCELLED';
+    }
+
+    if (status !== 'ACTIVE' && status !== 'CANCELLED') {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 

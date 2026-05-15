@@ -79,7 +79,6 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
 
   return (
     <>
-      <AdminMetricsGrid metrics={ui.metrics} bookings={ui.bookings} />
 
       <div className="space-y-8">
         {/* Hero Section with Key Metrics */}
@@ -95,10 +94,13 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
               </div>
             </div>
 
+            <AdminMetricsGrid metrics={ui.metrics} bookings={ui.bookings} />
+
+
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Owners Metric */}
-              <div className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
+              {/* <div className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                 <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
@@ -121,10 +123,10 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                     <div className="text-xs text-green-300 font-semibold">Active now</div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Properties Metric */}
-              <div className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-600 to-rose-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
+              {/* <div className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-600 to-rose-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-rotate-1 transition-all duration-500 cursor-pointer">
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                 <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
@@ -147,10 +149,10 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                     <div className="text-xs text-green-300 font-semibold">156 active</div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Bookings Metric */}
-              <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-teal-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
+              {/* <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-teal-500 rounded-3xl p-6 text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:rotate-1 transition-all duration-500 cursor-pointer">
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute -top-2 -right-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500"></div>
                 <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500"></div>
@@ -173,7 +175,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                     <div className="text-xs text-green-300 font-semibold">This month</div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* ALERTS CARD - REMOVED FOR CLEANER DISPLAY
             // The Alerts metric card (red/orange gradient with AlertTriangle icon) 

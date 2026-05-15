@@ -259,6 +259,33 @@ router.put('/owners/:ownerId/suspend', authenticateToken as any, requireAdmin as
   }
 });
 
+// Reactivate owner
+router.put('/owners/:ownerId/reactivate', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { ownerId } = req.params;
+    const id = parseInt(ownerId.replace('OWN', ''));
+    
+    await prisma.user.update({
+      where: { 
+        user_id: id,
+        role: Role.Owner
+      },
+      data: { approved: 1, status: UserStatus.Approved }
+    });
+
+    res.json({
+      success: true,
+      message: 'Owner reactivated successfully'
+    });
+  } catch (error: any) {
+    console.error('Reactivate owner error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reactivate owner'
+    });
+  }
+});
+
 // Delete owner
 router.delete('/owners/:ownerId', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
@@ -285,6 +312,68 @@ router.delete('/owners/:ownerId', authenticateToken as any, requireAdmin as any,
     res.status(500).json({
       success: false,
       message: 'Failed to delete owner'
+    });
+  }
+});
+
+// Bulk Owners Action
+router.post('/owners/bulk', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { action, ownerIds } = req.body;
+    
+    if (!action || !ownerIds || !Array.isArray(ownerIds) || ownerIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid bulk action payload' });
+    }
+
+    const ids = ownerIds.map((id: string) => parseInt(id.replace('OWN', ''))).filter((id: number) => !isNaN(id));
+
+    if (action === 'delete') {
+      await prisma.user.deleteMany({
+        where: { user_id: { in: ids }, role: Role.Owner }
+      });
+    } else {
+      let updateData: any = {};
+      let profileData: any = {};
+      
+      switch (action) {
+        case 'approve':
+        case 'reactivate':
+          updateData = { approved: 1, status: UserStatus.Approved };
+          profileData = { approval_status: ApprovalStatus.Approved };
+          break;
+        case 'reject':
+          updateData = { approved: 0 };
+          profileData = { approval_status: ApprovalStatus.Rejected };
+          break;
+        case 'suspend':
+          updateData = { approved: -1 };
+          break;
+        default:
+          return res.status(400).json({ success: false, message: 'Invalid action' });
+      }
+
+      await prisma.user.updateMany({
+        where: { user_id: { in: ids }, role: Role.Owner },
+        data: updateData
+      });
+
+      if (Object.keys(profileData).length > 0) {
+        await prisma.ownerProfile.updateMany({
+          where: { owner_id: { in: ids } },
+          data: profileData
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully executed ${action} on ${ids.length} owners`
+    });
+  } catch (error: any) {
+    console.error('Bulk owners action error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute bulk action'
     });
   }
 });
@@ -611,6 +700,54 @@ router.get('/pensions-debug', authenticateToken as any, requireAdmin as any, asy
       success: false,
       message: 'Failed to fetch raw pensions',
       error: error.message
+    });
+  }
+});
+
+// Bulk Pensions Action
+router.post('/pensions/bulk', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { action, pensionIds, rejectionReason } = req.body;
+
+    if (!action || !pensionIds || !Array.isArray(pensionIds) || pensionIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid bulk action payload' });
+    }
+
+    let updateData: any = {};
+    switch (action) {
+      case 'approve':
+        updateData = {
+          status: PensionStatus.active,
+          reviewed_by: req.user.userId,
+          reviewed_at: new Date()
+        };
+        break;
+      case 'reject':
+        updateData = {
+          status: PensionStatus.inactive,
+          rejection_reason: rejectionReason || 'Bulk rejected',
+          reviewed_by: req.user.userId,
+          reviewed_at: new Date()
+        };
+        break;
+      default:
+        return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+
+    await prisma.pension.updateMany({
+      where: { pension_id: { in: pensionIds } },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully executed ${action} on ${pensionIds.length} pensions`
+    });
+  } catch (error: any) {
+    console.error('Bulk pensions action error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute bulk action'
     });
   }
 });

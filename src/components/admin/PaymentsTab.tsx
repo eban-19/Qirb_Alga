@@ -36,7 +36,8 @@ interface PaymentsTabProps {
   onRefresh: () => void;
   onExtendSubscription?: (subscriptionId: number, durationDays: number) => Promise<void>;
   onTerminateFreeAccess?: (subscriptionId: number) => Promise<void>;
-  onToggleSubscriptionStatus?: (subscriptionId: number, status: "ACTIVE" | "DEACTIVATED") => Promise<void>;
+  onToggleSubscriptionStatus?: (subscriptionId: number, status: "ACTIVE" | "CANCELLED") => Promise<void>;
+  onTerminateSubscription?: (subscriptionId: number) => Promise<void>;
 }
 
 export function PaymentsTab({ 
@@ -48,7 +49,8 @@ export function PaymentsTab({
   onRefresh,
   onExtendSubscription,
   onTerminateFreeAccess,
-  onToggleSubscriptionStatus
+  onToggleSubscriptionStatus,
+  onTerminateSubscription
 }: PaymentsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState("subscriptions");
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
@@ -79,7 +81,7 @@ export function PaymentsTab({
       icon: DollarSign,
       color: "text-green-600",
       bg: "bg-green-50",
-      trend: "+12.5%",
+      trend: stats?.revenueTrend || "0 ETB this month",
       description: "Lifetime platform earnings"
     },
     {
@@ -88,7 +90,7 @@ export function PaymentsTab({
       icon: Activity,
       color: "text-blue-600",
       bg: "bg-blue-50",
-      trend: "+3",
+      trend: stats?.activeSubsTrend || "0 this month",
       description: "Currently paying owners"
     },
     {
@@ -97,7 +99,7 @@ export function PaymentsTab({
       icon: AlertTriangle,
       color: "text-amber-600",
       bg: "bg-amber-50",
-      trend: "-2",
+      trend: stats?.expiredSubsTrend || "0 this month",
       description: "Subs needing renewal"
     },
     {
@@ -106,7 +108,7 @@ export function PaymentsTab({
       icon: Gift,
       color: "text-purple-600",
       bg: "bg-purple-50",
-      trend: "Stable",
+      trend: stats?.freeUsersTrend || "0 this month",
       description: "Admin granted access"
     }
   ];
@@ -239,11 +241,8 @@ export function PaymentsTab({
                           const endDate = new Date(sub.end_date);
                           const isExpired = endDate < now;
                           
-                          if (sub.status === 'DEACTIVATED') {
-                            return <Badge className="bg-slate-100 text-slate-700 border-none">Deactivated</Badge>;
-                          }
                           if (sub.status === 'CANCELLED') {
-                            return <Badge className="bg-slate-100 text-slate-700 border-none">Cancelled</Badge>;
+                            return <Badge className="bg-slate-100 text-slate-700 border-none">Cancelled/Deactivated</Badge>;
                           }
                           if (sub.is_free) {
                             return <Badge className="bg-purple-100 text-purple-700 border-none">Free Access</Badge>;
@@ -287,9 +286,26 @@ export function PaymentsTab({
                               </DropdownMenuItem>
                             )}
 
+                            {sub.status !== 'CANCELLED' && sub.status !== 'EXPIRED' && (
+                              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
+                                handleOpenConfirm(
+                                  "Terminate Subscription",
+                                  `Are you sure you want to terminate ${sub.owner?.full_name}'s subscription? This will expire it immediately.`,
+                                  "Terminate",
+                                  "destructive",
+                                  async () => {
+                                    if (onTerminateSubscription) await onTerminateSubscription(sub.subscription_id);
+                                  }
+                                );
+                              }}>
+                                <Ban className="h-4 w-4 text-red-600" />
+                                <span className="font-medium text-red-600">Terminate Subscription</span>
+                              </DropdownMenuItem>
+                            )}
+
                             <DropdownMenuSeparator />
 
-                            {sub.status !== 'DEACTIVATED' ? (
+                            {sub.status !== 'CANCELLED' ? (
                               <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => {
                                 handleOpenConfirm(
                                   "Deactivate Subscription",
@@ -297,7 +313,7 @@ export function PaymentsTab({
                                   "Deactivate",
                                   "destructive",
                                   async () => {
-                                    if (onToggleSubscriptionStatus) await onToggleSubscriptionStatus(sub.subscription_id, "DEACTIVATED");
+                                    if (onToggleSubscriptionStatus) await onToggleSubscriptionStatus(sub.subscription_id, "CANCELLED");
                                   }
                                 );
                               }}>

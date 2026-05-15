@@ -11,12 +11,17 @@ export const useAdminDashboardData = () => {
   const getActiveTabFromPath = () => {
     const path = location.pathname;
     if (path.includes('/owners')) return 'owners';
+    if (path.includes('/customers')) return 'customers';
+    if (path.includes('/staffs')) return 'staffs';
     if (path.includes('/properties')) return 'properties';
     if (path.includes('/approvals')) return 'pension-approval';
     if (path.includes('/bookings')) return 'bookings';
     if (path.includes('/alerts')) return 'alerts';
     if (path.includes('/payments')) return 'payments';
-    if (path.includes('/settings')) return 'settings';
+    if (path.includes('/settings/account')) return 'settings-account';
+    if (path.includes('/settings/financial')) return 'settings-financial';
+    if (path.includes('/settings/security')) return 'settings-security';
+    if (path.includes('/settings')) return 'settings-financial'; // Default subtab
     return 'overview';
   };
 

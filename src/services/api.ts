@@ -643,13 +643,33 @@ class ApiService {
 
   async suspendOwner(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}/suspend`, {
-      method: 'PUT',
+      method: 'PUT'
+    });
+  }
+
+  async reactivateOwner(ownerId: string): Promise<ApiResponse<any>> {
+    return this.request(`/admin/owners/${ownerId}/reactivate`, {
+      method: 'PUT'
     });
   }
 
   async deleteOwner(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}`, {
       method: 'DELETE',
+    });
+  }
+
+  async bulkOwnerAction(action: string, ownerIds: string[]): Promise<ApiResponse<any>> {
+    return this.request('/admin/owners/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ action, ownerIds }),
+    });
+  }
+
+  async bulkPensionAction(action: string, pensionIds: number[], rejectionReason?: string): Promise<ApiResponse<any>> {
+    return this.request('/admin/pensions/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ action, pensionIds, rejectionReason }),
     });
   }
 

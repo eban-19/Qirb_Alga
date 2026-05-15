@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Calendar, DollarSign, Users, CheckCircle } from "lucide-react";
+import { Search, Calendar, DollarSign, Users, CheckCircle, Mail, Phone } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -169,25 +169,65 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="text-center py-8">
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border-2 border-green-200">
-              <Calendar className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-green-800 mb-2">
-                Total Bookings
-              </h3>
-              <p className="text-4xl font-black text-green-700 mb-4">
-                {filteredBookings.length}
-              </p>
-              <p className="text-sm text-green-600">
-                {filterProperty === "all" && filterStatus === "all" 
-                  ? "All bookings across all properties" 
-                  : filterProperty === "all" && filterStatus !== "all"
-                  ? `${filterStatus} bookings across all properties`
-                  : filterProperty !== "all" && filterStatus === "all"
-                  ? `All bookings for ${filterProperty}`
-                  : `${filterStatus} bookings for ${filterProperty}`
-                }
-              </p>
+            <div className="space-y-4">
+              {filteredBookings.map((booking) => (
+                <div key={booking.id} className="p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all group">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-slate-900">{booking.guestName}</h3>
+                        <Badge variant={
+                          booking.status === 'confirmed' ? 'success' as any : 
+                          booking.status === 'cancelled' ? 'destructive' : 
+                          booking.status === 'completed' ? 'secondary' : 'outline'
+                        }>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {booking.guestEmail}</span>
+                        <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {booking.guestPhone}</span>
+                        <span className="flex items-center gap-1 font-semibold text-blue-600">🏢 {booking.propertyName}</span>
+                      </div>
+                      <div className="mt-2 text-xs text-slate-400 flex items-center gap-4">
+                        <span>Check-in: <b>{new Date(booking.checkIn).toLocaleDateString()}</b></span>
+                        <span>Check-out: <b>{new Date(booking.checkOut).toLocaleDateString()}</b></span>
+                        <span className="text-slate-900 font-bold ml-auto">{booking.totalPrice} ETB</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                      {booking.status === 'pending' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => onBookingAction('confirm', booking.id)}
+                          className="bg-green-600 hover:bg-green-700 text-white h-9 rounded-lg px-4"
+                        >
+                          Confirm
+                        </Button>
+                      )}
+                      {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => onBookingAction('cancel', booking.id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50 h-9 rounded-lg px-4"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => onBookingAction('delete', booking.id)}
+                        className="text-slate-400 hover:text-red-600 h-9 rounded-lg"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
             
             {filteredBookings.length === 0 && (
@@ -195,7 +235,6 @@ export function BookingsTab({ bookings, properties, onBookingAction }: BookingsT
                 <p className="text-slate-500 mb-4">No bookings found for the current criteria</p>
               </div>
             )}
-          </div>
         </CardContent>
       </Card>
     </div>

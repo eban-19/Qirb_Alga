@@ -161,6 +161,50 @@ const PensionApprovalInline: React.FC = () => {
     }
   };
 
+  const handleBulkAction = async (action: 'approve' | 'reject') => {
+    if (action === 'reject' && !rejectionReason.trim()) {
+      alert('Please provide a rejection reason in the modal or input before bulk rejecting.');
+      return;
+    }
+    
+    try {
+      setActionLoading(`bulk-${action}`);
+      const token = localStorage.getItem('token');
+      const pensionIds = Array.from(selectedPensionIds);
+      
+      const response = await fetch(`http://localhost:3006/api/admin/pensions/bulk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, pensionIds, rejectionReason })
+      });
+      
+      if (response.ok) {
+        setPensions(prev => prev.map(p => 
+          selectedPensionIds.has(p.pension_id || p.id)
+            ? { 
+                ...p, 
+                status: action === 'approve' ? 'active' : 'inactive', 
+                rejection_reason: action === 'reject' ? rejectionReason : undefined,
+                reviewed_at: new Date().toISOString() 
+              }
+            : p
+        ));
+        setSelectedPensionIds(new Set());
+        if (action === 'reject') setRejectionReason('');
+      } else {
+        alert(`Failed to bulk ${action} pensions`);
+      }
+    } catch (error) {
+      console.error(`Error bulk ${action}ing pensions:`, error);
+      alert(`Error bulk ${action}ing pensions`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -263,7 +307,56 @@ const PensionApprovalInline: React.FC = () => {
               <p className="text-gray-500">No pensions found</p>
             </div>
           ) : (
-            <Table>
+            <>
+              {/* Bulk Actions Toolbar */}
+              {selectedPensionIds.size > 0 && (
+                <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-3 py-1">
+                      {selectedPensionIds.size} selected
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-green-600 border-green-200 hover:bg-green-50"
+                        onClick={() => handleBulkAction('approve')}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === 'bulk-approve' ? 'Approving...' : 'Approve Selected'}
+                      </Button>
+                      
+                      {/* For bulk reject, we ideally need a reason modal, but for simplicity we will use prompt or alert if missing */}
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => {
+                          const reason = window.prompt('Enter rejection reason for selected properties:');
+                          if (reason) {
+                            setRejectionReason(reason);
+                            // We use setTimeout to ensure state is set before handling bulk action
+                            setTimeout(() => handleBulkAction('reject'), 0);
+                          }
+                        }}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === 'bulk-reject' ? 'Rejecting...' : 'Reject Selected'}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => setSelectedPensionIds(new Set())}
+                    className="text-slate-500 hover:text-slate-700"
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
+              
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -332,6 +425,7 @@ const PensionApprovalInline: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
 
           {/* Pagination */}

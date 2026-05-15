@@ -11,7 +11,8 @@ import {
   Settings,
   Shield,
   AlertTriangle,
-  CreditCard
+  CreditCard,
+  User
 } from 'lucide-react';
 
 export interface SidebarLink {
@@ -34,26 +35,45 @@ export const adminSidebarLinks: SidebarLink[] = [
     badge: null
   },
   {
-    id: "owners",
-    label: "Owners",
+    id: "users",
+    label: "Users",
     icon: "Users",
-    href: "/dashboard/admin/owners",
-    badge: null
+    isParent: true,
+    children: [
+      {
+        id: "owners",
+        label: "Owners",
+        icon: "Building",
+        href: "/dashboard/admin/owners"
+      },
+      {
+        id: "customers",
+        label: "Customers",
+        icon: "Users",
+        href: "/dashboard/admin/customers"
+      },
+      {
+        id: "staffs",
+        label: "Admin Staffs",
+        icon: "Shield",
+        href: "/dashboard/admin/staffs"
+      }
+    ]
   },
-  {
-    id: "properties",
-    label: "Properties",
-    icon: "Building",
-    href: "/dashboard/admin/properties",
-    badge: null
-  },
-  {
-    id: "approvals",
-    label: "Pension Approvals",
-    icon: "CheckCircle",
-    href: "/dashboard/admin/approvals",
-    badge: null
-  },
+  // {
+  //   id: "properties",
+  //   label: "Properties",
+  //   icon: "Building",
+  //   href: "/dashboard/admin/properties",
+  //   badge: null
+  // },
+  // {
+  //   id: "approvals",
+  //   label: "Pension Approvals",
+  //   icon: "CheckCircle",
+  //   href: "/dashboard/admin/approvals",
+  //   badge: null
+  // },
   {
     id: "bookings",
     label: "Bookings",
@@ -79,8 +99,27 @@ export const adminSidebarLinks: SidebarLink[] = [
     id: "system-settings",
     label: "System Settings",
     icon: "Settings",
-    href: "/dashboard/admin/settings",
-    badge: null
+    isParent: true,
+    children: [
+      {
+        id: "settings-account",
+        label: "Account",
+        icon: "User",
+        href: "/dashboard/admin/settings/account"
+      },
+      {
+        id: "settings-financial",
+        label: "Financial (VAT)",
+        icon: "CreditCard",
+        href: "/dashboard/admin/settings/financial"
+      },
+      {
+        id: "settings-security",
+        label: "Security",
+        icon: "Shield",
+        href: "/dashboard/admin/settings/security"
+      }
+    ]
   }
 ];
 
@@ -104,7 +143,8 @@ export const getAdminIcon = (iconName: string) => {
     Settings,
     Shield,
     AlertTriangle,
-    CreditCard
+    CreditCard,
+    User
   };
   return icons[iconName] || LayoutDashboard;
 };
