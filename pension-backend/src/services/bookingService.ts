@@ -114,8 +114,7 @@ class BookingService {
         where: {
           status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
           check_out_date: { lt: new Date() },
-          actual_check_out: null,
-          actual_check_in: { not: null }
+          actual_check_out: null
         },
         include: {
           room: {
@@ -151,6 +150,53 @@ class BookingService {
         data: [],
         count: 0
       };
+    }
+  }
+
+  /**
+   * Process automated check-ins for confirmed bookings starting today
+   * This updates room availability to 'Occupied' automatically
+   */
+  async processAutoCheckIns() {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Find confirmed bookings that should be checked in today or in the past
+      // but where the room is still marked as 'Available'
+      const checkInBookings = await prisma.booking.findMany({
+        where: {
+          status: BookingStatus.Confirmed,
+          check_in_date: { lte: new Date() },
+          check_out_date: { gte: new Date() },
+          room: {
+            availability_status: RoomStatus.Available
+          }
+        },
+        include: { room: true }
+      });
+
+      if (checkInBookings.length === 0) return { success: true, processed: 0 };
+
+      let processed = 0;
+      for (const booking of checkInBookings) {
+        if (booking.room) {
+          await prisma.room.update({
+            where: { room_id: booking.room.room_id },
+            data: {
+              availability_status: RoomStatus.Occupied,
+              last_status_update: new Date()
+            }
+          });
+          processed++;
+          console.log(`📡 AUTO-CHECKIN: Room ${booking.room.room_number} marked as Occupied for Booking #${booking.booking_id}`);
+        }
+      }
+
+      return { success: true, processed };
+    } catch (error: any) {
+      console.error('Error in processAutoCheckIns:', error);
+      return { success: false, message: error.message };
     }
   }
 }

@@ -33,6 +33,7 @@ import {
 } from "../ui/table";
 import { Checkbox } from "../ui/checkbox";
 import { ViewPackageModal } from './ViewPackageModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { useLanguage } from '../../hooks/use-language';
 import {
   Select,
@@ -79,6 +80,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
   const currentLang = langProp || language;
   const [viewingPackage, setViewingPackage] = useState<Package | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const handleViewDetails = (pkg: Package) => {
     setViewingPackage(pkg);
@@ -117,6 +119,20 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
             <p className="text-sm font-medium text-slate-600 hidden sm:block">{selectedRows.length === 1 ? '1 tier selected' : `${selectedRows.length} tiers selected`}</p>
           </div>
           <div className="flex items-center gap-2">
+            {selectedRows.length === 1 && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100 shadow-sm"
+                onClick={() => {
+                  const pkg = packages.find(p => String(p.id || p.package_id) === String(selectedRows[0]));
+                  if (pkg) onEditPackage(pkg);
+                }}
+              >
+                <Edit2 className="h-4 w-4 mr-1.5" />
+                Edit Tier
+              </Button>
+            )}
             <Button 
               size="sm" 
               variant="outline"
@@ -128,12 +144,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
             <Button 
               size="sm" 
               className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} package${selectedRows.length > 1 ? 's' : ''}?`)) {
-                  selectedRows.forEach(id => onDeletePackage?.(id));
-                  onSelectAll?.([]);
-                }
-              }}
+              onClick={() => setShowConfirmDelete(true)}
             >
               <TrashIcon className="h-4 w-4 mr-1.5" />
               {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
@@ -141,6 +152,18 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={() => {
+          selectedRows.forEach(id => onDeletePackage?.(id));
+          onSelectAll?.([]);
+        }}
+        title={selectedRows.length === 1 ? "Delete Package Tier" : "Delete Package Tiers"}
+        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this package tier" : "these " + selectedRows.length + " package tiers"}? This will also affect any rooms associated with ${selectedRows.length === 1 ? "this tier" : "these tiers"}.`}
+        itemCount={selectedRows.length}
+      />
 
 
       {/* Section Header - outside the table card */}

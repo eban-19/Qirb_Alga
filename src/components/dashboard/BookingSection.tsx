@@ -176,7 +176,7 @@ const BookingCard = ({
                   className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  <TranslationText text="Approve" language={language} />
+                  <TranslationText text="Confirm Manually" language={language} />
                 </DropdownMenuItem>
               )}
 
@@ -190,15 +190,7 @@ const BookingCard = ({
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuSeparator className="bg-slate-100" />
-              
-              <DropdownMenuItem 
-                onClick={() => onUpdateStatus(bookingId, 'cancelled')}
-                className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
-              >
-                <X className="h-4 w-4" />
-                <TranslationText text="Cancel Booking" language={language} />
-              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -403,40 +395,48 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     return imagePath;
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Bulk Actions Bar */}
-      {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-blue-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} Selected
-            </Badge>
-            <p className="text-sm font-medium hidden sm:block">Perform actions on all selected bookings</p>
+    const selectedBookings = bookings.filter(b => selectedRows.includes(b.id || b.booking_id));
+    const hasPendingSelection = selectedBookings.some(b => b.status?.toLowerCase() === 'pending');
+
+    return (
+      <div className="space-y-6">
+        {/* Bulk Actions Bar */}
+        {selectedRows.length > 0 && (
+          <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+                {selectedRows.length} selected
+              </Badge>
+              <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected bookings</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+                onClick={() => onSelectAll?.([])}
+              >
+                Clear Selection
+              </Button>
+              
+              {hasPendingSelection && (
+                <Button 
+                  size="sm" 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
+                  onClick={() => {
+                    selectedBookings
+                      .filter(b => b.status?.toLowerCase() === 'pending')
+                      .forEach(b => onUpdateStatus(b.id || b.booking_id, 'Confirmed'));
+                    onSelectAll?.([]);
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirm Manually
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="text-white hover:bg-white/10 font-bold"
-              onClick={() => onSelectAll?.([])}
-            >
-              Clear Selection
-            </Button>
-            <Button 
-              size="sm" 
-              className="bg-white text-blue-600 hover:bg-blue-50 font-bold shadow-md"
-              onClick={() => {
-                selectedRows.forEach(id => onUpdateStatus(id, 'Confirmed'));
-                onSelectAll?.([]);
-              }}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Bulk Approve
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
           <div className="flex items-center gap-3">
@@ -451,7 +451,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   {[
                     { id: 'all', label: 'All Bookings', color: 'text-slate-600' },
                     { id: 'active', label: 'Active Bookings', color: 'text-blue-600' },
-                    { id: 'pending', label: 'Pending Approval', color: 'text-amber-600' },
+                    { id: 'pending', label: 'Awaiting Payment', color: 'text-amber-600' },
                     { id: 'confirmed', label: 'Confirmed Stays', color: 'text-emerald-600' },
                     { id: 'completed', label: 'Past Bookings', color: 'text-indigo-600' }
                   ].map((filter) => (
@@ -597,7 +597,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                             <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
                               {booking.status?.toLowerCase() === 'pending' && (
                                 <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'Confirmed')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors">
-                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Approve" language={language} />
+                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Confirm Manually" language={language} />
                                 </DropdownMenuItem>
                               )}
                               {booking.id_document_url && (
@@ -610,10 +610,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                                   <CheckCircle className="h-4 w-4" /><TranslationText text="Complete Early" language={language} />
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator className="bg-slate-100" />
-                              <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'cancelled')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors">
-                                <X className="h-4 w-4" /><TranslationText text="Cancel Booking" language={language} />
-                              </DropdownMenuItem>
+
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

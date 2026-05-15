@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +68,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   totalItems = 0,
   language
 }) => {
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
@@ -84,38 +86,59 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
     <div className="space-y-6">
       {/* Bulk Actions Bar */}
       {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-primary text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} Selected
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} selected
             </Badge>
-            <p className="text-sm font-medium hidden sm:block">Perform actions on all selected rooms</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected rooms</p>
           </div>
           <div className="flex items-center gap-2">
+            {selectedRows.length === 1 && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100 shadow-sm"
+                onClick={() => {
+                  const room = rooms.find(r => String(r.id || r.room_id) === String(selectedRows[0]));
+                  if (room) onEditRoom?.(room);
+                }}
+              >
+                <Edit2 className="h-4 w-4 mr-1.5" />
+                Edit Room
+              </Button>
+            )}
             <Button 
               size="sm" 
-              variant="ghost" 
-              className="text-white hover:bg-white/10 font-bold"
+              variant="outline" 
+              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
               onClick={() => onSelectAll?.([])}
             >
               Clear Selection
             </Button>
             <Button 
               size="sm" 
-              className="bg-white text-primary hover:bg-blue-50 font-bold shadow-md"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedRows.length} rooms?`)) {
-                  selectedRows.forEach(id => onDeleteRoom?.(id));
-                  onSelectAll?.([]);
-                }
-              }}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
+              onClick={() => setShowConfirmDelete(true)}
             >
               <TrashIcon className="h-4 w-4 mr-2" />
-              Bulk Delete
+              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
             </Button>
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={() => {
+          selectedRows.forEach(id => onDeleteRoom?.(id));
+          onSelectAll?.([]);
+        }}
+        title={selectedRows.length === 1 ? "Delete Room" : "Delete Rooms"}
+        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this room" : "these " + selectedRows.length + " rooms"}? This action cannot be reversed.`}
+        itemCount={selectedRows.length}
+      />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">

@@ -31,6 +31,8 @@ export interface RoomPackage {
   availableRooms: number;
   isMostPopular?: boolean;
   imageType?: string;
+  capacity?: number;
+  beds?: number;
   name_ml?: { en?: string; am?: string; om?: string };
   description_ml?: { en?: string; am?: string; om?: string };
 }

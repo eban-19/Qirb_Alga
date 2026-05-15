@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   DollarSign,
   MessageSquare,
   Edit,
+  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown
@@ -22,6 +23,7 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import {
   Select,
   SelectContent,
@@ -57,6 +59,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   totalItems = 0,
   language
 }) => {
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   // Ensure guests is always an array
   const safeGuests = Array.isArray(guests) ? guests : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
@@ -69,30 +72,75 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
-        <Button
-          variant={viewMode === "card" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <TranslationText text="Cards" language={language} />
-        </Button>
-        <Button
-          variant={viewMode === "table" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <BarChart3 className="h-4 w-4" />
-          <TranslationText text="Table" language={language} />
-        </Button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
+          <Button
+            variant={viewMode === "card" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <TranslationText text="Cards" language={language} />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <TranslationText text="Table" language={language} />
+          </Button>
+        </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedRows.length > 0 && (
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} selected
+            </Badge>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected guests</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+              onClick={() => onSelectAll?.([])}
+            >
+              Clear Selection
+            </Button>
+            <Button 
+              size="sm" 
+              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
+              onClick={() => setShowConfirmDelete(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDeleteModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={() => {
+          // Add actual delete logic here when available
+          alert(`Deleting ${selectedRows.length} guests.`);
+          onSelectAll?.([]);
+        }}
+        title={selectedRows.length === 1 ? "Delete Guest Record" : "Delete Guest Records"}
+        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this guest record" : "these " + selectedRows.length + " guest records"}? This will remove all their history and personal details.`}
+        itemCount={selectedRows.length}
+      />
 
       {/* Cards View */}
       {viewMode === "card" && (
@@ -169,7 +217,6 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                     <TableHead className="font-bold"><TranslationText text="Status" language={language} /></TableHead>
                     <TableHead className="text-right font-bold"><TranslationText text="Total Bookings" language={language} /></TableHead>
                     <TableHead className="text-right font-bold"><TranslationText text="Total Spent" language={language} /></TableHead>
-                    <TableHead className="font-bold text-right"><TranslationText text="Actions" language={language} /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -189,12 +236,6 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       </TableCell>
                       <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
                       <TableCell className="text-right font-bold text-emerald-600">ETB {guest.totalSpent.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" className="hover:bg-purple-50 hover:text-purple-600"><MessageSquare className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="sm" className="hover:bg-blue-50 hover:text-blue-600"><Edit className="h-3.5 w-3.5" /></Button>
-                        </div>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

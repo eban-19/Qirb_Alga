@@ -42,7 +42,8 @@ const RegisterProperty = () => {
     pensionPhone: "",
     pensionEmail: "",
     pensionCapacity: "",
-    pensionDescription: ""
+    pensionDescription: "",
+    pensionRoomDetails: ""
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +72,8 @@ const RegisterProperty = () => {
         phone: formData.pensionPhone,
         email: formData.pensionEmail,
         capacity: parseInt(formData.pensionCapacity) || 1,
-        description: formData.pensionDescription
+        description: formData.pensionDescription,
+        room_details: formData.pensionRoomDetails
       };
 
       console.log('🏢 Adding property:', propertyData);
@@ -441,6 +443,11 @@ const RegisterProperty = () => {
                         <div className="grid gap-2">
                           <Label htmlFor="pensionDescription">Property Description</Label>
                           <Textarea id="pensionDescription" name="pensionDescription" value={formData.pensionDescription} onChange={handleInputChange} className="h-12" placeholder="Describe your property" rows={3} />
+                        </div>
+                        
+                        <div className="grid gap-2">
+                          <Label htmlFor="pensionRoomDetails">Room Details *</Label>
+                          <Textarea id="pensionRoomDetails" name="pensionRoomDetails" value={formData.pensionRoomDetails} onChange={handleInputChange} className="h-12" placeholder="e.g. Single and double rooms with private bathroom options" rows={2} required />
                         </div>
                       </div>
                       

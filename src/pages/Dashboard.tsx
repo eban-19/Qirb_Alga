@@ -112,7 +112,7 @@ const Dashboard: React.FC = () => {
         subscriptionStatus={status}
       />
 
-      <main className="flex-1 h-full overflow-y-auto min-w-0 lg:pl-64">
+      <main className="flex-1 h-full overflow-y-auto min-w-0 lg:pl-64 scrollbar-hide no-scrollbar">
         <DashboardHeader
           isSearchOpenMobile={ui.isSearchOpenMobile}
           setIsSearchOpenMobile={ui.setIsSearchOpenMobile}
@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
           onLogout={ui.handleLogout}
         />
 
-        <div className="p-4 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="p-4 lg:p-8 max-w-[2000px] ml-0 w-full">
           {/* Section Headers */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
@@ -151,37 +151,13 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="flex gap-2">
               {ui.activeTab === "bookings" && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all">
-                      <Plus className="h-4 w-4" /> 
-                      <span className="hidden sm:inline">New Booking</span>
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-                    <DropdownMenuItem 
-                      onClick={() => ui.setShowWalkInModal(true)}
-                      className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      <div className="flex flex-col">
-                        <span className="font-bold">Walk-in Booking</span>
-                        <span className="text-[10px] text-slate-500">Add guest manually</span>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {}}
-                      className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-slate-50 opacity-50 cursor-not-allowed"
-                    >
-                      <FileUp className="h-4 w-4" />
-                      <div className="flex flex-col">
-                        <span className="font-bold">Bulk Upload</span>
-                        <span className="text-[10px] text-slate-500">Coming soon</span>
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button 
+                  onClick={() => ui.setShowWalkInModal(true)}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-11 px-6 rounded-xl font-bold"
+                >
+                  <Plus className="h-4 w-4" /> 
+                  <span>New Booking</span>
+                </Button>
               )}
             </div>
           </div>

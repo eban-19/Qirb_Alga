@@ -25,7 +25,7 @@ export const useDashboardHandlers = (
   const handlePensionSelectionChange = async (pensionId: string) => {
     data.setSelectedPensionId(pensionId);
     // Refresh relevant data for the new pension
-    await loadRealData();
+    await loadRealData(pensionId);
   };
 
   // --- STAFF HANDLERS ---
@@ -404,18 +404,33 @@ export const useDashboardHandlers = (
 
   const handleWalkInSubmit = async () => {
     try {
-      // Implement walk-in logic
-      ui.setShowWalkInModal(false);
-      ui.setWalkInForm({
-        guestName: '', 
-        phoneNumber: '', 
-        checkIn: new Date().toISOString().split('T')[0], 
-        checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-        packageId: ''
-      });
-      await loadRealData();
-    } catch (error) {
+      const selectedPackage = data.packages.find((p: Package) => String(p.id || p.package_id) === String(ui.walkInForm.packageId));
+      
+      const payload = {
+        pensionId: data.selectedPensionId,
+        packageName: selectedPackage?.name,
+        guestName: ui.walkInForm.guestName,
+        phoneNumber: ui.walkInForm.phoneNumber,
+        checkIn: ui.walkInForm.checkIn,
+        checkOut: ui.walkInForm.checkOut
+      };
+
+      const response = await apiService.createWalkInBooking(payload);
+      
+      if (response.success) {
+        ui.setShowWalkInModal(false);
+        ui.setWalkInForm({
+          guestName: '', 
+          phoneNumber: '', 
+          checkIn: new Date().toISOString().split('T')[0], 
+          checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+          packageId: ''
+        });
+        await loadRealData();
+      }
+    } catch (error: any) {
       console.error('Walk-in booking error:', error);
+      alert(error.message || 'Failed to create walk-in booking');
     }
   };
 

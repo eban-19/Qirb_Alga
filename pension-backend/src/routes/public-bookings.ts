@@ -329,19 +329,33 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       return res.status(400).json({ success: false, message: 'No available rooms for the selected dates' });
     }
 
+    const isToday = checkInDate.toDateString() === new Date().toDateString();
+
     const newBooking = await prisma.booking.create({
       data: {
         room_id: availableRoom.room_id,
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
         total_price: totalPrice,
-        status: BookingStatus.Pending,
+        status: BookingStatus.Confirmed,
         booking_source: BookingSource.Walk_In,
         walk_in_guest_name: guestName,
         walk_in_guest_phone: phoneNumber,
-        is_walk_in: true
+        is_walk_in: true,
+        actual_check_in: isToday ? new Date() : null
       }
     });
+
+    // If checking in today, update room status to occupied
+    if (isToday) {
+      await prisma.room.update({
+        where: { room_id: availableRoom.room_id },
+        data: { 
+          availability_status: RoomStatus.Occupied,
+          last_status_update: new Date()
+        }
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -353,7 +367,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
         checkIn,
         checkOut,
         totalPrice,
-        status: BookingStatus.Pending,
+        status: BookingStatus.Confirmed,
         guestInfo: { guestName, phoneNumber },
         bookingSource: 'Walk-In'
       }
