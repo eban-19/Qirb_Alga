@@ -49,7 +49,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
         is_active: plan.is_active,
         is_public: plan.is_public
       });
-      setFeatures(JSON.parse(plan.features || "[]"));
+      setFeatures(JSON.parse(plan?.features || "[]"));
     } else {
       setFormData({
         name: "",

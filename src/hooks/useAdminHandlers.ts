@@ -154,9 +154,78 @@ export const useAdminHandlers = (ui: any) => {
     }
   };
 
+  // Subscription Management Handlers
+  const handleExtendSubscription = async (subscriptionId: number, durationDays: number) => {
+    try {
+      const response = await fetch(`http://localhost:3006/api/admin-payments/subscriptions/${subscriptionId}/extend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ durationDays }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Subscription extended by ${durationDays} days`);
+        ui.fetchPaymentData();
+      } else {
+        toast.error(result.message || "Failed to extend subscription");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error extending subscription");
+    }
+  };
+
+  const handleTerminateFreeAccess = async (subscriptionId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3006/api/admin-payments/subscriptions/${subscriptionId}/terminate-free`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Free access terminated successfully");
+        ui.fetchPaymentData();
+      } else {
+        toast.error(result.message || "Failed to terminate free access");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error terminating free access");
+    }
+  };
+
+  const handleToggleSubscriptionStatus = async (subscriptionId: number, status: "ACTIVE" | "DEACTIVATED") => {
+    try {
+      const response = await fetch(`http://localhost:3006/api/admin-payments/subscriptions/${subscriptionId}/toggle-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Subscription ${status.toLowerCase()} successfully`);
+        ui.fetchPaymentData();
+      } else {
+        toast.error(result.message || "Failed to update subscription status");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error updating subscription status");
+    }
+  };
+
   return {
     handleOwnerAction,
     handlePropertyAction,
-    handleBookingAction
+    handleBookingAction,
+    handleExtendSubscription,
+    handleTerminateFreeAccess,
+    handleToggleSubscriptionStatus
   };
 };

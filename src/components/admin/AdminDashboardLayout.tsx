@@ -23,8 +23,8 @@ interface AdminDashboardLayoutProps {
   onAlertClick?: (alertId: string) => void;
 }
 
-const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ 
-  children, 
+const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
+  children,
   className,
   alerts = [],
   onAlertClick
@@ -37,25 +37,25 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
     <div className={cn("flex h-screen bg-slate-50 overflow-hidden", className)}>
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-      
+
       {/* Admin Sidebar */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
-        <AdminSidebar 
+        <AdminSidebar
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           isMobile={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
         {/* Top Bar */}
@@ -73,12 +73,12 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                   <Menu className="w-5 h-5 text-white" />
                 )}
               </button>
-              
-              {!sidebarCollapsed && (
-                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-              )}
+
+              {/* {!sidebarCollapsed && ( */}
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+              {/* )} */}
             </div>
-            
+
             <div className="flex items-center gap-2 sm:gap-3">
 
               {/* Notifications */}
@@ -97,7 +97,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
             </div>
           </div>
         </header>
-        
+
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-slate-50">
           <div className="p-4 md:p-6">
@@ -105,7 +105,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
           </div>
         </main>
       </div>
-      
+
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden">

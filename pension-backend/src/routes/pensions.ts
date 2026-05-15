@@ -17,6 +17,8 @@ interface PensionData {
   owner_info: string;
   room_details: string;
   image_url?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Get all pensions (protected) - Simple route for frontend
@@ -60,6 +62,8 @@ router.get('/', authenticateToken as any, requireOwnerApproval as any, async (re
         email: p.email,
         capacity: p.capacity,
         image_url: p.image_url,
+        latitude: p.latitude ? Number(p.latitude) : null,
+        longitude: p.longitude ? Number(p.longitude) : null,
         owner_id: p.owner_id,
         business_name: profile?.business_name,
         business_email: profile?.business_email,
@@ -272,6 +276,8 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
       owner_info,
       room_details,
       image_url,
+      latitude,
+      longitude,
       name_ml,
       description_ml,
       owner_info_ml,
@@ -286,9 +292,11 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
       });
     }
 
-    // Geocode address
+    // Geocode address only if coordinates are missing
     let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
-    if (address) {
+    if (latitude !== undefined && longitude !== undefined) {
+      coordinates = { lat: Number(latitude), lng: Number(longitude) };
+    } else if (address) {
       try {
         coordinates = await geocodingService.geocodeAddress(address);
       } catch (err) {
@@ -354,6 +362,8 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
       owner_info,
       room_details,
       image_url,
+      latitude,
+      longitude,
       name_ml,
       description_ml,
       owner_info_ml,
@@ -379,9 +389,11 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
       });
     }
 
-    // Geocode address if changed
+    // Geocode address if changed AND no explicit coordinates provided
     let coordinates = { lat: Number(pension.latitude), lng: Number(pension.longitude) };
-    if (address && address !== pension.address) {
+    if (latitude !== undefined && longitude !== undefined) {
+      coordinates = { lat: Number(latitude), lng: Number(longitude) };
+    } else if (address && address !== pension.address) {
       try {
         coordinates = await geocodingService.geocodeAddress(address);
       } catch (err) {

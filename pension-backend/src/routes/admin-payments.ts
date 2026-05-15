@@ -86,6 +86,7 @@ router.put('/plans/:id', authenticateToken as any, requireAdmin as any, async (r
 router.get('/subscriptions', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     const subscriptions = await prisma.subscription.findMany({
+      distinct: ['owner_id'],
       include: {
         owner: {
           select: {
@@ -169,6 +170,16 @@ router.get('/stats', authenticateToken as any, requireAdmin as any, async (req: 
     const freeUsers = await prisma.subscription.count({
       where: { is_free: true, status: SubscriptionStatus.ACTIVE }
     });
+    
+    // Recent payments
+    const recentPayments = await prisma.payment.findMany({
+      where: { status: PaymentStatus.PAID },
+      orderBy: { created_at: 'desc' },
+      take: 5,
+      include: {
+        user: { select: { full_name: true, email: true } }
+      }
+    });
 
     res.json({
       success: true,
@@ -176,9 +187,121 @@ router.get('/stats', authenticateToken as any, requireAdmin as any, async (req: 
         totalRevenue: totalRevenue._sum.amount || 0,
         activeSubscriptions: activeSubs,
         expiredSubscriptions: expiredSubs,
-        freeAccessUsers: freeUsers
+        freeAccessUsers: freeUsers,
+        recentPayments
       }
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Extend Subscription
+router.post('/subscriptions/:id/extend', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  const { durationDays } = req.body;
+  try {
+    const subscription = await prisma.subscription.findUnique({
+      where: { subscription_id: parseInt(String(id)) }
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Subscription not found' });
+    }
+
+    // If already expired, start from today. If active, add to existing end date.
+    let currentEndDate = new Date(subscription.end_date);
+    if (currentEndDate < new Date()) {
+      currentEndDate = new Date();
+    }
+    
+    currentEndDate.setDate(currentEndDate.getDate() + parseInt(String(durationDays)));
+
+    const updatedSub = await prisma.subscription.update({
+      where: { subscription_id: parseInt(String(id)) },
+      data: { 
+        end_date: currentEndDate,
+        status: SubscriptionStatus.ACTIVE
+      }
+    });
+
+    // Ensure owner is approved if we just extended them
+    await prisma.user.update({
+      where: { user_id: subscription.owner_id },
+      data: { status: 'Approved', approved: 1 }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        user_id: parseInt(String((req as any).user.userId)),
+        action: 'SUB_EXTEND',
+        entity_type: 'SUBSCRIPTION',
+        entity_id: updatedSub.subscription_id,
+        details: `Extended subscription by ${durationDays} days. New expiry: ${currentEndDate.toISOString()}`
+      }
+    });
+
+    res.json({ success: true, data: updatedSub });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Terminate Free Access
+router.post('/subscriptions/:id/terminate-free', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  try {
+    const updatedSub = await prisma.subscription.update({
+      where: { subscription_id: parseInt(String(id)) },
+      data: { 
+        is_free: false,
+        end_date: new Date(), // Expire immediately
+        status: SubscriptionStatus.EXPIRED 
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        user_id: parseInt(String((req as any).user.userId)),
+        action: 'SUB_TERMINATE_FREE',
+        entity_type: 'SUBSCRIPTION',
+        entity_id: updatedSub.subscription_id,
+        details: `Terminated free access for subscription ID ${id}`
+      }
+    });
+
+    res.json({ success: true, data: updatedSub });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Toggle Subscription Status (Activate/Deactivate)
+router.post('/subscriptions/:id/toggle-status', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  const { status } = req.body; // Expects 'ACTIVE' or 'DEACTIVATED'
+  
+  try {
+    if (status !== 'ACTIVE' && status !== 'DEACTIVATED' && status !== 'CANCELLED') {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const updatedSub = await prisma.subscription.update({
+      where: { subscription_id: parseInt(String(id)) },
+      data: { status: status as SubscriptionStatus }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        user_id: parseInt(String((req as any).user.userId)),
+        action: 'SUB_TOGGLE_STATUS',
+        entity_type: 'SUBSCRIPTION',
+        entity_id: updatedSub.subscription_id,
+        details: `Changed subscription status to ${status}`
+      }
+    });
+
+    res.json({ success: true, data: updatedSub });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
