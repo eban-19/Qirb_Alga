@@ -106,17 +106,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-3 pl-2 border-l border-slate-200 cursor-pointer hover:bg-slate-50 p-1 rounded-full transition-colors">
-                  <div className="hidden sm:flex flex-col items-end">
-                    <p className="text-sm font-semibold text-slate-800">{user?.full_name || 'Admin User'}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-slate-500">{user?.role || 'Administrator'}</p>
-                      {isPro && (
-                        <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-sm">
-                          PRO
-                        </span>
-                      )}
-                    </div>
-                  </div>
                   <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-2 ring-slate-100">
                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                       {user?.full_name?.charAt(0)?.toUpperCase() || 'AU'}

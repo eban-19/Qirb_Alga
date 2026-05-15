@@ -25,7 +25,7 @@ export const useDashboardHandlers = (
   const handlePensionSelectionChange = async (pensionId: string) => {
     data.setSelectedPensionId(pensionId);
     // Refresh relevant data for the new pension
-    await loadRealData();
+    await loadRealData(pensionId);
   };
 
   // --- STAFF HANDLERS ---

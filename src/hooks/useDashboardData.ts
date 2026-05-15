@@ -33,7 +33,7 @@ export const useDashboardData = (ui?: any) => {
   const [actualRoomStats, setActualRoomStats] = useState({ totalRooms: 0, availableRooms: 0 });
   const [selectedPensionId, setSelectedPensionId] = useState<string>('');
 
-  const loadRealData = useCallback(async () => {
+  const loadRealData = useCallback(async (forcedPensionId?: string) => {
     if (!user) {
       setLoading(false);
       return;
@@ -57,9 +57,21 @@ export const useDashboardData = (ui?: any) => {
         setPensions(fetchedPensions);
         
         // Find user's pension
-        let userPension = fetchedPensions.find((p: Pension) => 
-          String(p.owner_id) === String(user.id)
-        );
+        let userPension: Pension | undefined;
+        
+        const targetPensionId = forcedPensionId || selectedPensionId;
+        
+        if (targetPensionId) {
+          userPension = fetchedPensions.find((p: Pension) => 
+            String(p.pension_id || p.id) === String(targetPensionId)
+          );
+        }
+
+        if (!userPension) {
+          userPension = fetchedPensions.find((p: Pension) => 
+            String(p.owner_id) === String(user.id)
+          );
+        }
 
         // Fallback to the first pension if user has none (useful for admin viewing the dashboard)
         if (!userPension && fetchedPensions.length > 0) {

@@ -43,7 +43,6 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl max-h-[90vh] border-none shadow-2xl bg-white ring-1 ring-slate-200 overflow-hidden flex flex-col rounded-[2rem]">
-        <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"></div>
         <CardHeader className="pb-4 border-b border-slate-50">
           <CardTitle className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">

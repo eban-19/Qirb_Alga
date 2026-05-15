@@ -31,16 +31,10 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
-      <Card className="w-full max-w-4xl max-h-[95vh] border-none shadow-2xl bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shrink-0"></div>
+      <Card className="w-full max-w-4xl max-h-[95vh] border-none bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="pb-6 p-8 shrink-0">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
               <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create New Pension</h2>
                 <p className="text-sm text-slate-500 font-medium mt-0.5">Define your property details and public profile</p>
