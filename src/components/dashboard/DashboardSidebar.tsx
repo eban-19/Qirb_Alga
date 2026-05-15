@@ -108,9 +108,6 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           <Building className="h-4 w-4 text-slate-500" />
                           <div className="flex-1 min-w-0">
                             <span className="truncate text-sm font-medium">{pension.name}</span>
-                            <div className="text-xs text-slate-500">
-                              {pension.address || 'Main Location'}
-                            </div>
                           </div>
                         </div>
                       </SelectItem>

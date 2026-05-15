@@ -54,8 +54,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
       {/* Main Stats Grid */}
       <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Staff */}
-        <Card className="border-none shadow-xl bg-gradient-to-br from-blue-50 to-white relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <Card className="border shadow-sm bg-gradient-to-br from-blue-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
@@ -76,8 +75,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Available Rooms */}
-        <Card className="border-none shadow-xl bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default">
-          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+        <Card className="border shadow-sm bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
@@ -98,8 +96,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Active Bookings */}
-        <Card className="border-none shadow-xl bg-gradient-to-br from-purple-50 to-white relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default">
-          <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+        <Card className="border shadow-sm bg-gradient-to-br from-purple-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
@@ -120,8 +117,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Total Revenue */}
-        <Card className="border-none shadow-xl bg-gradient-to-br from-amber-50 to-white relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+        <Card className="border shadow-sm bg-gradient-to-br from-amber-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
