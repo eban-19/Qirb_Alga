@@ -23,6 +23,8 @@ interface Package {
   images?: string[];
   capacity?: number;
   beds?: number;
+  discount_percentage?: number;
+  discount_min_days?: number;
 }
 
 interface Pension {
@@ -41,6 +43,7 @@ interface Pension {
   phone: string;
   email: string;
   packages: Package[];
+  promotions: any[];
 }
 
 // Debug middleware to log all requests to public routes
@@ -81,12 +84,12 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         },
         packages: {
           include: {
-            rooms: {
-              where: {
-                availability_status: RoomStatus.Available
-              }
-            }
+            rooms: true
           }
+        },
+        promotions: {
+          where: { is_active: true },
+          include: { package: { select: { package_id: true, name: true } } }
         }
       },
       orderBy: { created_at: 'desc' }
@@ -98,15 +101,10 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
       
       const packages = p.packages.map((pkg: any) => ({
         ...pkg,
-        availableRoomsCount: pkg.rooms.length
+        availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
       }));
 
       const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
-
-      // Only include pension if it has available rooms
-      if (liveAvailableRooms === 0) {
-        return null;
-      }
 
       // Get coordinates (use existing or geocode from address)
       let coordinates = { 
@@ -138,8 +136,8 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         image_url: p.image_url,
         phone: p.phone || '',
         email: p.email || '',
+        promotions: p.promotions || [],
         packages: packages
-          .filter((pkg: any) => pkg.availableRoomsCount > 0)
           .map((pkg: any): Package => ({
             id: pkg.package_id,
             name: pkg.name,
@@ -161,13 +159,15 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
             isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
             images: Array.isArray(pkg.images) ? pkg.images : [],
             capacity: pkg.rooms[0]?.capacity || 0,
-            beds: pkg.rooms[0]?.number_of_beds || 0
+            beds: pkg.rooms[0]?.number_of_beds || 0,
+            discount_percentage: pkg.discount_percentage || 0,
+            discount_min_days: pkg.discount_min_days || 0
           }))
       };
     }));
 
-    // Filter out pensions with no available rooms
-    const availableItems = items.filter(item => item !== null);
+    // Filter out pensions with no packages (optional, but keeps listings clean)
+    const availableItems = items.filter(item => item !== null && item.packages.length > 0);
 
     // Pagination
     const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -212,6 +212,10 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
           include: {
             rooms: true
           }
+        },
+        promotions: {
+          where: { is_active: true },
+          include: { package: { select: { package_id: true, name: true } } }
         }
       }
     });
@@ -226,13 +230,6 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
     }));
 
     const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
-
-    if (liveAvailableRooms === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Pension not available - no rooms currently available' 
-      });
-    }
 
     // Get coordinates (use existing or geocode from address)
     let coordinates = { 
@@ -263,8 +260,8 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       images: [p.image_url || '/src/assets/room-1.png'],
       phone: p.phone || '',
       email: p.email || '',
+      promotions: p.promotions || [],
       packages: packages
-        .filter((pkg: any) => pkg.availableRoomsCount > 0)
         .map((pkg: any): Package => ({
           id: pkg.package_id,
           name: pkg.name,
@@ -286,7 +283,9 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
           isMostPopular: pkg.is_most_popular === 1 || pkg.is_most_popular === true,
           images: Array.isArray(pkg.images) ? pkg.images : [],
           capacity: pkg.rooms[0]?.capacity || 0,
-          beds: pkg.rooms[0]?.number_of_beds || 0
+          beds: pkg.rooms[0]?.number_of_beds || 0,
+          discount_percentage: pkg.discount_percentage || 0,
+          discount_min_days: pkg.discount_min_days || 0
         }))
     };
 
@@ -300,9 +299,73 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
   }
 });
 
-// Test endpoint for debugging
-router.get('/test', (req: express.Request, res: express.Response) => {
-  res.json({ success: true, message: 'Public routes working' });
+// Get available rooms for a pension and dates
+router.get('/availability', async (req: express.Request, res: express.Response) => {
+  try {
+    const { pensionId, checkIn, checkOut } = req.query;
+
+    if (!pensionId || !checkIn || !checkOut) {
+      return res.status(400).json({ success: false, message: 'Missing required parameters' });
+    }
+
+    const pId = parseInt(pensionId as string);
+    const checkInDate = new Date(checkIn as string);
+    const checkOutDate = new Date(checkOut as string);
+
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    }
+
+    // Fetch all packages for this pension
+    const packages = await prisma.package.findMany({
+      where: { pension_id: pId, is_active: true }
+    });
+
+    // For each package, count available rooms for these dates
+    const packageAvailability = await Promise.all(packages.map(async (pkg) => {
+      const availableCount = await prisma.room.count({
+        where: {
+          pension_id: pId,
+          package_id: pkg.package_id,
+          availability_status: { not: RoomStatus.Maintenance },
+          bookings: {
+            none: {
+              status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+              AND: [
+                { check_in_date: { lt: checkOutDate } },
+                { check_out_date: { gt: checkInDate } }
+              ]
+            }
+          }
+        }
+      });
+      return {
+        packageName: pkg.name,
+        packageId: pkg.package_id,
+        availableRooms: availableCount,
+        price: pkg.price,
+        discountPercentage: pkg.discount_percentage,
+        discountMinDays: pkg.discount_min_days
+      };
+    }));
+
+    // Fetch active promotions
+    const promotions = await prisma.promotion.findMany({
+      where: { pension_id: pId, is_active: true }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        packages: packageAvailability,
+        promotions: promotions
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Availability check error:', error);
+    res.status(500).json({ success: false, message: 'Failed to check availability' });
+  }
 });
 
 // Create a new public booking
@@ -325,12 +388,34 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     }
 
     // 1. Find or Create Customer
-    let user = await prisma.user.findFirst({
-      where: { phone }
-    });
+    let user = null;
+    
+    // Try to get user from token first
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded: any = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'your-secret-key');
+        user = await prisma.user.findUnique({ where: { user_id: decoded.userId } });
+      } catch (e) {
+        console.error('Token verification failed in public booking:', e);
+      }
+    }
 
     if (!user) {
-      // Generate a fallback email if none provided (email is required in schema)
+      // Look up by phone OR email
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: phone },
+            email ? { email: email } : undefined
+          ].filter(Boolean) as any
+        }
+      });
+    }
+
+    if (!user) {
+      // Generate a fallback email if none provided
       const userEmail = email || `${phone.replace(/\s+/g, '').replace(/\+/g, '')}@guest.qirbalga.com`;
       
       user = await prisma.user.create({
@@ -362,12 +447,13 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
       where: {
         pension_id: pensionId,
         package_id: pkg.package_id,
-        availability_status: RoomStatus.Available,
+        availability_status: { not: RoomStatus.Maintenance }, // Only exclude rooms under maintenance
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkOut }, check_out_date: { gte: checkIn } }
+            AND: [
+              { check_in_date: { lt: checkOut } },
+              { check_out_date: { gt: checkIn } }
             ]
           }
         }

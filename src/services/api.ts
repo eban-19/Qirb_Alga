@@ -64,6 +64,13 @@ class ApiService {
     });
   }
 
+  async otpLogin(phone: string, code: string, fullName?: string): Promise<ApiResponse<{ user: any; token: string }>> {
+    return this.request('/auth/otp-login', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code, fullName }),
+    });
+  }
+
   async register(userData: any): Promise<ApiResponse<{ user: any; token: string }>> {
     return this.request('/auth/register', {
       method: 'POST',
@@ -441,6 +448,10 @@ class ApiService {
     return this.request(`/bookings/${id}/complete-early`, {
       method: 'POST',
     });
+  }
+
+  async getCustomerBookings(): Promise<ApiResponse<any[]>> {
+    return this.request('/customer/bookings');
   }
 
   async createWalkInBooking(bookingData: any): Promise<ApiResponse<any>> {

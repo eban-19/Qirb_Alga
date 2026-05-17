@@ -19,6 +19,7 @@ import { useLanguage } from "@/hooks/use-language";
 import type { Language } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import UnifiedAuthModal from "./auth/UnifiedAuthModal";
 
 const Navbar = () => {
   const { language, setLanguage, options, t } = useLanguage();
@@ -29,6 +30,7 @@ const Navbar = () => {
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackResult, setTrackResult] = useState<any>(null);
   const [trackError, setTrackError] = useState("");
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleTrackBooking = async () => {
     if (!trackId.trim()) return;
@@ -105,29 +107,51 @@ const Navbar = () => {
           </Button>
           
           {isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex text-muted-foreground"
-              onClick={() => {
-                logout();
-                navigate("/");
-              }}
-            >
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              {user?.role?.toLowerCase() === 'customer' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:inline-flex text-muted-foreground font-bold"
+                  onClick={() => navigate("/profile")}
+                >
+                  My Stays
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex text-muted-foreground"
+                onClick={() => {
+                  logout();
+                  navigate("/");
+                }}
+              >
+                Logout
+              </Button>
+            </div>
           ) : (
-            <Button
+              <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground whitespace-nowrap"
-              onClick={() => navigate("/login")}
+              onClick={() => setIsAuthModalOpen(true)}
             >
               Login
             </Button>
           )}
         </div>
       </div>
+
+      <UnifiedAuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={() => {
+          setIsAuthModalOpen(false);
+          // Reload the page to ensure all components get the updated user state correctly
+          window.location.reload();
+        }} 
+      />
     </nav>
   );
 };

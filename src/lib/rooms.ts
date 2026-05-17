@@ -33,12 +33,31 @@ export interface RoomPackage {
   imageType?: string;
   capacity?: number;
   beds?: number;
+  discount_percentage?: number;
+  discount_min_days?: number;
   name_ml?: { en?: string; am?: string; om?: string };
   description_ml?: { en?: string; am?: string; om?: string };
 }
 
+export interface Promotion {
+  promo_id: number;
+  pension_id: number;
+  package_id?: number | null;   // null = applies to all packages
+  type: 'EARLY_BIRD' | 'LONG_STAY' | 'LAST_MINUTE' | 'SEASONAL';
+  name: string;
+  description: string;
+  discount_percent: number;
+  min_days?: number;
+  max_days?: number;
+  start_date?: string;
+  end_date?: string;
+  is_active: boolean;
+  package?: { package_id: number; name: string } | null;
+}
+
 export interface Room {
   id: string;
+  pension_id?: number;
   name: string;
   name_ml?: { en?: string; am?: string; om?: string };
   description: string;
@@ -57,8 +76,10 @@ export interface Room {
   availableRooms: number;
   totalRooms?: number;
   rooms?: any[];
-  packages?: any[];
+  packages: Package[];
+  promotions?: Promotion[];
   images: string[];
+  image_url?: string;
   videoUrl?: string;
   distance?: number;
   phone?: string;

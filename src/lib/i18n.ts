@@ -206,6 +206,7 @@ export interface TranslationSchema {
         pensionProfile: string;
         staffHr: string;
         staff: string;
+        packages: string;
         transactions: string;
         reports: string;
         settings: string;

@@ -4,6 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { Role, UserStatus, ApprovalStatus } from '@prisma/client';
+import { OTPService } from '../services/otp.service';
 
 const router = express.Router();
 
@@ -25,10 +26,10 @@ router.post('/register', async (req: any, res: any) => {
     } = req.body;
 
     // Validate input
-    if (!email || !password || !fullName) {
+    if (!email || !password || !fullName || !phone) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, and full name are required'
+        message: 'Email, password, full name, and phone number are required'
       });
     }
 
@@ -64,8 +65,8 @@ router.post('/register', async (req: any, res: any) => {
           phone,
           password_hash: hashedPassword,
           role: userRole,
-          status: UserStatus.Pending,
-          approved: 0
+          status: userRole === Role.Customer ? UserStatus.Approved : UserStatus.Pending,
+          approved: userRole === Role.Customer ? 1 : 0
         }
       });
 
@@ -173,6 +174,12 @@ router.post('/login', async (req: any, res: any) => {
     }
 
     // Verify password
+    if (!user.password_hash) {
+      return res.status(401).json({
+        success: false,
+        message: 'This account does not have a password set. Please login via OTP.'
+      });
+    }
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({
@@ -214,6 +221,126 @@ router.post('/login', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       message: 'Login failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Check if user exists (to determine if we should show login or register)
+router.get('/check-user', async (req: any, res: any) => {
+  try {
+    const { identifier } = req.query;
+    if (!identifier) return res.status(400).json({ success: false });
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { phone: identifier }
+        ]
+      }
+    });
+
+    res.json({
+      success: true,
+      exists: !!user,
+      role: user?.role
+    });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// OTP Login/Register for Customers
+router.post('/otp-login', async (req: any, res: any) => {
+  try {
+    const { phone, code, fullName } = req.body;
+
+    if (!phone || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone and code are required'
+      });
+    }
+
+    // 1. Verify OTP
+    const isVerified = await OTPService.verifyOTP(phone, code);
+    if (!isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP code'
+      });
+    }
+
+    // 2. Normalize phone
+    const cleanPhone = phone.replace(/\D/g, '');
+    const normalizedPhone = cleanPhone.startsWith('0') ? '+251' + cleanPhone.substring(1) : (cleanPhone.startsWith('251') ? '+' + cleanPhone : '+251' + cleanPhone);
+
+    // 3. Find or Create user
+    let user = await prisma.user.findFirst({
+      where: { 
+        OR: [
+          { phone: normalizedPhone },
+          { phone: phone }
+        ]
+      }
+    });
+
+    if (!user) {
+      // Create new customer
+      user = await prisma.user.create({
+        data: {
+          phone: normalizedPhone,
+          full_name: fullName || 'Guest Customer',
+          role: Role.Customer,
+          status: UserStatus.Approved, // Auto-approve phone-verified customers
+          approved: 1,
+          email_verified: 0
+        }
+      });
+    } else {
+        // If user exists but was pending, approve them since they verified phone
+        if (user.role === Role.Customer && user.approved === 0) {
+            user = await prisma.user.update({
+                where: { user_id: user.user_id },
+                data: { approved: 1, status: UserStatus.Approved }
+            });
+        }
+    }
+
+    // 4. Generate JWT
+    const token = jwt.sign(
+      { 
+        userId: user.user_id, 
+        email: user.email, 
+        role: user.role,
+        fullName: user.full_name 
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '30d' } // Longer session for customers
+    );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: {
+          id: user.user_id,
+          email: user.email,
+          full_name: user.full_name,
+          phone: user.phone,
+          role: user.role,
+          approved: user.approved
+        }
+      }
+    });
+
+  } catch (error: any) {
+    console.error('OTP Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'OTP Login failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -363,6 +490,13 @@ router.put('/change-password', authenticateToken as any, async (req: any, res: a
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    if (!user.password_hash) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is not set for this account'
       });
     }
 

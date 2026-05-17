@@ -36,6 +36,8 @@ const Login = () => {
       // Redirect based on user role (case-insensitive)
       if (user.role?.toLowerCase() === 'admin') {
         navigate("/dashboard/admin");
+      } else if (user.role?.toLowerCase() === 'customer') {
+        navigate("/");
       } else {
         navigate("/dashboard");
       }

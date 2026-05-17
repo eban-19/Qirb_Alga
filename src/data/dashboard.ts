@@ -12,7 +12,8 @@ import {
   Contact, 
   FileCheck,
   Home,
-  Package
+  Package,
+  Gift
 } from 'lucide-react';
 
 export const sidebarLinks = [
@@ -23,6 +24,7 @@ export const sidebarLinks = [
   { id: "staff", labelKey: "staff", icon: "Users" },
   { id: "pension-profile", labelKey: "pensionProfile", icon: "Building" },
   { id: "packages", labelKey: "packages", icon: "Package" },
+  { id: "promotions", labelKey: "promotions", icon: "Gift" },
   { id: "transactions", labelKey: "transactions", icon: "ArrowLeftRight" },
   { id: "reports", labelKey: "reports", icon: "BarChart3" },
   {
@@ -53,7 +55,8 @@ export const getIcon = (name: string) => {
     Contact,
     FileCheck,
     Home,
-    Package
+    Package,
+    Gift
   };
   return icons[name] || LayoutDashboard;
 };

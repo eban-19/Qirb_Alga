@@ -20,11 +20,11 @@
     "types": ["node"]
   },
   "ts-node": {
-    "esm": false
+    "esm": false,
+    "transpileOnly": true
   },
   "include": [
-    "src/**/*",
-    "scratch/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

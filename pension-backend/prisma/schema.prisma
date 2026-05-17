@@ -22,10 +22,10 @@ enum UserStatus {
 model User {
   user_id            Int                  @id @default(autoincrement())
   full_name          String?              @db.VarChar(100)
-  email              String               @unique @db.VarChar(100)
+  email              String?              @unique @db.VarChar(100)
   email_verified     Int                  @default(0) @db.TinyInt
   phone              String?              @db.VarChar(20)
-  password_hash      String               @db.VarChar(255)
+  password_hash      String?              @db.VarChar(255)
   role               Role
   status             UserStatus           @default(Pending)
   approved           Int                  @default(0)
@@ -86,6 +86,7 @@ model Pension {
   packages         Package[]
   staff            Staff[]
   expenses         Expense[]
+  promotions       Promotion[]
 
   @@map("pensions")
 }
@@ -213,6 +214,35 @@ enum NotificationType {
   system
 }
 
+enum PromoType {
+  EARLY_BIRD
+  LONG_STAY
+  LAST_MINUTE
+  SEASONAL
+}
+
+model Promotion {
+  promo_id         Int       @id @default(autoincrement())
+  pension_id       Int
+  package_id       Int?      // null = applies to all packages in the pension
+  type             PromoType
+  name             String    @db.VarChar(100)
+  description      String?   @db.Text
+  discount_percent Int
+  min_days         Int?      // e.g. 30 days in advance, or 5 nights long stay
+  max_days         Int?      // e.g. within 2 days for last minute
+  start_date       DateTime? // seasonal start
+  end_date         DateTime? // seasonal end
+  is_active        Boolean   @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamp(0)
+  updated_at       DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension          Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  package          Package?  @relation("PackagePromotions", fields: [package_id], references: [package_id], onDelete: SetNull)
+
+  @@map("promotions")
+}
+
 model Package {
   package_id      Int       @id @default(autoincrement())
   pension_id      Int
@@ -227,11 +257,14 @@ model Package {
   is_most_popular Boolean?  @default(false)
   image_url       String?   @db.VarChar(255)
   images          Json?
+  discount_percentage Int?  @default(0)
+  discount_min_days   Int?  @default(0)
   created_at      DateTime? @default(now()) @db.Timestamp(0)
   updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
 
   pension         Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
   rooms           Room[]    @relation("PackageRooms")
+  promotions      Promotion[] @relation("PackagePromotions")
 
   @@map("packages")
 }

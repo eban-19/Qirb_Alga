@@ -22,6 +22,7 @@ import { BookingSection } from '../components/dashboard/BookingSection';
 import { RoomsSection } from '../components/dashboard/RoomsSection';
 import { GuestsSection } from '../components/dashboard/GuestsSection';
 import { TransactionsSection } from '../components/dashboard/TransactionsSection';
+import { PromotionsSection } from '../components/dashboard/PromotionsSection';
 import SubscriptionPlans from '../components/dashboard/SubscriptionPlans';
 
 // Modals
@@ -142,6 +143,7 @@ const Dashboard: React.FC = () => {
                    ui.activeTab === "rooms" ? "Rooms Management" :
                    ui.activeTab === "pension-profile" ? "Pension Profile" :
                    ui.activeTab === "packages" ? "Package Tiers" :
+                   ui.activeTab === "promotions" ? "Promotions & Offers" :
                    ui.activeTab === "reports" ? "Reports & Analytics" :
                    ui.activeTab.startsWith("settings-") ? "Settings" :
                    ui.activeTab === "subscription" ? "Subscription Plans" :
@@ -355,6 +357,10 @@ const Dashboard: React.FC = () => {
                 totalItems={data.dataTotals?.packages || data.packages.length}
                 language={language}
               />
+            )}
+
+            {ui.activeTab === "promotions" && !status?.isRestricted && (
+              <PromotionsSection />
             )}
 
             {ui.activeTab === "reports" && !status?.isRestricted && (

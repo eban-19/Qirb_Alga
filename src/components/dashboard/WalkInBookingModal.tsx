@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { X } from 'lucide-react';
+import { X, Search, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 interface WalkInBookingModalProps {
   isOpen: boolean;
@@ -19,6 +19,53 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   walkInPackages,
   onWalkInSubmit
 }) => {
+  const [availableRooms, setAvailableRooms] = useState<number | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+
+  // Reset availability when dates or package change
+  useEffect(() => {
+    setAvailableRooms(null);
+  }, [walkInForm.checkIn, walkInForm.checkOut, walkInForm.packageId]);
+
+  const handleCheckAvailability = async () => {
+    if (!walkInForm.checkIn || !walkInForm.checkOut || !walkInForm.packageId) {
+      alert("Please select dates and a package first.");
+      return;
+    }
+    if (new Date(walkInForm.checkOut) <= new Date(walkInForm.checkIn)) {
+      alert("Check-out date must be after check-in date.");
+      return;
+    }
+    
+    setIsChecking(true);
+    try {
+      const response = await fetch('http://localhost:3006/api/bookings/walk-in/check-availability', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          checkIn: walkInForm.checkIn,
+          checkOut: walkInForm.checkOut,
+          packageId: walkInForm.packageId
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAvailableRooms(result.availableRooms);
+      } else {
+        alert(result.message || "Failed to check availability");
+        setAvailableRooms(0);
+      }
+    } catch (error) {
+      console.error("Availability check failed:", error);
+      alert("Something went wrong checking availability.");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -116,6 +163,37 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     ))}
                   </select>
                 </div>
+                
+                {walkInForm.checkIn && walkInForm.checkOut && walkInForm.packageId && (
+                  <div className="pt-2">
+                    {availableRooms === null ? (
+                      <Button 
+                        onClick={handleCheckAvailability} 
+                        disabled={isChecking}
+                        className="w-full h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold"
+                      >
+                        {isChecking ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Search className="h-5 w-5 mr-2" />}
+                        Check Availability
+                      </Button>
+                    ) : availableRooms > 0 ? (
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                        <div>
+                          <p className="text-sm font-bold text-emerald-900">Rooms Available</p>
+                          <p className="text-xs font-medium text-emerald-700">{availableRooms} rooms match this package.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 border border-rose-100">
+                        <AlertCircle className="h-6 w-6 text-rose-600" />
+                        <div>
+                          <p className="text-sm font-bold text-rose-900">No Availability</p>
+                          <p className="text-xs font-medium text-rose-700">All rooms for this package are booked.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -124,7 +202,10 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">Cancel</Button>
             <Button 
               onClick={onWalkInSubmit} 
-              className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25 rounded-xl font-bold text-lg active:scale-95 transition-all"
+              disabled={availableRooms === null || availableRooms === 0}
+              className={`flex-1 h-12 text-white shadow-lg rounded-xl font-bold text-lg transition-all ${
+                availableRooms && availableRooms > 0 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25 active:scale-95' : 'bg-slate-300 shadow-none cursor-not-allowed'
+              }`}
             >
               Confirm Booking
             </Button>

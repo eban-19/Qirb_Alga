@@ -31,6 +31,8 @@ import paymentRoutes from './routes/payments';
 import subscriptionRoutes from './routes/subscriptions';
 import systemRoutes, { getSystemStatusController } from './routes/system';
 import availabilityRoutes from './routes/availability';
+import customerRoutes from './routes/customer';
+import promotionsRoutes from './routes/promotions';
 import errorLogger from './middleware/errorLogger';
 import wsServer from './websocket';
 import scheduledCheckoutWorker from './services/scheduledCheckoutWorker';
@@ -120,6 +122,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/availability', availabilityRoutes);
+app.use('/api/customer', customerRoutes);
+app.use('/api/promotions', promotionsRoutes);
 
 // System status endpoint
 app.get('/api/system/status', getSystemStatusController);
