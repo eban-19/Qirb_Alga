@@ -28,7 +28,6 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl border-none shadow-2xl bg-white ring-1 ring-slate-200 rounded-[2rem] overflow-hidden">
-        <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600"></div>
         <CardHeader className="pb-6 p-8">
           <CardTitle className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
