@@ -625,6 +625,27 @@ class ApiService {
     return this.request('/admin/owners');
   }
 
+  async getAllCustomers(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/customers');
+  }
+
+  async getAllStaffs(): Promise<ApiResponse<any[]>> {
+    return this.request('/admin/staffs');
+  }
+
+  async createStaff(data: any): Promise<ApiResponse<any>> {
+    return this.request('/admin/staffs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSubscriptionPlan(planId: number): Promise<ApiResponse<any>> {
+    return this.request(`/admin-payments/plans/${planId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getOwnerDetails(ownerId: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/owners/${ownerId}/details`);
   }

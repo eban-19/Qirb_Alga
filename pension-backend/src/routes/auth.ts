@@ -267,16 +267,32 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
 router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
-    const { fullName, phone, businessName, businessEmail, businessPhone, licenseNumber, licenseDocument } = req.body;
+    const { 
+      fullName, full_name,
+      phone, 
+      businessName, business_name,
+      businessEmail, business_email,
+      businessPhone, business_phone,
+      licenseNumber, license_number,
+      licenseDocument, license_document, id_document_url
+    } = req.body;
+
+    const finalFullName = fullName || full_name;
+    const finalPhone = phone;
+    const finalBusinessName = businessName || business_name;
+    const finalBusinessEmail = businessEmail || business_email;
+    const finalBusinessPhone = businessPhone || business_phone;
+    const finalLicenseNumber = licenseNumber || license_number;
+    const finalLicenseDocument = licenseDocument || license_document || id_document_url;
 
     const result = await prisma.$transaction(async (tx) => {
       // Update basic user profile
-      if (fullName || phone) {
+      if (finalFullName || finalPhone) {
         await tx.user.update({
           where: { user_id: userId },
           data: {
-            full_name: fullName,
-            phone: phone
+            full_name: finalFullName || undefined,
+            phone: finalPhone || undefined
           }
         });
       }
@@ -290,11 +306,11 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
         if (existingProfile) {
           // Check for critical changes
           if (
-            (businessName && businessName !== existingProfile.business_name) ||
-            (businessEmail && businessEmail !== existingProfile.business_email) ||
-            (businessPhone && businessPhone !== existingProfile.business_phone) ||
-            (licenseNumber && licenseNumber !== existingProfile.license_number) ||
-            (licenseDocument && licenseDocument !== existingProfile.id_document_url)
+            (finalBusinessName && finalBusinessName !== existingProfile.business_name) ||
+            (finalBusinessEmail && finalBusinessEmail !== existingProfile.business_email) ||
+            (finalBusinessPhone && finalBusinessPhone !== existingProfile.business_phone) ||
+            (finalLicenseNumber && finalLicenseNumber !== existingProfile.license_number) ||
+            (finalLicenseDocument && finalLicenseDocument !== existingProfile.id_document_url)
           ) {
             statusChanged = true;
             await tx.user.update({
@@ -306,23 +322,23 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
           await tx.ownerProfile.update({
             where: { owner_id: userId },
             data: {
-              business_name: businessName || undefined,
-              business_email: businessEmail || undefined,
-              business_phone: businessPhone || undefined,
-              license_number: licenseNumber || undefined,
-              id_document_url: licenseDocument || undefined,
+              business_name: finalBusinessName || undefined,
+              business_email: finalBusinessEmail || undefined,
+              business_phone: finalBusinessPhone || undefined,
+              license_number: finalLicenseNumber || undefined,
+              id_document_url: finalLicenseDocument || undefined,
               approval_status: statusChanged ? ApprovalStatus.Pending : undefined
             }
           });
-        } else if (businessName || businessEmail || businessPhone || licenseNumber || licenseDocument) {
+        } else if (finalBusinessName || finalBusinessEmail || finalBusinessPhone || finalLicenseNumber || finalLicenseDocument) {
           await tx.ownerProfile.create({
             data: {
               owner_id: userId,
-              business_name: businessName,
-              business_email: businessEmail,
-              business_phone: businessPhone,
-              license_number: licenseNumber,
-              id_document_url: licenseDocument,
+              business_name: finalBusinessName || '',
+              business_email: finalBusinessEmail || '',
+              business_phone: finalBusinessPhone || '',
+              license_number: finalLicenseNumber || '',
+              id_document_url: finalLicenseDocument || '',
               approval_status: ApprovalStatus.Pending
             }
           });

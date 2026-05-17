@@ -161,6 +161,38 @@ const PensionApprovalInline: React.FC = () => {
     }
   };
 
+  // Handle suspend
+  const handleSuspend = async (pensionId: number) => {
+    try {
+      setActionLoading(`suspend-${pensionId}`);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`http://localhost:3006/api/admin/pensions/${pensionId}/suspend`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setPensions(prev => prev.map(p =>
+          (p.pension_id === pensionId || p.id === pensionId)
+            ? { ...p, status: 'inactive', reviewed_at: new Date().toISOString() }
+            : p
+        ));
+        setSelectedPension(null);
+      } else {
+        alert('Failed to suspend pension');
+      }
+    } catch (error) {
+      console.error('Error suspending pension:', error);
+      alert('Error suspending pension');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleBulkAction = async (action: 'approve' | 'reject') => {
     if (action === 'reject' && !rejectionReason.trim()) {
       alert('Please provide a rejection reason in the modal or input before bulk rejecting.');
@@ -208,11 +240,11 @@ const PensionApprovalInline: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
       case 'active':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
       case 'inactive':
-        return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Inactive</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border border-red-200"><XCircle className="w-3 h-3 mr-1" />Inactive / Suspended</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -419,6 +451,17 @@ const PensionApprovalInline: React.FC = () => {
                             </Button>
                           </>
                         )}
+                        {pension.status === 'active' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSuspend(pension.pension_id || pension.id)}
+                            disabled={actionLoading === `suspend-${pension.pension_id || pension.id}`}
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                          >
+                            {actionLoading === `suspend-${pension.pension_id || pension.id}` ? 'Suspending...' : 'Suspend'}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -556,12 +599,11 @@ const PensionApprovalInline: React.FC = () => {
                 {getStatusBadge(selectedPension.status)}
               </div>
 
-              {/* Actions */}
+              {/* Pending Actions: Approve / Reject */}
               {selectedPension.status === 'pending' && (
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Review Actions</h3>
-                  
-                  {/* Rejection Reason */}
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-2">Rejection Reason (if rejecting):</label>
                     <Textarea
@@ -572,7 +614,7 @@ const PensionApprovalInline: React.FC = () => {
                     />
                   </div>
 
-                  <div className="flex gap-3 mb-6">
+                  <div className="flex gap-3">
                     <Button
                       size="lg"
                       onClick={() => handleApprove(selectedPension.pension_id || selectedPension.id)}
@@ -581,7 +623,7 @@ const PensionApprovalInline: React.FC = () => {
                     >
                       {actionLoading === `approve-${selectedPension.pension_id || selectedPension.id}` ? 'Approving...' : '✅ Approve Pension'}
                     </Button>
-                    
+
                     <Button
                       variant="destructive"
                       size="lg"
@@ -593,6 +635,23 @@ const PensionApprovalInline: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Suspend Action (for active pensions) */}
+              {selectedPension.status === 'active' && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Admin Actions</h3>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => handleSuspend(selectedPension.pension_id || selectedPension.id)}
+                    disabled={actionLoading === `suspend-${selectedPension.pension_id || selectedPension.id}`}
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                  >
+                    {actionLoading === `suspend-${selectedPension.pension_id || selectedPension.id}` ? 'Suspending...' : '⏸ Suspend Pension'}
+                  </Button>
+                </div>
+              )}
+
             </div>
           </div>
         </div>,

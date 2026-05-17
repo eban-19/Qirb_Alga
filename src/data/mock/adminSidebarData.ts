@@ -60,20 +60,13 @@ export const adminSidebarLinks: SidebarLink[] = [
       }
     ]
   },
-  // {
-  //   id: "properties",
-  //   label: "Properties",
-  //   icon: "Building",
-  //   href: "/dashboard/admin/properties",
-  //   badge: null
-  // },
-  // {
-  //   id: "approvals",
-  //   label: "Pension Approvals",
-  //   icon: "CheckCircle",
-  //   href: "/dashboard/admin/approvals",
-  //   badge: null
-  // },
+  {
+    id: "pensions",
+    label: "Pensions",
+    icon: "Building",
+    href: "/dashboard/admin/approvals",
+    badge: null
+  },
   {
     id: "bookings",
     label: "Bookings",
@@ -81,13 +74,14 @@ export const adminSidebarLinks: SidebarLink[] = [
     href: "/dashboard/admin/bookings",
     badge: null
   },
-  {
-    id: "alerts",
-    label: "Alerts",
-    icon: "Bell",
-    href: "/dashboard/admin/alerts",
-    badge: null // No badge since notifications are in header
-  },
+
+  // {
+  //   id: "alerts",
+  //   label: "Alerts",
+  //   icon: "Bell",
+  //   href: "/dashboard/admin/alerts",
+  //   badge: null // No badge since notifications are in header
+  // },
   {
     id: "payments",
     label: "Payments & Plans",

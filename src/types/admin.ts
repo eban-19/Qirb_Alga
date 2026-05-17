@@ -17,6 +17,10 @@ export interface PensionOwner {
 export interface AdminBooking {
   id: string;
   propertyName: string;
+  pensionId?: string | null;
+  ownerId?: string | null;
+  ownerName: string;
+  ownerEmail?: string;
   guestName: string;
   guestEmail: string;
   guestPhone: string;
@@ -25,14 +29,13 @@ export interface AdminBooking {
   totalPrice: number;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   paymentStatus: "pending" | "paid" | "refunded";
-  ownerName: string;
   specialRequests?: string;
   createdAt: string;
 }
 
 export interface SystemAlert {
   id: string;
-  type: "verification" | "payment" | "complaint" | "system";
+  type: "verification" | "payment" | "complaint" | "system" | "pension_approval";
   title: string;
   message: string;
   severity: "low" | "medium" | "high" | "critical";
@@ -42,16 +45,26 @@ export interface SystemAlert {
   entityType?: "owner" | "property" | "booking" | "guest";
 }
 
+export interface MonthlyAnalytic {
+  month: string;
+  bookings: number;
+  revenue: number;
+}
+
 export interface PlatformMetrics {
   totalOwners: number;
   totalProperties: number;
   totalBookings: number;
+  totalUsers?: number;
   monthlyRevenue: number;
   occupancyRate: number;
   pendingVerifications: number;
   activeProperties: number;
   averageRating: number;
+  pendingPensions?: number;
+  monthlyAnalytics?: MonthlyAnalytic[];
 }
+
 
 export interface AnalyticsData {
   revenue: {

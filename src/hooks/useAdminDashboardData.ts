@@ -13,8 +13,9 @@ export const useAdminDashboardData = () => {
     if (path.includes('/owners')) return 'owners';
     if (path.includes('/customers')) return 'customers';
     if (path.includes('/staffs')) return 'staffs';
-    if (path.includes('/properties')) return 'properties';
-    if (path.includes('/approvals')) return 'pension-approval';
+    if (path.includes('/pensions')) return 'pensions';
+    if (path.includes('/properties')) return 'pensions';
+    if (path.includes('/approvals')) return 'pensions';
     if (path.includes('/bookings')) return 'bookings';
     if (path.includes('/alerts')) return 'alerts';
     if (path.includes('/payments')) return 'payments';
@@ -32,15 +33,20 @@ export const useAdminDashboardData = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [pensions, setPensions] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [staffs, setStaffs] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<PlatformMetrics>({
     totalOwners: 0,
     totalProperties: 0,
     totalBookings: 0,
+    totalUsers: 0,
     monthlyRevenue: 0,
     occupancyRate: 0,
     pendingVerifications: 0,
+    pendingPensions: 0,
     activeProperties: 0,
-    averageRating: 0
+    averageRating: 0,
+    monthlyAnalytics: []
   });
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +68,7 @@ export const useAdminDashboardData = () => {
       setLoading(true);
 
       // Fetch all data in parallel
-      const [ownersRes, propertiesRes, bookingsRes, metricsRes, alertsRes, pensionsRes] = await Promise.all([
+      const [ownersRes, propertiesRes, bookingsRes, metricsRes, alertsRes, pensionsRes, customersRes, staffsRes] = await Promise.all([
         apiService.getAllOwners(),
         apiService.getAllProperties(),
         apiService.getAllBookings(),
@@ -73,7 +79,9 @@ export const useAdminDashboardData = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
           }
-        }).then(res => res.json())
+        }).then(res => res.json()),
+        apiService.getAllCustomers(),
+        apiService.getAllStaffs()
       ]);
 
       setOwners(ownersRes.data || []);
@@ -85,6 +93,8 @@ export const useAdminDashboardData = () => {
       setMetrics(metricsRes.data || metrics);
       setAlerts(alertsRes.data || []);
       setPensions(pensionsRes.data || []);
+      setCustomers(customersRes.data || []);
+      setStaffs(staffsRes.data || []);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {
@@ -231,6 +241,8 @@ export const useAdminDashboardData = () => {
     properties, setProperties,
     bookings, setBookings,
     pensions, setPensions,
+    customers, setCustomers,
+    staffs, setStaffs,
     metrics, setMetrics,
     alerts, setAlerts,
     loading, setLoading,

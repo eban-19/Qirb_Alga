@@ -326,8 +326,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!state.user) throw new Error('Not authenticated');
       const response = await apiService.updateUserProfile(state.user.id, profileData);
       if (response.success) {
-        const updatedUser = { ...state.user, ...profileData };
-        dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: updatedUser });
+        // Fetch fresh profile data to ensure local state matches backend exactly
+        const profileRes = await apiService.getProfile();
+        if (profileRes.success && profileRes.data) {
+          dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: profileRes.data.user });
+        } else {
+          // Fallback if getProfile fails
+          const updatedUser = { ...state.user, ...profileData };
+          dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: updatedUser });
+        }
         return response;
       }
       throw new Error(response.message || 'Update failed');

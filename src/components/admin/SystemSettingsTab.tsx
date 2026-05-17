@@ -118,8 +118,6 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
       await updateProfile(profileForm);
       toast.success("Profile updated successfully");
       setIsEditingProfile(false);
-      // Force immediate local storage update check
-      localStorage.setItem('user', JSON.stringify({ ...user, ...profileForm }));
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile");
     } finally {

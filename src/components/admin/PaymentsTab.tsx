@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import apiService from "@/services/api";
 import { OverrideModal } from "./OverrideModal";
 import { PlanModal } from "./PlanModal";
 import { ExtendSubscriptionModal } from "./ExtendSubscriptionModal";
@@ -72,6 +73,28 @@ export function PaymentsTab({
   const handleOpenConfirm = (title: string, description: string, confirmText: string, variant: "destructive" | "default", action: () => Promise<void>) => {
     setConfirmAction({ title, description, confirmText, variant, action });
     setIsConfirmModalOpen(true);
+  };
+
+  const handleDeletePlan = async (planId: number, planName: string) => {
+    handleOpenConfirm(
+      "Delete Subscription Plan",
+      `Are you sure you want to delete the plan "${planName}"? This action cannot be undone. Note: Plans with active or past subscriptions cannot be deleted.`,
+      "Delete Plan",
+      "destructive",
+      async () => {
+        try {
+          const response = await apiService.deleteSubscriptionPlan(planId);
+          if (response.success) {
+            toast.success("Plan deleted successfully");
+            onRefresh();
+          } else {
+            toast.error(response.message || "Failed to delete plan. Try deactivating it instead.");
+          }
+        } catch (error) {
+          toast.error("Failed to delete plan. Try deactivating it instead.");
+        }
+      }
+    );
   };
 
   const metrics = [
@@ -370,29 +393,50 @@ export function PaymentsTab({
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans.map((plan) => (
-              <Card key={plan.plan_id} className="relative overflow-hidden border-slate-200 hover:border-blue-300 hover:shadow-md transition-all">
+              <Card 
+                key={plan.plan_id} 
+                className={cn(
+                  "relative overflow-hidden transition-all duration-300 hover:-translate-y-1",
+                  plan.promotion_banner 
+                    ? "border-rose-300 shadow-[0_10px_30px_-10px_rgba(244,63,94,0.3)] bg-rose-50/10" 
+                    : "border-slate-200 hover:border-blue-300 hover:shadow-md"
+                )}
+              >
                 {!plan.is_public && (
-                  <div className="absolute top-0 right-0">
+                  <div className="absolute top-0 right-0 z-10">
                     <div className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
                       <Shield className="w-3 h-3" />
                       ADMIN ONLY
                     </div>
                   </div>
                 )}
-                <CardHeader>
+                {plan.promotion_banner && (
+                  <div className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-4 py-2 text-center shadow-sm">
+                    {plan.promotion_banner}
+                  </div>
+                )}
+                <CardHeader className="relative">
                   <CardTitle className="text-xl flex items-center justify-between">
                     {plan.name}
                     <div className="flex gap-2">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 text-slate-400 hover:text-blue-600"
+                        className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
                         onClick={() => {
                           setSelectedPlan(plan);
                           setIsPlanModalOpen(true);
                         }}
                       >
                         <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeletePlan(plan.plan_id, plan.name)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardTitle>

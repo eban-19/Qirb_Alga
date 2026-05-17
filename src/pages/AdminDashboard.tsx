@@ -1,8 +1,7 @@
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { OverviewTab } from "@/components/admin/OverviewTab";
 import { OwnersTab } from "@/components/admin/OwnersTab";
-import { PropertiesTab } from "@/components/admin/PropertiesTab";
-import PensionApprovalInline from "@/components/admin/PensionApprovalInline";
+import { PensionsTab } from "@/components/admin/PensionsTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
 import { StaffsTab } from "@/components/admin/StaffsTab";
 import { AlertsTab } from "@/components/admin/AlertsTab";
@@ -46,19 +45,15 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="customers">
-            <CustomersTab />
+            <CustomersTab customers={ui.customers} />
           </TabsContent>
 
           <TabsContent value="staffs">
-            <StaffsTab />
+            <StaffsTab staffs={ui.staffs} onRefresh={ui.fetchAdminData} />
           </TabsContent>
 
-          <TabsContent value="properties">
-            <PropertiesTab properties={ui.properties} onPropertyAction={handlers.handlePropertyAction} />
-          </TabsContent>
-
-          <TabsContent value="pension-approval">
-            <PensionApprovalInline />
+          <TabsContent value="pensions">
+            <PensionsTab pensions={ui.properties} onRefresh={ui.fetchAdminData} />
           </TabsContent>
 
           <TabsContent value="bookings">
