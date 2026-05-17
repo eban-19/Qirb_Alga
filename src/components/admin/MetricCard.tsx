@@ -1,5 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { Route } from "react-router-dom";
+
 
 interface MetricCardProps {
   title: string;
@@ -26,10 +29,11 @@ export function MetricCard({ title, value, change, icon, color }: MetricCardProp
       relative
       overflow-hidden
       group
-    `}>
+    `}
+    >
       {/* Subtle gradient overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
+
       <CardContent className="p-6 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -40,11 +44,10 @@ export function MetricCard({ title, value, change, icon, color }: MetricCardProp
               {value}
             </p>
             {change !== undefined && (
-              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                change >= 0 
-                  ? "bg-green-100 text-green-700 group-hover:bg-green-200" 
-                  : "bg-red-100 text-red-700 group-hover:bg-red-200"
-              } transition-colors`}>
+              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${change >= 0
+                ? "bg-green-100 text-green-700 group-hover:bg-green-200"
+                : "bg-red-100 text-red-700 group-hover:bg-red-200"
+                } transition-colors`}>
                 {change >= 0 ? "↑" : "↓"} {Math.abs(change)}% from last month
               </div>
             )}

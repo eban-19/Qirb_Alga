@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, LogOut, User, Settings as SettingsIcon, Bell } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AdminSidebar from './AdminSidebar';
 import NotificationBell from '@/components/NotificationBell';
 
@@ -32,6 +41,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className={cn("flex h-screen bg-slate-50 overflow-hidden", className)}>
@@ -84,16 +94,37 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
               {/* Notifications */}
               <NotificationBell />
 
-              {/* Admin Account */}
-              <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Admin User</p>
-                  <p className="text-xs text-slate-500">Administrator</p>
-                </div>
-                <div className="w-9 h-9 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                  <span className="text-white text-sm font-bold">A</span>
-                </div>
-              </div>
+              {/* Admin Account Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-3 pl-2 border-l border-slate-200 outline-none hover:opacity-80 transition-opacity">
+                    <div className="hidden sm:block text-right">
+                      <p className="text-sm font-semibold text-slate-800">{user?.full_name || 'Admin User'}</p>
+                      <p className="text-xs text-slate-500">Administrator</p>
+                    </div>
+                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                      <span className="text-white text-sm font-bold">{(user?.full_name || 'A')[0].toUpperCase()}</span>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-slate-200">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => window.location.href = '/dashboard/admin/settings'} className="cursor-pointer gap-2 py-2">
+                    <SettingsIcon className="w-4 h-4" />
+                    <span>System Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/dashboard/admin/notifications'} className="cursor-pointer gap-2 py-2">
+                    <Bell className="w-4 h-4" />
+                    <span>Notifications</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer gap-2 py-2 text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -128,6 +159,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 { href: '/dashboard/admin/approvals', label: 'Pension Approvals', icon: 'CheckCircle' },
                 { href: '/dashboard/admin/bookings', label: 'Bookings', icon: 'CalendarCheck' },
                 { href: '/dashboard/admin/payments', label: 'Payments', icon: 'CreditCard' },
+                { href: '/dashboard/admin/notifications', label: 'Notifications', icon: 'Bell' },
                 { href: '/dashboard/admin/alerts', label: 'Alerts', icon: 'Bell' }
               ].map((item) => (
                 <button

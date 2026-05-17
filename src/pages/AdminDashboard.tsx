@@ -1,8 +1,9 @@
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { OverviewTab } from "@/components/admin/OverviewTab";
 import { OwnersTab } from "@/components/admin/OwnersTab";
-import { PropertiesTab } from "@/components/admin/PropertiesTab";
-import PensionApprovalInline from "@/components/admin/PensionApprovalInline";
+import { PensionsTab } from "@/components/admin/PensionsTab";
+import { CustomersTab } from "@/components/admin/CustomersTab";
+import { StaffsTab } from "@/components/admin/StaffsTab";
 import { AlertsTab } from "@/components/admin/AlertsTab";
 import { BookingsTab } from "@/components/admin/BookingsTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
@@ -39,15 +40,20 @@ export default function AdminDashboard() {
               onSearchChange={ui.setSearchTerm}
               onFilterChange={ui.setFilterStatus}
               onOwnerAction={handlers.handleOwnerAction}
+              onBulkOwnerAction={handlers.handleBulkOwnerAction}
             />
           </TabsContent>
 
-          <TabsContent value="properties">
-            <PropertiesTab properties={ui.properties} onPropertyAction={handlers.handlePropertyAction} />
+          <TabsContent value="customers">
+            <CustomersTab customers={ui.customers} />
           </TabsContent>
 
-          <TabsContent value="pension-approval">
-            <PensionApprovalInline />
+          <TabsContent value="staffs">
+            <StaffsTab staffs={ui.staffs} onRefresh={ui.fetchAdminData} />
+          </TabsContent>
+
+          <TabsContent value="pensions">
+            <PensionsTab pensions={ui.properties} onRefresh={ui.fetchAdminData} />
           </TabsContent>
 
           <TabsContent value="bookings">
@@ -59,7 +65,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="alerts">
-            <AlertsTab alerts={ui.alerts} />
+            <AlertsTab alerts={ui.alerts} onAlertAction={handlers.handleAlertAction} />
           </TabsContent>
 
           <TabsContent value="payments">
@@ -73,11 +79,20 @@ export default function AdminDashboard() {
               onExtendSubscription={handlers.handleExtendSubscription}
               onTerminateFreeAccess={handlers.handleTerminateFreeAccess}
               onToggleSubscriptionStatus={handlers.handleToggleSubscriptionStatus}
+              onTerminateSubscription={handlers.handleTerminateSubscription}
             />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SystemSettingsTab />
+          <TabsContent value="settings-account">
+            <SystemSettingsTab activeSection="account" />
+          </TabsContent>
+
+          <TabsContent value="settings-financial">
+            <SystemSettingsTab activeSection="financial" />
+          </TabsContent>
+
+          <TabsContent value="settings-security">
+            <SystemSettingsTab activeSection="security" />
           </TabsContent>
         </Tabs>
 

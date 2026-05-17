@@ -29,6 +29,8 @@ interface AuthContextType extends AuthState {
   isAdmin: () => boolean;
   isPensionOwner: () => boolean;
   isUser: () => boolean;
+  updateProfile: (profileData: any) => Promise<any>;
+  changePassword: (passwords: any) => Promise<any>;
 }
 
 interface RegisterData {
@@ -59,6 +61,7 @@ const AUTH_ACTIONS = {
   LOAD_USER_START: 'LOAD_USER_START',
   LOAD_USER_SUCCESS: 'LOAD_USER_SUCCESS',
   LOAD_USER_FAILURE: 'LOAD_USER_FAILURE',
+  UPDATE_USER: 'UPDATE_USER',
   CLEAR_ERROR: 'CLEAR_ERROR',
 } as const;
 
@@ -73,6 +76,7 @@ type AuthAction =
   | { type: typeof AUTH_ACTIONS.LOAD_USER_START }
   | { type: typeof AUTH_ACTIONS.LOAD_USER_SUCCESS; payload: { user: User; token: string } }
   | { type: typeof AUTH_ACTIONS.LOAD_USER_FAILURE; payload: string }
+  | { type: typeof AUTH_ACTIONS.UPDATE_USER; payload: User }
   | { type: typeof AUTH_ACTIONS.CLEAR_ERROR };
 
 // Auth reducer
@@ -100,6 +104,13 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isAuthenticated: true,
         loading: false,
         error: null,
+      };
+
+    case AUTH_ACTIONS.UPDATE_USER:
+      localStorage.setItem('user', JSON.stringify(action.payload));
+      return {
+        ...state,
+        user: action.payload,
       };
 
     case AUTH_ACTIONS.LOGIN_FAILURE:
@@ -343,6 +354,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return state.user?.role === 'user';
   };
 
+  const updateProfile = async (profileData: any) => {
+    try {
+      if (!state.user) throw new Error('Not authenticated');
+      const response = await apiService.updateUserProfile(state.user.id, profileData);
+      if (response.success) {
+        // Fetch fresh profile data to ensure local state matches backend exactly
+        const profileRes = await apiService.getProfile();
+        if (profileRes.success && profileRes.data) {
+          dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: profileRes.data.user });
+        } else {
+          // Fallback if getProfile fails
+          const updatedUser = { ...state.user, ...profileData };
+          dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: updatedUser });
+        }
+        return response;
+      }
+      throw new Error(response.message || 'Update failed');
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
+  const changePassword = async (passwords: any) => {
+    try {
+      const response = await apiService.changePassword(passwords.currentPassword, passwords.newPassword);
+      if (response.success) return response;
+      throw new Error(response.message || 'Password change failed');
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -353,6 +396,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin,
     isPensionOwner,
     isUser,
+    updateProfile,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,7 +1,9 @@
 import apiService from "@/services/api";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useAdminHandlers = (ui: any) => {
+  const { logout } = useAuth();
 
   // CRUD Handlers for Owners
   const handleOwnerAction = async (action: string, ownerId: string, owner?: any) => {
@@ -101,8 +103,79 @@ export const useAdminHandlers = (ui: any) => {
         }
         break;
 
+      case "suspend":
+        try {
+          const response = await apiService.suspendOwner(ownerId);
+          if (response.success) {
+            ui.setOwners((prev: any) => prev.map((o: any) => o.id === ownerId ? { ...o, status: "suspended" as const } : o));
+            toast.success("Owner suspended successfully");
+            console.log("✅ Owner suspended successfully:", ownerId);
+          } else {
+            toast.error(response.message || "Failed to suspend owner");
+            console.error("❌ Failed to suspend owner:", response.message);
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Error suspending owner");
+          console.error("❌ Error suspending owner:", error);
+        }
+        break;
+
+      case "reactivate":
+        try {
+          const response = await apiService.reactivateOwner(ownerId);
+          if (response.success) {
+            ui.setOwners((prev: any) => prev.map((o: any) => o.id === ownerId ? { ...o, status: "verified" as const } : o));
+            toast.success("Owner reactivated successfully");
+            console.log("✅ Owner reactivated successfully:", ownerId);
+          } else {
+            toast.error(response.message || "Failed to reactivate owner");
+            console.error("❌ Failed to reactivate owner:", response.message);
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Error reactivating owner");
+          console.error("❌ Error reactivating owner:", error);
+        }
+        break;
+
       default:
         console.log(`Admin action: ${action} for owner ${ownerId}`);
+    }
+  };
+
+  const handleBulkOwnerAction = async (action: string, ownerIds: string[], onSuccess: () => void) => {
+    try {
+      const response = await apiService.bulkOwnerAction(action, ownerIds);
+      if (response.success) {
+        // Update local UI state
+        let statusUpdate: any = {};
+        switch (action) {
+          case 'approve':
+          case 'reactivate':
+            statusUpdate = { status: "verified" as const };
+            break;
+          case 'reject':
+            statusUpdate = { status: "rejected" as const };
+            break;
+          case 'suspend':
+            statusUpdate = { status: "suspended" as const };
+            break;
+        }
+
+        if (action === 'delete') {
+          ui.setOwners((prev: any) => prev.filter((o: any) => !ownerIds.includes(o.id)));
+        } else if (Object.keys(statusUpdate).length > 0) {
+          ui.setOwners((prev: any) => prev.map((o: any) => 
+            ownerIds.includes(o.id) ? { ...o, ...statusUpdate } : o
+          ));
+        }
+
+        toast.success(`Successfully executed ${action} on ${ownerIds.length} owners`);
+        onSuccess();
+      } else {
+        toast.error(response.message || `Failed to execute bulk ${action}`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || `Error executing bulk ${action}`);
     }
   };
 
@@ -131,26 +204,102 @@ export const useAdminHandlers = (ui: any) => {
   };
 
   // CRUD Handlers for Bookings
-  const handleBookingAction = (action: string, bookingId: string, booking?: any) => {
-    switch (action) {
-      case "create":
-        const newBooking = { ...booking, id: `BK${Date.now()}`, createdAt: new Date().toISOString() };
-        ui.setBookings((prev: any) => [...prev, newBooking]);
-        console.log("Created booking:", newBooking);
-        break;
+  const handleBookingAction = async (action: string, bookingId: string, booking?: any) => {
+    try {
+      console.log(`📅 Booking action: ${action} for ${bookingId}`);
+      let response;
+      
+      switch (action) {
+        case "approve":
+        case "confirm":
+          response = await fetch(`http://localhost:3006/api/admin/bookings/${bookingId}/confirm`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setBookings((prev: any) => prev.map((b: any) => b.id === bookingId ? { ...b, status: 'confirmed' } : b));
+            toast.success("Booking confirmed successfully");
+          }
+          break;
 
-      case "update":
-        ui.setBookings((prev: any) => prev.map((b: any) => b.id === bookingId ? { ...booking, id: bookingId } : b));
-        console.log("Updated booking:", bookingId);
-        break;
+        case "cancel":
+          response = await fetch(`http://localhost:3006/api/admin/bookings/${bookingId}/cancel`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setBookings((prev: any) => prev.map((b: any) => b.id === bookingId ? { ...b, status: 'cancelled' } : b));
+            toast.success("Booking cancelled successfully");
+          }
+          break;
 
-      case "delete":
-        ui.setBookings((prev: any) => prev.filter((b: any) => b.id !== bookingId));
-        console.log("Deleted booking:", bookingId);
-        break;
+        case "delete":
+          response = await fetch(`http://localhost:3006/api/admin/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setBookings((prev: any) => prev.filter((b: any) => b.id !== bookingId));
+            toast.success("Booking deleted successfully");
+          }
+          break;
 
-      default:
-        console.log(`Admin action: ${action} for booking ${bookingId}`);
+        default:
+          console.log(`Action ${action} not implemented for bookings`);
+      }
+
+      if (response && !response.success) {
+        toast.error(response.message || `Failed to ${action} booking`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || `Error executing ${action} on booking`);
+    }
+  };
+
+  // CRUD Handlers for Alerts
+  const handleAlertAction = async (action: string, alertId: string) => {
+    try {
+      let response;
+      switch (action) {
+        case "resolve":
+          response = await fetch(`http://localhost:3006/api/admin/alerts/${alertId}/resolve`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setAlerts((prev: any) => prev.map((a: any) => a.id === alertId ? { ...a, status: 'resolved' } : a));
+            toast.success("Alert resolved");
+          }
+          break;
+
+        case "investigate":
+          response = await fetch(`http://localhost:3006/api/admin/alerts/${alertId}/investigate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setAlerts((prev: any) => prev.map((a: any) => a.id === alertId ? { ...a, status: 'investigating' } : a));
+            toast.success("Alert status updated to investigating");
+          }
+          break;
+
+        case "delete":
+          response = await fetch(`http://localhost:3006/api/admin/alerts/${alertId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json());
+          if (response.success) {
+            ui.setAlerts((prev: any) => prev.filter((a: any) => a.id !== alertId));
+            toast.success("Alert deleted");
+          }
+          break;
+      }
+
+      if (response && !response.success) {
+        toast.error(response.message || "Failed to update alert");
+      }
+    } catch (error: any) {
+      toast.error("Error updating alert");
     }
   };
 
@@ -198,7 +347,7 @@ export const useAdminHandlers = (ui: any) => {
     }
   };
 
-  const handleToggleSubscriptionStatus = async (subscriptionId: number, status: "ACTIVE" | "DEACTIVATED") => {
+  const handleToggleSubscriptionStatus = async (subscriptionId: number, status: "ACTIVE" | "CANCELLED") => {
     try {
       const response = await fetch(`http://localhost:3006/api/admin-payments/subscriptions/${subscriptionId}/toggle-status`, {
         method: "POST",
@@ -220,12 +369,37 @@ export const useAdminHandlers = (ui: any) => {
     }
   };
 
+  const handleTerminateSubscription = async (subscriptionId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3006/api/admin-payments/subscriptions/${subscriptionId}/terminate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Subscription terminated successfully");
+        ui.fetchPaymentData();
+      } else {
+        toast.error(result.message || "Failed to terminate subscription");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error terminating subscription");
+    }
+  };
+
   return {
     handleOwnerAction,
     handlePropertyAction,
     handleBookingAction,
     handleExtendSubscription,
     handleTerminateFreeAccess,
-    handleToggleSubscriptionStatus
+    handleToggleSubscriptionStatus,
+    handleTerminateSubscription,
+    handleBulkOwnerAction,
+    handleAlertAction,
+    handleLogout: logout
   };
 };
