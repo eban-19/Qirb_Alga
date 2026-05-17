@@ -206,6 +206,7 @@ export interface TranslationSchema {
         pensionProfile: string;
         staffHr: string;
         staff: string;
+        packages: string;
         transactions: string;
         reports: string;
         settings: string;
@@ -213,6 +214,7 @@ export interface TranslationSchema {
         security: string;
         availability: string;
         compliance: string;
+        promotions: string;
     };
     notFound: {
         message: string;
@@ -466,6 +468,7 @@ export const translations: Record<Language, TranslationSchema> = {
             security: "Security",
             availability: "Availability",
             compliance: "Compliance",
+            promotions: "Promotions",
         },
     },
     om: {
@@ -715,6 +718,7 @@ export const translations: Record<Language, TranslationSchema> = {
             security: "Nageenyaa",
             availability: "Kutaa Banaa",
             compliance: "Mirkaneessuu",
+            promotions: "Tajaajila Gad-buusuu",
         },
     },
     am: {
@@ -962,6 +966,7 @@ export const translations: Record<Language, TranslationSchema> = {
             security: "ደህንነት",
             availability: "ባዶ ክፍሎች",
             compliance: "ህጋዊነት",
+            promotions: "ቅናሾች",
         },
     },
 };

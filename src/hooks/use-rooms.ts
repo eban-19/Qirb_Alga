@@ -51,7 +51,7 @@ export function useRooms() {
             // Map image_url to images array for RoomCard compatibility
             images: finalImages,
             // Ensure packages have proper structure
-            packages: (pension.packages || []).filter((pkg: any) => (pkg.availableRoomsCount || pkg.availableRooms || 0) > 0),
+            packages: pension.packages || [],
             // Map other fields as needed
             latitude: parseFloat(pension.latitude) || 0,
             longitude: parseFloat(pension.longitude) || 0,
@@ -99,7 +99,7 @@ export function useRefreshPackages() {
                 ...pkg,
                 availableRooms
               };
-            }).filter((pkg: any) => pkg.availableRooms > 0);
+            });
             
             // Update the cache for all queries
             queryClient.setQueryData(["rooms", pensionId.toString()], packagesResponse.data);
@@ -137,7 +137,7 @@ export function useRoomById(id: string) {
                 ...pkg,
                 availableRooms
               };
-            }).filter((pkg: any) => pkg.availableRooms > 0);
+            });
             
             // Map image_url to images array for RoomProfile compatibility (same as useRooms)
             const imageUrl = response.data.image_url || response.data.imageUrl || response.data.image || response.data.ImageUrl;

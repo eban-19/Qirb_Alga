@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound.tsx";
 import RoomDetails from "./pages/RoomDetails.tsx";
 import Booking from "./pages/Booking.tsx";
 import BookingSuccess from "./pages/BookingSuccess.tsx";
+import CustomerProfile from "./pages/CustomerProfile.tsx";
 import SubscriptionVerify from "./pages/SubscriptionVerify";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
 import Login from "./pages/Login.tsx";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/book/:id" element={<Booking />} />
               <Route path="/booking/success" element={<BookingSuccess />} />
               <Route path="/payment/confirmation" element={<PaymentConfirmation />} />
+              <Route path="/profile" element={<CustomerProfile />} />
               <Route path="/owner/subscription/verify" element={<SubscriptionVerify />} />
               <Route path="/register-property" element={<RegisterProperty />} />
               <Route path="/login" element={<Login />} />

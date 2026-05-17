@@ -331,15 +331,18 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     }
 
     try {
-      const response = await fetch('http://localhost:3006/api/walk-in-bookings', {
+      const response = await fetch('http://localhost:3006/api/bookings/walk-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           guestName: walkInForm.guestName,
           phoneNumber: walkInForm.phoneNumber,
           packageId: walkInForm.packageId,
+          checkIn: walkInForm.checkIn,
+          checkOut: walkInForm.checkOut
         }),
       });
 

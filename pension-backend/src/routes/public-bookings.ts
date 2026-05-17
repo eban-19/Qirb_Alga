@@ -1,6 +1,7 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
 import { BookingStatus, BookingSource, RoomStatus, UserStatus, Role, Prisma } from '@prisma/client';
+import * as jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -88,20 +89,49 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     // Create or get user
     let userId: number | null = null;
-    if (email) {
-      const user = await prisma.user.upsert({
-        where: { email },
-        update: {},
-        create: {
-          email,
-          full_name: fullName,
-          phone,
-          role: Role.Customer,
-          status: UserStatus.Approved,
-          password_hash: 'SOCIAL_OR_GUEST_AUTH' // Placeholder
+    
+    // 1. Check for token in headers
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        userId = decoded.userId;
+      } catch (e) {
+        // Token invalid, fall back to lookup
+      }
+    }
+
+    // 2. If no valid token, lookup/upsert by email or phone
+    if (!userId) {
+      if (email || phone) {
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              email ? { email } : undefined,
+              phone ? { phone } : undefined
+            ].filter(Boolean) as any
+          }
+        });
+
+        if (user) {
+          userId = user.user_id;
+        } else {
+          // Create new guest/customer user
+          const newUser = await prisma.user.create({
+            data: {
+              email: email || undefined,
+              full_name: fullName,
+              phone,
+              role: Role.Customer,
+              status: UserStatus.Approved,
+              approved: 1,
+              password_hash: 'GUEST_USER'
+            }
+          });
+          userId = newUser.user_id;
         }
-      });
-      userId = user.user_id;
+      }
     }
 
     // Find available room

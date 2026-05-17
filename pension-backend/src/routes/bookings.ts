@@ -156,6 +156,130 @@ router.get('/:bookingId', authenticateToken as any, async (req: any, res: any) =
   }
 });
 
+// Check Walk-In Availability
+router.post('/walk-in/check-availability', authenticateToken as any, async (req: any, res: any) => {
+  try {
+    const { packageId, checkIn, checkOut } = req.body;
+    const userId = req.user.userId;
+
+    if (!packageId || !checkIn || !checkOut) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const pension = await prisma.pension.findFirst({ where: { owner_id: userId } });
+    if (!pension) return res.status(404).json({ success: false, message: 'Pension not found' });
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    if (checkOutDate <= checkInDate) {
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    }
+
+    const pkg = await prisma.package.findUnique({
+      where: { package_id: parseInt(packageId) }
+    });
+
+    if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+
+    // Rooms are directly linked to a package via package_id
+    const availableRoomsCount = await prisma.room.count({
+      where: {
+        pension_id: pension.pension_id,
+        package_id: pkg.package_id,
+        availability_status: RoomStatus.Available,
+        bookings: {
+          none: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            OR: [
+              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkInDate } }
+            ]
+          }
+        }
+      }
+    });
+
+    res.json({ success: true, availableRooms: availableRoomsCount });
+  } catch (error: any) {
+    console.error('Error checking walk-in availability:', error);
+    res.status(500).json({ success: false, message: 'Failed to check availability', error: error.message });
+  }
+});
+
+// Create Walk-In Booking
+router.post('/walk-in', authenticateToken as any, async (req: any, res: any) => {
+  try {
+    const { guestName, phoneNumber, packageId, checkIn, checkOut } = req.body;
+    const userId = req.user.userId;
+
+    if (!guestName || !phoneNumber || !packageId || !checkIn || !checkOut) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const pension = await prisma.pension.findFirst({ where: { owner_id: userId } });
+    if (!pension) return res.status(404).json({ success: false, message: 'Pension not found' });
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    if (checkOutDate <= checkInDate) {
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    }
+
+    const pkg = await prisma.package.findUnique({
+      where: { package_id: parseInt(packageId) }
+    });
+
+    if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
+
+    // Find available room strictly matching the package via package_id
+    const availableRoom = await prisma.room.findFirst({
+      where: {
+        pension_id: pension.pension_id,
+        package_id: pkg.package_id,
+        availability_status: RoomStatus.Available,
+        bookings: {
+          none: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            OR: [
+              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkInDate } }
+            ]
+          }
+        }
+      }
+    });
+
+    if (!availableRoom) {
+      return res.status(400).json({ success: false, message: 'No available rooms for the selected package and dates' });
+    }
+
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalPrice = parseFloat(pkg.price.toString()) * nights;
+    const isToday = checkInDate.toDateString() === new Date().toDateString();
+
+    const booking = await prisma.booking.create({
+      data: {
+        room_id: availableRoom.room_id,
+        room_number: availableRoom.room_number,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        total_price: new Prisma.Decimal(totalPrice),
+        status: BookingStatus.Confirmed,
+        walk_in_guest_name: guestName,
+        walk_in_guest_phone: phoneNumber,
+        booking_source: 'Walk_In' as any,
+        is_walk_in: true,
+        actual_check_in: isToday ? new Date() : null
+      }
+    });
+
+    res.json({ success: true, message: 'Walk-in booking created successfully!', data: booking });
+  } catch (error: any) {
+    console.error('Error creating walk-in booking:', error);
+    res.status(500).json({ success: false, message: 'Failed to create walk-in booking', error: error.message });
+  }
+});
+
 // Create new booking
 router.post('/', authenticateToken as any, async (req: any, res: any) => {
   try {

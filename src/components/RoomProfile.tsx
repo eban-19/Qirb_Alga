@@ -1,11 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
-import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight, Users, Bed } from "lucide-react";
+import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight, Users, Bed, Gift, Tag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/hooks/use-language";
 import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import UnifiedAuthModal from "./auth/UnifiedAuthModal";
 
 // Helper function to construct full URLs for images
 const getFullImageUrl = (imagePath: string | undefined | null): string => {
@@ -60,6 +62,9 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   
   // State to track active image per package name
   const [activePackageImages, setActivePackageImages] = useState<Record<string, string>>({});
+  const { isAuthenticated } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingPackage, setPendingPackage] = useState<string | null>(null);
 
   // Reset when room changes
   useEffect(() => {
@@ -95,6 +100,14 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
     });
   };
 
+  const handleBookNow = (pkgName: string) => {
+    navigate(`/book/${room.id}?package=${pkgName}`);
+  };
+
+  const handleAuthSuccess = () => {
+    // No longer needed here
+  };
+
   return (
     <div className="w-full bg-background pt-20 pb-16 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8">
@@ -124,11 +137,66 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
           
 
           {/* Packages Tabs */}
-          <section className="space-y-4" style={{ scrollBehavior: 'auto' }}>
+          <section className="space-y-6" style={{ scrollBehavior: 'auto' }}>
             <div className="space-y-4 text-center md:text-left">
               <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
               <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
             </div>
+
+            {/* Dynamic Promotions Banner */}
+            {(() => {
+              const activePromos = room.promotions?.filter(p => p.is_active) || [];
+              if (activePromos.length > 0) {
+                return (
+                  <div className="relative overflow-hidden bg-card border border-border rounded-[2rem] p-6 md:p-8 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {/* Background glowing blob */}
+                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div className="flex items-center gap-4 mb-6 relative z-10">
+                      <div className="bg-primary/10 p-3 rounded-2xl shrink-0">
+                        <Gift className="w-8 h-8 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl md:text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-1">
+                          Special Offers Available!
+                        </h3>
+                        <p className="text-muted-foreground font-medium">
+                          Discounts are automatically applied at checkout when requirements are met.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className={`grid grid-cols-1 ${activePromos.length >= 3 ? 'md:grid-cols-2 lg:grid-cols-3' : activePromos.length === 2 ? 'md:grid-cols-2' : ''} gap-5 relative z-10`}>
+                      {activePromos.map(promo => (
+                        <div key={promo.promo_id} className="group relative bg-background border border-border hover:border-primary/40 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 flex flex-col justify-between">
+                          <div className="absolute -top-3 right-6 bg-primary text-primary-foreground px-4 py-1 rounded-full font-black text-sm shadow-md flex items-center gap-1.5">
+                            <Tag className="w-3.5 h-3.5" />
+                            {promo.discount_percent}% OFF
+                          </div>
+                          
+                          <div className="mb-4 mt-2">
+                            <h4 className="font-bold text-xl tracking-tight mb-2 text-foreground">{promo.name}</h4>
+                            <p className="text-muted-foreground text-sm leading-relaxed">{promo.description}</p>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-border/50">
+                            {promo.type === 'EARLY_BIRD' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Requires {promo.min_days}+ days advance</span>}
+                            {promo.type === 'LONG_STAY' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Requires {promo.min_days}+ nights stay</span>}
+                            {promo.type === 'LAST_MINUTE' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Book within {promo.max_days} days</span>}
+                            {promo.package_id && promo.package ? (
+                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">📦 {promo.package.name} only</span>
+                            ) : (
+                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">✓ All packages</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               
@@ -182,17 +250,10 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             <span>{pkg.beds || 0} {t.rooms.bedsLabel || "Beds"}</span>
                           </div>
                         </div>
-                        
+
+
                         <div className="mb-4">
-                          {pkg.availableRooms === 0 ? (
-                            <div className="inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-destructive/10 text-destructive">
-                              Sold Out
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center self-start gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-green-500/10 text-green-600 dark:text-green-400">
-                              {pkg.availableRooms} room{pkg.availableRooms !== 1 ? 's' : ''} available
-                            </div>
-                          )}
+                          {/* Availability is determined in the booking step after selecting dates */}
                         </div>
 
                         <div className="flex-grow space-y-5">
@@ -243,11 +304,11 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             size="lg" 
                             className="w-full md:w-auto md:min-w-[240px] text-lg h-14 gap-3 rounded-xl shadow-md"
                             variant={isPopular ? "default" : "secondary"}
-                            disabled={pkg.availableRooms === 0}
-                            onClick={() => navigate(`/book/${room.id}?package=${pkg.name}`)}
+                            disabled={pkg.availableRooms === 0 && false} // User wants availability unknown here
+                            onClick={() => handleBookNow(pkg.name)}
                           >
                             <CalendarCheck className="w-5 h-5" />
-                            {pkg.availableRooms === 0 ? "Unavailable" : (t.rooms.bookNow || "Book Now")}
+                            {t.rooms.bookNow || "Book Now"}
                           </Button>
                         </div>
                       </div>
@@ -453,6 +514,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* UnifiedAuthModal removed from here */}
     </div>
   );
 };

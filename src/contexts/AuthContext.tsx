@@ -7,7 +7,7 @@ interface User {
   email: string;
   full_name: string;
   phone?: string;
-  role: 'admin' | 'user' | 'manager' | 'owner';
+  role: 'admin' | 'user' | 'manager' | 'owner' | 'customer';
   created_at: string;
   approved?: number;
 }
@@ -22,6 +22,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<any>;
+  otpLogin: (phone: string, code: string, fullName?: string) => Promise<any>;
   register: (userData: RegisterData) => Promise<any>;
   logout: () => void;
   clearError: () => void;
@@ -233,6 +234,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // OTP Login action
+  const otpLogin = async (phone: string, code: string, fullName?: string): Promise<ApiResponse> => {
+    dispatch({ type: AUTH_ACTIONS.LOGIN_START });
+
+    try {
+      const response: ApiResponse = await apiService.otpLogin(phone, code, fullName);
+
+      if (response.success && response.data) {
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: {
+            user: response.data.user,
+            token: response.data.token,
+          },
+        });
+        return response;
+      } else {
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_FAILURE,
+          payload: response.message || 'OTP Login failed',
+        });
+        return response;
+      }
+    } catch (error: any) {
+      dispatch({
+        type: AUTH_ACTIONS.LOGIN_FAILURE,
+        payload: error.message || 'OTP Login failed',
+      });
+      throw error;
+    }
+  };
+
   // Register action
   const register = async (userData: RegisterData): Promise<ApiResponse> => {
     dispatch({ type: AUTH_ACTIONS.REGISTER_START });
@@ -313,6 +346,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthContextType = {
     ...state,
     login,
+    otpLogin,
     register,
     logout,
     clearError,

@@ -48,9 +48,19 @@ const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
             {t.rooms.bestDealBadge}
           </div>
         )}
-        <Badge className={`absolute top-3 right-3 border-0 font-semibold text-xs shadow-sm ${room.availableRooms > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
-          {room.availableRooms === 0 ? t.rooms.soldOut : `${t.rooms.availableRooms}: ${room.availableRooms}`}
-        </Badge>
+        {(() => {
+          const validDiscounts = room.promotions?.filter(p => p.is_active && p.discount_percent > 0) || [];
+          if (validDiscounts.length > 0) {
+            const maxDiscount = Math.max(...validDiscounts.map(p => p.discount_percent));
+            return (
+              <div className="absolute top-3 right-3 bg-green-500 text-white px-2.5 py-1 rounded-md font-bold text-xs shadow-md flex items-center gap-1.5 z-10">
+                Up to {maxDiscount}% Off
+              </div>
+            );
+          }
+          return null;
+        })()}
+        {/* Availability badge removed as it depends on dates selected later */}
       </div>
 
       <div className="p-5 flex flex-col h-full">
