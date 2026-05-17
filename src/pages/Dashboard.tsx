@@ -383,10 +383,13 @@ const Dashboard: React.FC = () => {
                 activeTab={ui.activeTab}
                 businessProfile={ui.businessProfile}
                 setBusinessProfile={ui.setBusinessProfile}
+                bankSettings={ui.bankSettings}
+                setBankSettings={ui.setBankSettings}
                 securitySettings={ui.securitySettings}
                 setSecuritySettings={ui.setSecuritySettings}
                 approvalStatus="Approved"
                 isUpdating={ui.isUpdating}
+                setIsUpdating={ui.setIsUpdating}
                 onSaveBusinessProfile={() => {}}
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => {}}

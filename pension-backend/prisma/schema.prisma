@@ -280,6 +280,11 @@ model OwnerProfile {
   business_phone  String?   @db.VarChar(20)
   license_number  String?   @db.VarChar(100)
   id_document_url String?   @db.VarChar(255)
+  bank_id         String?   @db.VarChar(100)
+  bank_name       String?   @db.VarChar(100)
+  account_name    String?   @db.VarChar(100)
+  account_number  String?   @db.VarChar(50)
+  chapa_subaccount_id String? @db.VarChar(100)
   approval_status ApprovalStatus? @default(Pending)
   created_at      DateTime? @default(now()) @db.Timestamp(0)
   expiry_date     DateTime? @db.Date

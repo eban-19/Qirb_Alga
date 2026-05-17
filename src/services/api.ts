@@ -627,6 +627,18 @@ class ApiService {
     });
   }
 
+  // Payment & Bank methods
+  async getBanks(): Promise<ApiResponse<any>> {
+    return this.request('/payments/banks');
+  }
+
+  async createSubaccount(bankDetails: any): Promise<ApiResponse<any>> {
+    return this.request('/payments/subaccount', {
+      method: 'POST',
+      body: JSON.stringify(bankDetails),
+    });
+  }
+
   // Admin methods
   async getAllOwners(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/owners');

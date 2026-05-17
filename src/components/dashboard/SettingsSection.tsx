@@ -12,15 +12,19 @@ import {
   Save,
   Zap
 } from 'lucide-react';
+import { BankSettingsSection } from './BankSettingsSection';
 
 interface SettingsSectionProps {
   activeTab: string;
   businessProfile: any;
   setBusinessProfile: (profile: any) => void;
+  bankSettings?: any;
+  setBankSettings?: (settings: any) => void;
   securitySettings: any;
   setSecuritySettings: (settings: any) => void;
   approvalStatus: string;
   isUpdating: boolean;
+  setIsUpdating?: (updating: boolean) => void;
   onSaveBusinessProfile: () => void;
   onSaveSecuritySettings: () => void;
   onToggleTwoFactor: () => void;
@@ -33,10 +37,13 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   activeTab,
   businessProfile,
   setBusinessProfile,
+  bankSettings,
+  setBankSettings,
   securitySettings,
   setSecuritySettings,
   approvalStatus,
   isUpdating,
+  setIsUpdating,
   onSaveBusinessProfile,
   onSaveSecuritySettings,
   onToggleTwoFactor,
@@ -157,6 +164,16 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="settings-bank-settings" className="mt-0">
+          <BankSettingsSection 
+            bankSettings={bankSettings}
+            setBankSettings={setBankSettings}
+            isUpdating={isUpdating}
+            setIsUpdating={setIsUpdating}
+            showSuccess={() => {}}
+          />
         </TabsContent>
 
         <TabsContent value="settings-security" className="mt-0">

@@ -213,6 +213,7 @@ export interface TranslationSchema {
         security: string;
         availability: string;
         compliance: string;
+        bankSettings: string;
     };
     notFound: {
         message: string;
@@ -466,6 +467,7 @@ export const translations: Record<Language, TranslationSchema> = {
             security: "Security",
             availability: "Availability",
             compliance: "Compliance",
+            bankSettings: "Bank Settings",
         },
     },
     om: {
@@ -715,6 +717,7 @@ export const translations: Record<Language, TranslationSchema> = {
             security: "Nageenyaa",
             availability: "Kutaa Banaa",
             compliance: "Mirkaneessuu",
+            bankSettings: "Sajataa Baankii",
         },
     },
     am: {
@@ -960,8 +963,9 @@ export const translations: Record<Language, TranslationSchema> = {
             settings: "ቅንብሮች",
             businessProfile: "የንግድ ፕሮፋይል",
             security: "ደህንነት",
-            availability: "ባዶ ክፍሎች",
-            compliance: "ህጋዊነት",
+            availability: "ክፍል ክፍተት",
+            compliance: "ማረጋገጫ",
+            bankSettings: "የባንክ መረጃ",
         },
     },
 };

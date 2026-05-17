@@ -31,6 +31,7 @@ export const sidebarLinks = [
     icon: "Settings",
     sublinks: [
       { id: "business-profile", labelKey: "businessProfile", icon: "Contact" },
+      { id: "bank-settings", labelKey: "bankSettings", icon: "FileCheck" },
       { id: "security", labelKey: "security", icon: "ShieldCheck" }
     ]
   }

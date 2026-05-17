@@ -1,11 +1,124 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { initializePayment, verifyPayment } from '../services/chapaService';
+import { initializePayment, verifyPayment, createSubaccount } from '../services/chapaService';
 import { SMSService } from '../services/sms.service';
+import { authenticateToken } from '../middleware/auth';
 import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Get Banks from Chapa API dynamically
+router.get('/banks', async (req, res) => {
+  try {
+    const chapaSecretKey = process.env.CHAPA_SECRET_KEY;
+    const response = await fetch('https://api.chapa.co/v1/banks', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${chapaSecretKey}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Chapa API Error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Map Chapa's response to our frontend format
+    const formattedBanks = (data.data || []).map((bank: any) => ({
+      id: String(bank.id), // Chapa uses numeric IDs or UUIDs depending on the environment
+      name: bank.name
+    }));
+
+    res.json({
+      success: true,
+      data: formattedBanks
+    });
+  } catch (error: any) {
+    console.error('Failed to fetch banks from Chapa:', error);
+    // Fallback to basic list if Chapa API fails
+    res.json({
+      success: true,
+      data: [
+        { id: '80a510ea-7497-4499-8b49-ce13a0b7095c', name: 'Commercial Bank of Ethiopia (CBE)' }, // Production CBE ID
+        { id: '128', name: 'CBEBirr' },
+        { id: '855', name: 'Telebirr' }
+      ]
+    });
+  }
+});
+
+// Create/Update Subaccount for Pension Owner
+router.post('/subaccount', authenticateToken as any, async (req: any, res) => {
+  try {
+    const userId = req.user.userId;
+    const { bank_id, bank_name, account_name, account_number } = req.body;
+
+    if (req.user.role !== 'Owner') {
+      return res.status(403).json({ success: false, message: 'Only owners can setup bank details' });
+    }
+
+    // Fetch dynamic service fee percentage
+    const systemSetting = await prisma.systemSetting.findUnique({ where: { key: 'SERVICE_FEE_PERCENTAGE' } });
+    const serviceFeePercentage = systemSetting ? parseFloat(systemSetting.value) : 5;
+    
+    // The split value represents what goes to the subaccount (the owner).
+    // If service fee is 5%, owner gets 95% (0.95)
+    const ownerPercentage = (100 - serviceFeePercentage) / 100;
+
+    const subaccountData = {
+      business_name: account_name, // Fallback if business_name not set
+      account_name,
+      bank_code: bank_id,
+      account_number,
+      split_type: 'percentage' as const,
+      split_value: ownerPercentage
+    };
+
+    const ownerProfile = await prisma.ownerProfile.findUnique({ where: { owner_id: userId } });
+    if (ownerProfile?.business_name) {
+      subaccountData.business_name = ownerProfile.business_name;
+    }
+
+    // Call Chapa API
+    const chapaRes = await createSubaccount(subaccountData);
+    
+    if (chapaRes.status === 'success' && chapaRes.data) {
+      // Typically Chapa returns something like data: { "subaccounts[id]": "..." } or data: { subaccount_id: "..." }
+      // The exact key can vary, usually it's `subaccount_id` or `subaccounts[id]`
+      const chapaSubaccountId = chapaRes.data['subaccounts[id]'] || chapaRes.data.subaccount_id || chapaRes.data.id;
+
+      // Update DB
+      await prisma.ownerProfile.upsert({
+        where: { owner_id: userId },
+        update: {
+          bank_id,
+          bank_name,
+          account_name,
+          account_number,
+          chapa_subaccount_id: chapaSubaccountId
+        },
+        create: {
+          owner_id: userId,
+          bank_id,
+          bank_name,
+          account_name,
+          account_number,
+          chapa_subaccount_id: chapaSubaccountId
+        }
+      });
+
+      return res.json({ success: true, message: 'Bank details saved successfully', data: { chapa_subaccount_id: chapaSubaccountId } });
+    } else {
+      return res.status(400).json({ success: false, message: 'Failed to create subaccount with Chapa' });
+    }
+
+  } catch (error: any) {
+    console.error('Subaccount Creation Error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to create subaccount' });
+  }
+});
 
 // Initialize Booking Payment
 router.post('/initialize-booking', async (req: any, res) => {
@@ -48,7 +161,31 @@ router.post('/initialize-booking', async (req: any, res) => {
     const cleanFirstName = (firstName || 'Guest').trim().replace(/[^a-zA-Z]/g, '');
     const cleanLastName = (lastName || 'User').trim().replace(/[^a-zA-Z]/g, '');
 
-    const chapaData = {
+    // Fetch the booking to find the pension owner's subaccount ID
+    const booking = await prisma.booking.findUnique({
+      where: { booking_id: parseInt(bookingId) },
+      include: {
+        room: {
+          include: {
+            pension: {
+              select: { owner_id: true }
+            }
+          }
+        }
+      }
+    });
+
+    let chapaSubaccountId = undefined;
+    if (booking?.room?.pension?.owner_id) {
+      const ownerProfile = await prisma.ownerProfile.findUnique({
+        where: { owner_id: booking.room.pension.owner_id }
+      });
+      if (ownerProfile?.chapa_subaccount_id) {
+        chapaSubaccountId = ownerProfile.chapa_subaccount_id;
+      }
+    }
+
+    const chapaData: any = {
       amount: cleanAmount,
       currency: 'ETB',
       email: cleanEmail,
@@ -63,10 +200,15 @@ router.post('/initialize-booking', async (req: any, res) => {
       },
     };
 
+    if (chapaSubaccountId) {
+      chapaData['subaccounts[id]'] = chapaSubaccountId;
+    }
+
     console.log('🚀 Initializing Chapa Payment:', {
       tx_ref: chapaData.tx_ref,
       amount: chapaData.amount,
       email: chapaData.email,
+      subaccount_id: chapaSubaccountId || 'Main Account Only',
       title: chapaData.customization.title
     });
 
