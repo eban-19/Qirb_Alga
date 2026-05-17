@@ -18,7 +18,12 @@ const SubscriptionPlans = () => {
         const response = await fetch('http://localhost:3006/api/subscriptions/plans');
         const data = await response.json();
         if (data.success) {
-          setPlans(data.data);
+          const sortedPlans = data.data.sort((a: any, b: any) => {
+            if (a.promotion_banner && !b.promotion_banner) return -1;
+            if (!a.promotion_banner && b.promotion_banner) return 1;
+            return 0; // retain original order (by price)
+          });
+          setPlans(sortedPlans);
         }
       } catch (error) {
         toast.error("Failed to load subscription plans.");
@@ -82,22 +87,24 @@ const SubscriptionPlans = () => {
           <div 
             key={plan.plan_id} 
             className={`relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col ${
-              plan.name.includes('Annual') 
-                ? 'border-primary bg-primary/5 shadow-xl shadow-primary/5' 
+              plan.promotion_banner 
+                ? 'border-rose-400 bg-rose-50/30 shadow-xl shadow-rose-500/10' 
                 : 'border-border bg-card'
             }`}
           >
-            {plan.name.includes('Annual') && (
-              <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 bg-primary text-primary-foreground rounded-full text-sm font-black uppercase tracking-widest shadow-lg">
-                Best Value
+            {plan.promotion_banner && (
+              <div className="mb-6 bg-gradient-to-br from-pink-500 to-rose-500 text-white p-4 rounded-2xl shadow-md">
+                <p className="font-bold text-sm leading-relaxed whitespace-pre-wrap text-center">
+                  {plan.promotion_banner}
+                </p>
               </div>
             )}
 
             <div className="space-y-6 flex-grow">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-2xl ${plan.name.includes('Annual') ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
-                    {plan.name.includes('Annual') ? <Crown className="w-6 h-6" /> : <Shield className="w-6 h-6" />}
+                  <div className={`p-3 rounded-2xl ${plan.promotion_banner ? 'bg-rose-500 text-white' : 'bg-muted text-foreground'}`}>
+                    {plan.promotion_banner ? <Crown className="w-6 h-6" /> : <Shield className="w-6 h-6" />}
                   </div>
                   <h3 className="text-2xl font-bold">{plan.name}</h3>
                 </div>
@@ -132,7 +139,7 @@ const SubscriptionPlans = () => {
               className={`mt-10 h-14 rounded-2xl text-lg font-bold w-full shadow-lg transition-all duration-300 ${
                 status?.subscription?.plan_id === plan.plan_id
                   ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
-                  : plan.name.includes('Annual') ? 'shadow-primary/20' : ''
+                  : plan.promotion_banner ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20' : ''
               }`}
               onClick={() => handleSubscribe(plan.plan_id)}
               disabled={isInitializing === plan.plan_id || status?.subscription?.plan_id === plan.plan_id}

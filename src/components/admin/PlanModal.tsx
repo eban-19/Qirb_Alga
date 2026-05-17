@@ -37,7 +37,8 @@ export const PlanModal: React.FC<PlanModalProps> = ({
     price: "",
     duration_days: "30",
     is_active: true,
-    is_public: true
+    is_public: true,
+    promotion_banner: ""
   });
 
   useEffect(() => {
@@ -47,16 +48,21 @@ export const PlanModal: React.FC<PlanModalProps> = ({
         price: plan.price.toString(),
         duration_days: plan.duration_days.toString(),
         is_active: plan.is_active,
-        is_public: plan.is_public
+        is_public: plan.is_public,
+        promotion_banner: plan.promotion_banner || ""
       });
-      setFeatures(JSON.parse(plan?.features || "[]"));
+      const parsedFeatures = typeof plan?.features === 'string' 
+        ? JSON.parse(plan.features || "[]") 
+        : (Array.isArray(plan?.features) ? plan.features : []);
+      setFeatures(parsedFeatures);
     } else {
       setFormData({
         name: "",
         price: "",
         duration_days: "30",
         is_active: true,
-        is_public: true
+        is_public: true,
+        promotion_banner: ""
       });
       setFeatures([]);
     }
@@ -162,6 +168,17 @@ export const PlanModal: React.FC<PlanModalProps> = ({
                 placeholder="30"
                 value={formData.duration_days}
                 onChange={(e) => setFormData({...formData, duration_days: e.target.value})}
+                className="bg-slate-50 border-slate-200"
+              />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="promotion_banner">Promotion Banner (Optional)</Label>
+              <Input
+                id="promotion_banner"
+                placeholder="e.g., Best Value, Save 20%"
+                value={formData.promotion_banner}
+                onChange={(e) => setFormData({...formData, promotion_banner: e.target.value})}
                 className="bg-slate-50 border-slate-200"
               />
             </div>

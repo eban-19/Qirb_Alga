@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Bell, BellRing, X, Check, CheckCircle } from 'lucide-react';
+import { Bell, BellRing, X, Check, CheckCircle, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,6 +21,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
   const [isLoading, setIsLoading] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Toggle notification panel
   const toggleNotifications = () => {
@@ -320,9 +322,23 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
                         <p className="text-xs sm:text-sm text-slate-600 mb-1 line-clamp-2 sm:line-clamp-3">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-slate-400">
-                          {formatTime(notification.created_at)}
-                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-slate-400">
+                            {formatTime(notification.created_at)}
+                          </p>
+                          {!notification.is_read && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification.notification_id);
+                              }}
+                              className="text-[10px] text-blue-600 hover:underline font-medium flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" />
+                              Mark Read
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -347,9 +363,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs text-slate-600 hover:text-slate-900"
-                  onClick={() => console.log('View all notifications')}
+                  className="w-full text-xs text-slate-600 hover:text-slate-900 border border-slate-100 hover:bg-slate-50 rounded-lg"
+                  onClick={() => navigate('/dashboard/admin/notifications')}
                 >
+                  <ExternalLink className="h-3 w-3 mr-1" />
                   View all notifications
                 </Button>
               </div>

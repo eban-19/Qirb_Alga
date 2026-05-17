@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import { Role, UserStatus, PensionStatus, BookingSource, ApprovalStatus, NotificationType } from '@prisma/client';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 import notificationService from '../services/notificationService';
+import * as bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -259,6 +260,33 @@ router.put('/owners/:ownerId/suspend', authenticateToken as any, requireAdmin as
   }
 });
 
+// Reactivate owner
+router.put('/owners/:ownerId/reactivate', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { ownerId } = req.params;
+    const id = parseInt(ownerId.replace('OWN', ''));
+    
+    await prisma.user.update({
+      where: { 
+        user_id: id,
+        role: Role.Owner
+      },
+      data: { approved: 1, status: UserStatus.Approved }
+    });
+
+    res.json({
+      success: true,
+      message: 'Owner reactivated successfully'
+    });
+  } catch (error: any) {
+    console.error('Reactivate owner error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reactivate owner'
+    });
+  }
+});
+
 // Delete owner
 router.delete('/owners/:ownerId', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
   try {
@@ -289,12 +317,75 @@ router.delete('/owners/:ownerId', authenticateToken as any, requireAdmin as any,
   }
 });
 
+// Bulk Owners Action
+router.post('/owners/bulk', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { action, ownerIds } = req.body;
+    
+    if (!action || !ownerIds || !Array.isArray(ownerIds) || ownerIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid bulk action payload' });
+    }
+
+    const ids = ownerIds.map((id: string) => parseInt(id.replace('OWN', ''))).filter((id: number) => !isNaN(id));
+
+    if (action === 'delete') {
+      await prisma.user.deleteMany({
+        where: { user_id: { in: ids }, role: Role.Owner }
+      });
+    } else {
+      let updateData: any = {};
+      let profileData: any = {};
+      
+      switch (action) {
+        case 'approve':
+        case 'reactivate':
+          updateData = { approved: 1, status: UserStatus.Approved };
+          profileData = { approval_status: ApprovalStatus.Approved };
+          break;
+        case 'reject':
+          updateData = { approved: 0 };
+          profileData = { approval_status: ApprovalStatus.Rejected };
+          break;
+        case 'suspend':
+          updateData = { approved: -1 };
+          break;
+        default:
+          return res.status(400).json({ success: false, message: 'Invalid action' });
+      }
+
+      await prisma.user.updateMany({
+        where: { user_id: { in: ids }, role: Role.Owner },
+        data: updateData
+      });
+
+      if (Object.keys(profileData).length > 0) {
+        await prisma.ownerProfile.updateMany({
+          where: { owner_id: { in: ids } },
+          data: profileData
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully executed ${action} on ${ids.length} owners`
+    });
+  } catch (error: any) {
+    console.error('Bulk owners action error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute bulk action'
+    });
+  }
+});
+
 // Get all properties for admin dashboard
 router.get('/properties', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
     const properties = await prisma.pension.findMany({
       include: {
-        owner: { select: { full_name: true, email: true } }
+        owner: { select: { full_name: true, email: true, user_id: true } },
+        _count: { select: { rooms: true } }
       },
       orderBy: { created_at: 'desc' }
     });
@@ -303,14 +394,21 @@ router.get('/properties', authenticateToken as any, requireAdmin as any, async (
       id: property.pension_id.toString(),
       name: property.name,
       address: property.address,
+      description: property.description,
+      phone: property.phone,
+      email: property.email,
+      capacity: property.capacity,
+      image_url: property.image_url,
+      ownerId: property.owner_id.toString(),
       ownerName: property.owner.full_name,
       ownerEmail: property.owner.email,
       status: property.status || 'pending',
-      roomsCount: 0, // Would need to calculate from rooms table
-      occupancyRate: 0, // Would need to calculate from bookings
-      monthlyRevenue: 0, // Would need to calculate from bookings
-      rating: 0, // Would need to calculate from reviews
+      roomsCount: property._count.rooms,
+      occupancyRate: 0,
+      monthlyRevenue: 0,
+      rating: 0,
       registeredDate: property.created_at,
+      created_at: property.created_at,
       rejectionReason: property.rejection_reason || null
     }));
 
@@ -335,17 +433,28 @@ router.get('/bookings', authenticateToken as any, requireAdmin as any, async (re
         customer: { select: { full_name: true, email: true, phone: true } },
         room: {
           include: {
-            pension: { select: { name: true } }
+            pension: {
+              select: {
+                name: true,
+                pension_id: true,
+                owner_id: true,
+                owner: { select: { full_name: true, email: true } }
+              }
+            }
           }
         }
       },
       orderBy: { created_at: 'desc' },
-      take: 100
+      take: 200
     });
 
     const formattedBookings = bookings.map((booking) => ({
       id: booking.booking_id.toString(),
-      propertyName: booking.room?.pension.name || 'Unknown Property',
+      propertyName: booking.room?.pension?.name || 'Unknown Property',
+      pensionId: booking.room?.pension?.pension_id?.toString() || null,
+      ownerId: booking.room?.pension?.owner_id?.toString() || null,
+      ownerName: booking.room?.pension?.owner?.full_name || 'Unknown Owner',
+      ownerEmail: booking.room?.pension?.owner?.email || '',
       guestName: booking.customer?.full_name || 'Guest',
       guestEmail: booking.customer?.email || 'N/A',
       guestPhone: booking.customer?.phone || 'N/A',
@@ -354,7 +463,6 @@ router.get('/bookings', authenticateToken as any, requireAdmin as any, async (re
       totalPrice: booking.total_price,
       status: booking.status,
       paymentStatus: booking.status === 'Confirmed' ? 'paid' : 'pending',
-      ownerName: 'Property Owner',
       roomNumber: booking.room_number,
       specialRequests: '',
       createdAt: booking.created_at
@@ -587,6 +695,50 @@ router.put('/pensions/:pensionId/reject', authenticateToken as any, requireAdmin
   }
 });
 
+// Suspend pension
+router.put('/pensions/:pensionId/suspend', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { pensionId } = req.params;
+
+    await prisma.pension.update({
+      where: { pension_id: parseInt(pensionId) },
+      data: {
+        status: PensionStatus.inactive,
+        reviewed_by: req.user.userId,
+        reviewed_at: new Date()
+      }
+    });
+
+    const pension = await prisma.pension.findUnique({
+      where: { pension_id: parseInt(pensionId) },
+      select: { name: true, owner_id: true }
+    });
+
+    if (pension) {
+      await notificationService.createNotification({
+        user_id: pension.owner_id,
+        title: 'Pension Suspended',
+        message: `Your pension "${pension.name}" has been suspended by the admin. Please contact support for more information.`,
+        type: 'pension_rejected'
+      });
+      try {
+        await notificationService.sendEmailNotification({
+          user_id: pension.owner_id,
+          subject: 'Your Pension Has Been Suspended',
+          message: `Your pension "${pension.name}" has been suspended by the platform administrator. Please contact our support team for more information or to appeal this decision.`
+        });
+      } catch (emailError: any) {
+        console.error('Failed to send suspension email:', emailError.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Pension suspended successfully' });
+  } catch (error: any) {
+    console.error('Suspend pension error:', error);
+    res.status(500).json({ success: false, message: 'Failed to suspend pension' });
+  }
+});
+
 // Debug endpoint - raw pension data
 router.get('/pensions-debug', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
@@ -615,27 +767,115 @@ router.get('/pensions-debug', authenticateToken as any, requireAdmin as any, asy
   }
 });
 
+// Bulk Pensions Action
+router.post('/pensions/bulk', authenticateToken as any, requireAdmin as any, async (req: any, res: express.Response) => {
+  try {
+    const { action, pensionIds, rejectionReason } = req.body;
+
+    if (!action || !pensionIds || !Array.isArray(pensionIds) || pensionIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid bulk action payload' });
+    }
+
+    let updateData: any = {};
+    switch (action) {
+      case 'approve':
+        updateData = {
+          status: PensionStatus.active,
+          reviewed_by: req.user.userId,
+          reviewed_at: new Date()
+        };
+        break;
+      case 'reject':
+        updateData = {
+          status: PensionStatus.inactive,
+          rejection_reason: rejectionReason || 'Bulk rejected',
+          reviewed_by: req.user.userId,
+          reviewed_at: new Date()
+        };
+        break;
+      default:
+        return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+
+    await prisma.pension.updateMany({
+      where: { pension_id: { in: pensionIds } },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully executed ${action} on ${pensionIds.length} pensions`
+    });
+  } catch (error: any) {
+    console.error('Bulk pensions action error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute bulk action'
+    });
+  }
+});
+
 // Get admin metrics
 router.get('/metrics', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
-    const [ownersCount, propertiesCount, bookingsCount, pendingCount, pendingPensionsCount] = await Promise.all([
+    const now = new Date();
+    // Build last 6 months date boundaries
+    const months: { label: string; start: Date; end: Date }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const label = start.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+      months.push({ label, start, end });
+    }
+
+    const [
+      ownersCount,
+      propertiesCount,
+      bookingsCount,
+      totalUsersCount,
+      pendingCount,
+      pendingPensionsCount,
+      activePropertiesCount
+    ] = await Promise.all([
       prisma.user.count({ where: { role: Role.Owner } }),
       prisma.pension.count(),
-      prisma.booking.count({ where: { booking_source: BookingSource.App } }),
+      prisma.booking.count(),
+      prisma.user.count(),
       prisma.user.count({ where: { role: Role.Owner, approved: { not: 1 } } }),
-      prisma.pension.count({ where: { status: PensionStatus.pending } })
+      prisma.pension.count({ where: { status: PensionStatus.pending } }),
+      prisma.pension.count({ where: { status: PensionStatus.active } })
     ]);
+
+    // Build monthly bookings analytics
+    const monthlyAnalytics = await Promise.all(
+      months.map(async (m) => {
+        const count = await prisma.booking.count({
+          where: { created_at: { gte: m.start, lte: m.end } }
+        });
+        const revenueAgg = await prisma.booking.aggregate({
+          where: { created_at: { gte: m.start, lte: m.end } },
+          _sum: { total_price: true }
+        });
+        return {
+          month: m.label,
+          bookings: count,
+          revenue: Number(revenueAgg._sum.total_price || 0)
+        };
+      })
+    );
 
     const metrics = {
       totalOwners: ownersCount,
       totalProperties: propertiesCount,
       totalBookings: bookingsCount,
+      totalUsers: totalUsersCount,
       monthlyRevenue: 0,
       occupancyRate: 0,
       pendingVerifications: pendingCount,
       pendingPensions: pendingPensionsCount,
-      activeProperties: propertiesCount,
-      averageRating: 0
+      activeProperties: activePropertiesCount,
+      averageRating: 0,
+      monthlyAnalytics
     };
 
     res.json({
@@ -698,6 +938,116 @@ router.get('/alerts', authenticateToken as any, requireAdmin as any, async (req:
       success: false,
       message: 'Failed to fetch alerts'
     });
+  }
+});
+
+// Get all customers
+router.get('/customers', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const customers = await prisma.user.findMany({
+      where: { role: Role.Customer },
+      include: {
+        _count: {
+          select: { bookings: true }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    const formattedCustomers = customers.map(c => ({
+      id: c.user_id.toString(),
+      name: c.full_name || 'Unknown',
+      email: c.email,
+      phone: c.phone || '',
+      status: c.status === 'Approved' ? 'active' : c.status.toLowerCase(),
+      totalBookings: c._count.bookings,
+      joinedAt: c.created_at
+    }));
+
+    res.json({
+      success: true,
+      data: formattedCustomers
+    });
+  } catch (error: any) {
+    console.error('Get customers error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch customers' });
+  }
+});
+
+// Get all staffs
+router.get('/staffs', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const staffs = await prisma.user.findMany({
+      where: { role: Role.Admin },
+      orderBy: { created_at: 'desc' }
+    });
+
+    const formattedStaffs = staffs.map(s => ({
+      id: s.user_id.toString(),
+      name: s.full_name || 'Unknown',
+      email: s.email,
+      phone: s.phone || '',
+      role: s.admin_role || 'superAdmin',
+      status: s.status === 'Approved' ? 'active' : s.status.toLowerCase(),
+      joinedAt: s.created_at
+    }));
+
+    res.json({
+      success: true,
+      data: formattedStaffs
+    });
+  } catch (error: any) {
+    console.error('Get staffs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch staffs' });
+  }
+});
+
+// Add new staff
+router.post('/staffs', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const { name, email, role, phone } = req.body;
+
+    if (!name || !email || !role) {
+      return res.status(400).json({ success: false, message: 'Name, email, and role are required' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash('Admin@123', salt);
+
+    const newStaff = await prisma.user.create({
+      data: {
+        full_name: name,
+        email,
+        phone: phone || null,
+        password_hash,
+        role: Role.Admin,
+        admin_role: role,
+        status: UserStatus.Approved,
+        approved: 1
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Staff added successfully. Default password is Admin@123',
+      data: {
+        id: newStaff.user_id.toString(),
+        name: newStaff.full_name,
+        email: newStaff.email,
+        phone: newStaff.phone,
+        role: newStaff.admin_role,
+        status: 'active',
+        joinedAt: newStaff.created_at
+      }
+    });
+  } catch (error: any) {
+    console.error('Add staff error:', error);
+    res.status(500).json({ success: false, message: 'Failed to add staff' });
   }
 });
 

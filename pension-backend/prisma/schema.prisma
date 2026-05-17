@@ -29,6 +29,7 @@ model User {
   role               Role
   status             UserStatus           @default(Pending)
   approved           Int                  @default(0)
+  admin_role         String?              @db.VarChar(50)
   created_at         DateTime?            @default(now()) @db.Timestamp(0)
   
   pensions           Pension[]
@@ -465,6 +466,7 @@ model SubscriptionPlan {
   features        Json?
   is_active       Boolean        @default(true)
   is_public       Boolean        @default(true)
+  promotion_banner String?       @db.VarChar(255)
   created_at      DateTime       @default(now()) @db.Timestamp(0)
   updated_at      DateTime       @default(now()) @updatedAt @db.Timestamp(0)
 

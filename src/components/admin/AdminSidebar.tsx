@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,6 +23,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({
+    users: true // Expand by default if needed, or based on active route
+  });
 
   // Use static sidebar links since notifications are now in header
   const sidebarLinks = adminSidebarLinks;
@@ -37,10 +42,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   };
 
-  const renderSidebarItem = (link: SidebarLink) => {
+  const renderSidebarItem = (link: SidebarLink, depth = 0) => {
     const Icon = getAdminIcon(link.icon);
     const active = link.href ? isActiveLink(link.href) : false;
     const badgeVariant = getBadgeVariant(link.badge);
+    const hasChildren = link.children && link.children.length > 0;
+    const isExpanded = expandedMenus[link.id];
+
+    const toggleExpand = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setExpandedMenus(prev => ({
+        ...prev,
+        [link.id]: !prev[link.id]
+      }));
+    };
 
     // Static Dashboard label (non-clickable)
     if (link.isStatic) {
@@ -59,21 +74,28 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       );
     }
 
-    // Regular navigation items
     return (
-      <Tooltip key={link.id} delayDuration={collapsed && !isMobile ? 0 : 1000}>
-        <TooltipTrigger asChild>
-          <button
-            onClick={() => link.href && handleNavigation(link.href)}
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden",
-              "hover:bg-slate-700/50",
-              active
-                ? "bg-blue-600/10 text-blue-400 border-l-2 border-blue-400"
-                : "text-slate-300 hover:text-white",
-              collapsed && !isMobile && "justify-center px-3"
-            )}
-          >
+      <div key={link.id} className="w-full">
+        <Tooltip delayDuration={collapsed && !isMobile ? 0 : 1000}>
+          <TooltipTrigger asChild>
+            <button
+              onClick={(e) => {
+                if (hasChildren) {
+                  toggleExpand(e);
+                } else if (link.href) {
+                  handleNavigation(link.href);
+                }
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden",
+                "hover:bg-slate-700/50",
+                active && !hasChildren
+                  ? "bg-blue-600/10 text-blue-400 border-l-2 border-blue-400"
+                  : "text-slate-300 hover:text-white",
+                collapsed && !isMobile && "justify-center px-3",
+                depth > 0 && !collapsed && "pl-10" // Indent children
+              )}
+            >
             {/* Background gradient effect */}
             <div className={cn(
               "absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
@@ -87,10 +109,19 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <span className="font-medium relative z-10 flex-1 text-left text-sm">
                   {link.label}
                 </span>
-                {link.badge && (
+                {link.badge && !hasChildren && (
                   <Badge variant={badgeVariant as any} className="relative z-10 text-xs">
                     {link.badge}
                   </Badge>
+                )}
+                {hasChildren && (
+                  <div className="relative z-10 text-slate-400 group-hover:text-white transition-colors">
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </div>
                 )}
               </>
             )}
@@ -100,6 +131,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <p>{link.label}</p>
         </TooltipContent>
       </Tooltip>
+      
+      {/* Render Children */}
+      {hasChildren && isExpanded && (!collapsed || isMobile) && (
+        <div className="mt-1 space-y-1">
+          {link.children!.map((child) => renderSidebarItem(child, depth + 1))}
+        </div>
+      )}
+    </div>
     );
   };
 
@@ -155,9 +194,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {sidebarLinks.map((link) => renderSidebarItem(link))}
         </nav>
 
-        {/* Footer - Empty now that admin account is moved to header */}
+        {/* Footer - Logout Button */}
         <div className="p-4 border-t border-slate-700/50">
-          {/* Admin account moved to header */}
+          <button
+            onClick={logout}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-red-500/10 text-slate-400 hover:text-red-500",
+              collapsed && !isMobile && "justify-center px-0"
+            )}
+          >
+            <LogOut className={cn("w-5 h-5 transition-transform group-hover:scale-110")} />
+            {(!collapsed || isMobile) && (
+              <span className="font-medium">Logout</span>
+            )}
+          </button>
         </div>
       </div>
 
