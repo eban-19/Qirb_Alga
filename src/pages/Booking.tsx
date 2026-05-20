@@ -586,9 +586,9 @@ const Booking = () => {
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <Calendar className="w-6 h-6 text-primary" />
                       </div>
-                      Pick Your Stay Dates
+                      {t.booking.pickStayDates}
                     </h2>
-                    <p className="text-muted-foreground">Select your check-in and check-out dates to see available packages.</p>
+                    <p className="text-muted-foreground">{t.booking.pickStayDatesDesc}</p>
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-6">
@@ -611,11 +611,11 @@ const Booking = () => {
                         {isCheckingAvailability ? (
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Checking Availability...
+                            {t.booking.checkingAvailability}
                           </>
                         ) : (
                           <>
-                            Check Availability <ArrowRight className="w-5 h-5 ml-2" />
+                            {t.booking.checkAvailability} <ArrowRight className="w-5 h-5 ml-2" />
                           </>
                         )}
                     </Button>
@@ -631,9 +631,9 @@ const Booking = () => {
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <Package className="w-6 h-6 text-primary" />
                       </div>
-                      Select a Package
+                      {t.booking.selectPackage}
                     </h2>
-                    <p className="text-muted-foreground">Choose the package that best fits your needs for these dates.</p>
+                    <p className="text-muted-foreground">{t.booking.selectPackageDesc}</p>
                   </div>
                   
                   <div className="grid gap-4">
@@ -738,7 +738,7 @@ const Booking = () => {
                         return !avail || avail.availableRooms === 0;
                       })()}
                     >
-                      {isAuthenticated ? "Continue to Guest Details" : "Sign In to Complete Booking"}
+                      {isAuthenticated ? t.booking.continueToGuestDetails : t.booking.signInToComplete}
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </div>
@@ -753,22 +753,22 @@ const Booking = () => {
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <User className="w-6 h-6 text-primary" />
                       </div>
-                      Guest Details
+                      {t.booking.stepGuestDetails || "Guest Details"}
                     </h2>
-                    <p className="text-muted-foreground">Confirm your details and provide an ID document for verification.</p>
+                    <p className="text-muted-foreground">{t.booking.guestDetailsDesc}</p>
                   </div>
                   
                   <div className="grid gap-8">
                     <div className="bg-muted/30 p-6 rounded-2xl border border-border/50 flex flex-col md:flex-row gap-6 md:gap-12">
                       <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Guest Name</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">{t.booking.guestName || "Guest Name"}</div>
                         <div className="text-lg font-semibold flex items-center gap-2">
                           {formData.fullName}
                           <CheckCircle2 className="w-4 h-4 text-green-500" />
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Phone Number</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">{t.booking.phoneNumber || "Phone Number"}</div>
                         <div className="text-lg font-semibold flex items-center gap-2">
                           {formData.phone}
                           <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -777,7 +777,7 @@ const Booking = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="idDocument">ID Document (Required)</Label>
+                      <Label htmlFor="idDocument">{t.booking.idDocumentRequired}</Label>
                       <div className="relative group">
                         <Input
                           id="idDocument"
@@ -788,7 +788,7 @@ const Booking = () => {
                           required
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Please upload a valid ID document or passport for verification.</p>
+                      <p className="text-xs text-muted-foreground">{t.booking.idDocumentDesc}</p>
                     </div>
                   </div>
                   <div className="pt-8">
@@ -798,7 +798,7 @@ const Booking = () => {
                       onClick={handleNextStep}
                       disabled={!idDocument}
                     >
-                      Review & Pay <ArrowRight className="w-5 h-5 ml-2" />
+                      {t.booking.reviewAndPay} <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </div>
                 </section>
@@ -819,9 +819,9 @@ const Booking = () => {
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <CreditCard className="w-6 h-6 text-primary" />
                       </div>
-                      Checkout & Payment
+                      {t.booking.checkoutAndPayment}
                     </h2>
-                    <p className="text-muted-foreground">Choose your payment method and complete the booking.</p>
+                    <p className="text-muted-foreground">{t.booking.checkoutDesc}</p>
                   </div>
                   
                   <div className="space-y-6">
@@ -839,14 +839,14 @@ const Booking = () => {
                           <CreditCard className="w-10 h-10" />
                         </div>
                         <div className="space-y-2">
-                          <h3 className="font-black text-2xl tracking-tight">Secure Online Payment</h3>
+                          <h3 className="font-black text-2xl tracking-tight">{t.booking.secureOnlinePayment}</h3>
                           <p className="text-muted-foreground text-lg max-w-sm mx-auto">
-                            Pay safely via <strong>Chapa</strong> using Telebirr, Bank Transfer, or Debit/Credit Cards.
+                            {t.booking.paySafelyDesc}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 pt-2">
                           <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                          <span className="text-xs font-bold uppercase tracking-widest text-green-600">Encrypted & Secure</span>
+                          <span className="text-xs font-bold uppercase tracking-widest text-green-600">{t.booking.encryptedSecure}</span>
                         </div>
                       </div>
                     </label>
@@ -857,7 +857,7 @@ const Booking = () => {
                       <ShieldCheck className="w-5 h-5 text-primary" />
                     </div>
                     <p className="font-medium">
-                      You will be redirected to the secure Chapa gateway to complete your payment. Once finished, your booking will be instantly confirmed.
+                      {t.booking.redirectMessage}
                     </p>
                   </div>
                 </section>
@@ -873,7 +873,7 @@ const Booking = () => {
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Previous
+                  {t.booking.previous}
                 </Button>
                 
                 <Button
@@ -888,13 +888,13 @@ const Booking = () => {
                       ) : (
                         <>
                               <CreditCard className="w-4 h-4" />
-                              Proceed to Payment
+                              {t.booking.proceedToPayment}
                         </>
                       )}
                     </>
                   ) : (
                     <>
-                      Next
+                      {t.booking.next}
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -934,7 +934,7 @@ const Booking = () => {
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Per Night</span>
+                    <span className="text-sm text-muted-foreground">{t.propertyCard?.perNight || t.booking?.perNight || "Per Night"}</span>
                     <span className="font-bold text-lg">ETB {selectedPackage.price.toLocaleString()}</span>
                   </div>
                 </div>
@@ -943,40 +943,40 @@ const Booking = () => {
               {/* Pricing Summary */}
               <div className="bg-card rounded-3xl border border-border shadow-sm p-6 space-y-4">
                 <h3 className="font-bold text-lg flex items-center justify-between">
-                  Pricing Summary
+                  {t.booking?.pricingSummary || "Pricing Summary"}
                   {appliedDiscountPercent > 0 && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold uppercase tracking-wider">
-                      Promo Applied
+                      {t.booking?.promoApplied || "Promo Applied"}
                     </span>
                   )}
                 </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Room Rate</span>
+                    <span className="text-sm text-muted-foreground">{t.booking?.roomRate || "Room Rate"}</span>
                     <span className="text-sm">ETB {selectedPackage.price.toLocaleString()} x {diffDays} nights</span>
                   </div>
                   {appliedDiscountPercent > 0 && (
                     <div className="flex justify-between text-green-600">
-                      <span className="text-sm font-semibold">{appliedPromoName || 'Special Savings'} ({appliedDiscountPercent}%)</span>
+                      <span className="text-sm font-semibold">{appliedPromoName || t.booking?.specialSavings || 'Special Savings'} ({appliedDiscountPercent}%)</span>
                       <span className="text-sm font-bold">- ETB {discountAmount.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-2 border-t">
-                    <span className="text-sm font-semibold">Subtotal</span>
+                    <span className="text-sm font-semibold">{t.booking?.subtotal || "Subtotal"}</span>
                     <span className="font-semibold">ETB {subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">VAT ({systemSettings.VAT_PERCENTAGE}%)</span>
+                    <span className="text-sm text-muted-foreground">{t.booking?.vat || "VAT"} ({systemSettings.VAT_PERCENTAGE}%)</span>
                     <span className="font-semibold">ETB {tax.toLocaleString()}</span>
                   </div>
                   {parseFloat(systemSettings.SERVICE_FEE_PERCENTAGE) > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Service Fee ({systemSettings.SERVICE_FEE_PERCENTAGE}%)</span>
+                      <span className="text-sm text-muted-foreground">{t.booking?.serviceFee || "Service Fee"} ({systemSettings.SERVICE_FEE_PERCENTAGE}%)</span>
                       <span className="font-semibold">ETB {serviceFee.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="font-bold">Total</span>
+                    <span className="font-bold">{t.booking?.total || "Total"}</span>
                     <span className="font-bold text-lg text-primary">ETB {total.toLocaleString()}</span>
                   </div>
                 </div>

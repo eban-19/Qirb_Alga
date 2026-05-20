@@ -13,6 +13,7 @@ import {
   Zap
 } from 'lucide-react';
 import { BankSettingsSection } from './BankSettingsSection';
+import { useLanguage } from '../../hooks/use-language';
 
 interface SettingsSectionProps {
   activeTab: string;
@@ -51,6 +52,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   subscriptionStatus,
   onUpgradeClick
 }) => {
+  const { t } = useLanguage();
   const sub = subscriptionStatus?.subscription;
   const isPro = subscriptionStatus?.hasActiveSubscription;
 
@@ -58,15 +60,17 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-          {activeTab === "settings-business-profile" ? "Business Profile Settings" : "Security Settings"}
+          {activeTab === "settings-business-profile" 
+            ? (t.dashboard?.businessProfileSettings || "Business Profile Settings") 
+            : (t.dashboard?.securitySettings || "Security Settings")}
         </h2>
-        <p className="text-slate-500 text-sm">Configure your property and account preferences.</p>
+        <p className="text-slate-500 text-sm">{t.dashboard?.settingsDescription || "Configure your property and account preferences."}</p>
       </div>
 
       {showSaveSuccess && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-3 shadow-sm">
           <ShieldCheck className="h-5 w-5" />
-          <span className="font-semibold text-sm">Settings saved successfully!</span>
+          <span className="font-semibold text-sm">{t.dashboard?.settingsSavedSuccess || "Settings saved successfully!"}</span>
         </div>
       )}
 
@@ -80,28 +84,28 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
                     <Building className="h-6 w-6" />
                   </div>
-                  <span>Business Profile</span>
+                  <span>{t.dashboard?.businessProfile || "Business Profile"}</span>
                 </CardTitle>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                   approvalStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                 }`}>
-                  {approvalStatus === 'Approved' ? '✓ Approved' : '⏳ Pending Review'}
+                  {approvalStatus === 'Approved' ? (t.dashboard?.approved || '✓ Approved') : (t.dashboard?.pendingReview || '⏳ Pending Review')}
                 </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Business Name</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessName || "Business Name"}</Label>
                   <Input
                     value={businessProfile.businessName}
                     onChange={(e) => setBusinessProfile({ ...businessProfile, businessName: e.target.value })}
-                    placeholder="Enter your business name"
+                    placeholder={t.dashboard?.enterBusinessName || "Enter your business name"}
                     className="h-11 border-slate-200 bg-slate-50/30"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Business Email</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessEmail || "Business Email"}</Label>
                   <Input
                     type="email"
                     value={businessProfile.businessEmail}
@@ -111,7 +115,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Business Phone</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessPhone || "Business Phone"}</Label>
                   <Input
                     value={businessProfile.businessPhone}
                     onChange={(e) => setBusinessProfile({ ...businessProfile, businessPhone: e.target.value })}
@@ -122,7 +126,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
               </div>
               <div className="mt-6 flex justify-end">
                 <Button onClick={onSaveBusinessProfile} disabled={isUpdating} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
-                  {isUpdating ? 'Updating...' : 'Update Business Profile'}
+                  {isUpdating ? (t.dashboard?.updating || 'Updating...') : (t.dashboard?.updateBusinessProfile || 'Update Business Profile')}
                 </Button>
               </div>
             </CardContent>
@@ -136,7 +140,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
                     <ShieldCheck className="h-6 w-6" />
                   </div>
-                  <span>Subscription Management</span>
+                  <span>{t.dashboard?.subscriptionManagement || "Subscription Management"}</span>
                 </CardTitle>
                 <Button 
                   variant="outline" 
@@ -145,19 +149,19 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 font-bold gap-2"
                 >
                   <Zap className="h-4 w-4" />
-                  Upgrade
+                  {t.dashboard?.upgrade || "Upgrade"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-2xl bg-slate-50 border border-slate-100 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Plan</p>
-                  <p className="text-xl font-black text-slate-900">{sub?.plan?.name || (subscriptionStatus?.trial?.isActive ? 'Free Trial' : 'No Active Plan')}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.dashboard?.currentPlan || "Current Plan"}</p>
+                  <p className="text-xl font-black text-slate-900">{sub?.plan?.name || (subscriptionStatus?.trial?.isActive ? (t.dashboard?.freeTrial || 'Free Trial') : (t.dashboard?.noActivePlan || 'No Active Plan'))}</p>
                 </div>
                 {isPro && (
                   <div className="text-right">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Expires On</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.dashboard?.expiresOn || "Expires On"}</p>
                     <p className="text-sm font-bold text-slate-900">{new Date(sub.end_date).toLocaleDateString()}</p>
                   </div>
                 )}
@@ -184,13 +188,13 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-600">
                   <Shield className="h-6 w-6" />
                 </div>
-                <span>Security Settings</span>
+                <span>{t.dashboard?.securitySettings || "Security Settings"}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Current Password</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.currentPassword || "Current Password"}</Label>
                   <Input
                     type="password"
                     value={securitySettings.currentPassword}
@@ -199,7 +203,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">New Password</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.newPassword || "New Password"}</Label>
                   <Input
                     type="password"
                     value={securitySettings.newPassword}
@@ -211,21 +215,21 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
               <div className="p-6 rounded-2xl border-2 border-dashed border-red-100 bg-red-50/30">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="space-y-1">
-                    <h4 className="font-bold text-red-900">Two-Factor Authentication (2FA)</h4>
-                    <p className="text-xs text-red-700/80">Add an extra layer of security to your account</p>
+                    <h4 className="font-bold text-red-900">{t.dashboard?.twoFactorAuth || "Two-Factor Authentication (2FA)"}</h4>
+                    <p className="text-xs text-red-700/80">{t.dashboard?.twoFactorAuthDescription || "Add an extra layer of security to your account"}</p>
                   </div>
                   <Button
                     variant={securitySettings.twoFactorEnabled ? "default" : "outline"}
                     className={`h-11 px-8 rounded-xl font-black ${securitySettings.twoFactorEnabled ? "bg-red-600 text-white" : "border-red-200 text-red-700"}`}
                     onClick={onToggleTwoFactor}
                   >
-                    {securitySettings.twoFactorEnabled ? "Disable" : "Enable"} 2FA
+                    {securitySettings.twoFactorEnabled ? (t.dashboard?.disable || "Disable") : (t.dashboard?.enable || "Enable")} 2FA
                   </Button>
                 </div>
               </div>
               <div className="flex justify-end pt-6 border-t">
                 <Button onClick={onSaveSecuritySettings} disabled={!securitySettings.currentPassword || !securitySettings.newPassword} className="bg-slate-900 text-white px-8">
-                  Update Security Settings
+                  {t.dashboard?.updateSecuritySettings || "Update Security Settings"}
                 </Button>
               </div>
             </CardContent>

@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Upload, Download, X, FileText, Check, BedDouble, Home, DollarSign, Users, Shield, AlertCircle } from 'lucide-react';
 import { BulkUploadData } from '../../data/types/dashboardTypes';
+import { useLanguage } from '../../hooks/use-language';
 
 interface BulkUploadModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   columns,
   errorMessage
 }) => {
+  const { t } = useLanguage();
   const [isDragging, setIsDragging] = React.useState(false);
 
   if (!isOpen) return null;
@@ -128,7 +130,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 <AlertCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h4 className="font-bold text-red-900">Upload Error</h4>
+                <h4 className="font-bold text-red-900">{t.dashboard?.uploadError || "Upload Error"}</h4>
                 <p className="text-sm text-red-700 opacity-80">{errorMessage}</p>
               </div>
             </div>
@@ -141,15 +143,15 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 <div className={`p-1.5 sm:p-2 rounded-lg ${theme.iconBg}`}>
                   <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
-                <h4 className={`font-bold text-sm sm:text-base ${theme.instructionsText.split(' ')[0]}`}>Instructions:</h4>
+                <h4 className={`font-bold text-sm sm:text-base ${theme.instructionsText.split(' ')[0]}`}>{t.dashboard?.instructions || "Instructions:"}</h4>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                 {[
-                  "Download the template file below",
-                  "Fill in your data following the exact format", 
-                  "Save as CSV file",
-                  "Upload the file below",
-                  "Review the preview and confirm import"
+                  t.dashboard?.instruction1 || "Download the template file below",
+                  t.dashboard?.instruction2 || "Fill in your data following the exact format", 
+                  t.dashboard?.instruction3 || "Save as CSV file",
+                  t.dashboard?.instruction4 || "Upload the file below",
+                  t.dashboard?.instruction5 || "Review the preview and confirm import"
                 ].map((instruction, index) => (
                   <div key={index} className="flex items-center gap-1.5 sm:gap-2">
                     <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full ${theme.iconBg} flex items-center justify-center flex-shrink-0 text-[10px] sm:text-xs font-bold shadow-md`}>
@@ -170,8 +172,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 className={`gap-2 sm:gap-3 bg-${theme.primary}-600 hover:bg-${theme.primary}-700 shadow-lg hover:shadow-${theme.primary}-500/25 transition-all duration-300 hover:scale-105 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base`}
               >
                 <Download className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden sm:inline">Download Template</span>
-                <span className="sm:hidden">Template</span>
+                <span className="hidden sm:inline">{t.dashboard?.downloadTemplate || "Download Template"}</span>
+                <span className="sm:hidden">{t.dashboard?.template || "Template"}</span>
               </Button>
               <div className="flex-1">
                 <div 
@@ -195,7 +197,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       <div className={`p-3 sm:p-6 rounded-full ${theme.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-lg border-2 border-white/50`}>
                         <Upload className="h-6 w-6 sm:h-10 sm:w-10" />
                       </div>
-                      <span className="font-bold text-sm sm:text-xl text-slate-700 mt-2 sm:mt-4 text-center">Upload the csv file</span>
+                      <span className="font-bold text-sm sm:text-xl text-slate-700 mt-2 sm:mt-4 text-center">{t.dashboard?.uploadCsvFile || "Upload the csv file"}</span>
                     </div>
                   )}
                   {/* Drag overlay */}
@@ -205,7 +207,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     <div className={`p-2 sm:p-4 rounded-full ${theme.iconBg} animate-bounce shadow-lg border-2 border-white/50`}>
                       <Upload className="h-4 w-4 sm:h-8 sm:w-8" />
                     </div>
-                    <span className="font-bold text-sm sm:text-xl text-center">Drop your CSV file here</span>
+                    <span className="font-bold text-sm sm:text-xl text-center">{t.dashboard?.dropCsvFile || "Drop your CSV file here"}</span>
                   </div>
                 </div>
               </div>
@@ -215,13 +217,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg bg-slate-50 border border-slate-200">
               <div className="flex items-center gap-2">
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
-                <span className="text-xs sm:text-sm text-slate-600">Supported format:</span>
+                <span className="text-xs sm:text-sm text-slate-600">{t.dashboard?.supportedFormat || "Supported format:"}</span>
                 <code className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-white rounded text-[10px] sm:text-xs font-mono border border-slate-200">.csv</code>
               </div>
               <div className="h-3 w-px sm:h-4 sm:w-px bg-slate-200"></div>
               <div className="flex items-center gap-2">
                 <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
-                <span className="text-xs sm:text-sm text-slate-600">Max size:</span>
+                <span className="text-xs sm:text-sm text-slate-600">{t.dashboard?.maxSize || "Max size:"}</span>
                 <code className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-white rounded text-[10px] sm:text-xs font-mono border border-slate-200">10MB</code>
               </div>
             </div>
@@ -235,7 +237,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   <FileText className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                  <span className={`font-semibold ${theme.instructionsText.split(' ')[0]}`}>File selected:</span>
+                  <span className={`font-semibold ${theme.instructionsText.split(' ')[0]}`}>{t.dashboard?.fileSelected || "File selected:"}</span>
                   <p className="text-sm text-slate-600 mt-1">{uploadData.file.name}</p>
                 </div>
                 <div className="text-xs text-slate-500">
@@ -249,7 +251,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     <div className={`p-2 rounded-lg ${theme.iconBg}`}>
                       <Shield className="h-5 w-5" />
                     </div>
-                    <h3 className="font-bold text-lg text-slate-900">Preview (first 5 records)</h3>
+                    <h3 className="font-bold text-lg text-slate-900">{t.dashboard?.previewRecords || "Preview (first 5 records)"}</h3>
                   </div>
                   
                   <div className="border rounded-xl overflow-hidden shadow-sm">
@@ -288,7 +290,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     <Check className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div>
-                    <div className="text-sm text-slate-600">Total records ready to import</div>
+                    <div className="text-sm text-slate-600">{t.dashboard?.totalRecordsReady || "Total records ready to import"}</div>
                     <div className="text-2xl font-bold text-slate-900">{uploadData.data.length}</div>
                   </div>
                 </div>
@@ -298,14 +300,14 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     onClick={onClose}
                     className="px-6 py-3 hover:bg-slate-100 transition-all duration-200"
                   >
-                    Cancel
+                    {t.dashboard?.cancel || "Cancel"}
                   </Button>
                   <Button 
                     onClick={onConfirm}
                     className={`gap-3 bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-105 px-6 py-3`}
                   >
                     <Check className="h-5 w-5" />
-                    Import {uploadData.data.length} Records
+                    {t.dashboard?.import || "Import"} {uploadData.data.length} {t.dashboard?.records || "Records"}
                   </Button>
                 </div>
               </div>

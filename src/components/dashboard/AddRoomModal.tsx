@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Bed, X, Package as PackageIcon, Home, Hash, Users, AlertCircle } from 'lucide-react';
 import { Package } from '../../types/dashboard';
+import { useLanguage } from '../../hooks/use-language';
 
 interface AddRoomModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
   existingRooms,
   errorMessage
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   return (
@@ -40,8 +42,8 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                 <Bed className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Add New Room</h2>
-                <p className="text-sm text-slate-500 font-medium mt-1">Configure your property's room details</p>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.addNewRoom || "Add New Room"}</h2>
+                <p className="text-sm text-slate-500 font-medium mt-1">{t.dashboard?.addRoomDesc || "Configure your property's room details"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
@@ -56,7 +58,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                 <AlertCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h4 className="font-bold text-red-900">Action Required</h4>
+                <h4 className="font-bold text-red-900">{t.dashboard?.actionRequired || "Action Required"}</h4>
                 <p className="text-sm text-red-700 opacity-80">{errorMessage}</p>
               </div>
             </div>
@@ -66,11 +68,11 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             {/* Left Column */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Category & Type</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.categoryAndType || "Category & Type"}</h3>
                 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <PackageIcon className="h-4 w-4 text-blue-600" /> Select Package Tier
+                    <PackageIcon className="h-4 w-4 text-blue-600" /> {t.dashboard?.selectPackageTier || "Select Package Tier"}
                   </Label>
                   <select
                     value={newRoom.package}
@@ -100,10 +102,10 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     }}
                     className="h-12 w-full border border-slate-200 rounded-xl px-4 bg-slate-50/30 focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-slate-700"
                   >
-                    <option value="">Select a package</option>
+                    <option value="">{t.dashboard?.selectPackage || "Select a package"}</option>
                     {packages.map(pkg => (
                       <option key={String(pkg.id || pkg.package_id)} value={String(pkg.id || pkg.package_id)}>
-                        {pkg.name} - ETB {pkg.price}/night
+                        {pkg.name} - ETB {pkg.price}/{t.dashboard?.perNight || "night"}
                       </option>
                     ))}
                   </select>
@@ -111,7 +113,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Home className="h-4 w-4 text-blue-600" /> Room Type Name
+                    <Home className="h-4 w-4 text-blue-600" /> {t.dashboard?.roomTypeName || "Room Type Name"}
                   </Label>
                   <Input
                     value={newRoom.type || ''}
@@ -123,16 +125,16 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-blue-600" /> Current Status
+                    <AlertCircle className="h-4 w-4 text-blue-600" /> {t.dashboard?.currentStatus || "Current Status"}
                   </Label>
                   <select
                     value={newRoom.status}
                     onChange={(e) => setNewRoom({ ...newRoom, status: e.target.value })}
                     className="h-12 w-full border border-slate-200 bg-slate-50/30 rounded-xl px-4 outline-none font-medium text-slate-700"
                   >
-                    <option value="Available">Available</option>
-                    <option value="Occupied">Occupied</option>
-                    <option value="Maintenance">Maintenance</option>
+                    <option value="Available">{t.dashboard?.available || "Available"}</option>
+                    <option value="Occupied">{t.dashboard?.occupied || "Occupied"}</option>
+                    <option value="Maintenance">{t.dashboard?.maintenance || "Maintenance"}</option>
                   </select>
                 </div>
               </div>
@@ -141,11 +143,11 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             {/* Right Column */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Inventory & Capacity</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.inventoryCapacity || "Inventory & Capacity"}</h3>
                 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-blue-600" /> Room Numbers
+                    <Hash className="h-4 w-4 text-blue-600" /> {t.dashboard?.roomNumbers || "Room Numbers"}
                   </Label>
                   <Input
                     value={newRoom.roomNumbers || ''}
@@ -161,12 +163,12 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     placeholder="e.g., 201, 202, 203"
                     className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20"
                   />
-                  <p className="text-[10px] text-slate-400 font-medium pl-1 italic">Enter multiple numbers separated by commas</p>
+                  <p className="text-[10px] text-slate-400 font-medium pl-1 italic">{t.dashboard?.roomNumbersHelp || "Enter multiple room numbers separated by commas"}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700">Total Rooms</Label>
+                    <Label className="text-sm font-bold text-slate-700">{t.dashboard?.totalRooms || "Total Rooms"}</Label>
                     <Input
                       value={newRoom.numberOfRooms}
                       onChange={(e) => setNewRoom({ ...newRoom, numberOfRooms: e.target.value })}
@@ -176,7 +178,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700">Total Beds</Label>
+                    <Label className="text-sm font-bold text-slate-700">{t.dashboard?.totalBeds || "Total Beds"}</Label>
                     <Input
                       value={newRoom.numberOfBeds || ''}
                       onChange={(e) => setNewRoom({ ...newRoom, numberOfBeds: e.target.value })}
@@ -188,7 +190,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-600" /> Maximum Capacity
+                    <Users className="h-4 w-4 text-blue-600" /> {t.dashboard?.maximumCapacity || "Maximum Capacity"}
                   </Label>
                   <Input
                     value={newRoom.capacity}
@@ -202,7 +204,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
           </div>
 
           <div className="flex gap-4 pt-6 border-t border-slate-100">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">Cancel</Button>
+            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">
+              {t.dashboard?.cancel || "Cancel"}
+            </Button>
             <Button 
               onClick={() => {
                 if (!newRoom.package) return;
@@ -215,7 +219,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                   : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95 shadow-blue-500/25"
               }`}
             >
-              {!newRoom.package ? "Select Package" : "Add Rooms"}
+              {!newRoom.package ? (t.dashboard?.selectPackage || "Select Package") : (t.dashboard?.addRooms || "Add Rooms")}
             </Button>
           </div>
         </CardContent>

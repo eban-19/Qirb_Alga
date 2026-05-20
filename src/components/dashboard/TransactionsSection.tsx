@@ -1,11 +1,10 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -24,7 +23,6 @@ interface TransactionsSectionProps {
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
-  language?: any;
 }
 
 export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
@@ -35,10 +33,9 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
-  totalItems = 0,
-  language
+  totalItems = 0
 }) => {
-  // Ensure transactions is always an array
+  const { t } = useLanguage();
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
 
@@ -53,15 +50,15 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">
-            <TranslationText text="Transactions" language={language} />
+            {t.dashboard?.transactions || "Transactions"}
           </h2>
           <p className="text-slate-500 mt-1">
-            <TranslationText text="View all financial transactions." language={language} />
+            {t.dashboard?.viewAllFinancialTransactions || "View all financial transactions."}
           </p>
         </div>
         <Button variant="outline" className="gap-2 border-slate-200 text-slate-700 font-bold hover:bg-slate-50 shadow-sm transition-all duration-300">
           <Download className="h-4 w-4" />
-          <TranslationText text="Export" language={language} />
+          {t.dashboard?.export || "Export"}
         </Button>
       </div>
 
@@ -70,9 +67,9 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
         <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
             <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} selected
+              {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected transactions</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsTransactions || 'Perform actions on all selected transactions'}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -81,7 +78,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
               className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
               onClick={() => onSelectAll?.([])}
             >
-              Clear Selection
+              {t.dashboard?.clearSelection || 'Clear Selection'}
             </Button>
             <Button 
               size="sm" 
@@ -91,7 +88,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
               }}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Selected
+              {t.dashboard?.exportSelected || 'Export Selected'}
             </Button>
           </div>
         </div>
@@ -112,18 +109,18 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                       }}
                     />
                   </TableHead>
-                  <TableHead className="font-bold text-slate-600"><TranslationText text="Date" language={language} /></TableHead>
-                  <TableHead className="font-bold text-slate-600"><TranslationText text="Description" language={language} /></TableHead>
-                  <TableHead className="font-bold text-slate-600"><TranslationText text="Category" language={language} /></TableHead>
-                  <TableHead className="text-right font-bold text-slate-600"><TranslationText text="Amount" language={language} /></TableHead>
-                  <TableHead className="font-bold pr-8 text-slate-600 text-right"><TranslationText text="Status" language={language} /></TableHead>
+                  <TableHead className="font-bold text-slate-600">{t.dashboard?.date || "Date"}</TableHead>
+                  <TableHead className="font-bold text-slate-600">{t.dashboard?.description || "Description"}</TableHead>
+                  <TableHead className="font-bold text-slate-600">{t.dashboard?.category || "Category"}</TableHead>
+                  <TableHead className="text-right font-bold text-slate-600">{t.dashboard?.amount || "Amount"}</TableHead>
+                  <TableHead className="font-bold pr-8 text-slate-600 text-right">{t.dashboard?.status || "Status"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {safeTransactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-32 text-center text-slate-400">
-                      <TranslationText text="No transactions found." language={language} />
+                      {t.dashboard?.noTransactionsFound || "No transactions found."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -136,7 +133,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                       <TableCell className="font-bold text-slate-800">{transaction.description}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none font-black text-[10px] uppercase tracking-widest px-3 py-1">
-                          {transaction.type === 'income' ? 'REVENUE' : 'EXPENSE'}
+                          {transaction.type === 'income' ? (t.dashboard?.income || 'REVENUE') : (t.dashboard?.expense || 'EXPENSE')}
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-black text-lg ${
@@ -148,7 +145,7 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                         <Badge className={`${
                           transaction.status === 'Completed' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-amber-500 shadow-amber-500/20'
                         } text-white font-bold text-[10px] px-3 py-1 rounded-full shadow-lg`}>
-                          <TranslationText text={transaction.status} language={language} />
+                          {transaction.status === 'Completed' ? (t.dashboard?.completed || 'Completed') : (transaction.status || 'N/A')}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -161,20 +158,24 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
           {/* Unified Pagination Footer */}
           <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
             <div className="text-sm font-bold text-slate-500">
-              Showing <span className="text-slate-900">{safeTransactions.length}</span> of <span className="text-slate-900">{totalItems}</span> transactions
+              {t.dashboard?.showingTransactions ? (
+                t.dashboard.showingTransactions.replace('{count}', String(safeTransactions.length)).replace('{total}', String(totalItems))
+              ) : (
+                `Showing ${safeTransactions.length} of ${totalItems} transactions`
+              )}
             </div>
 
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
                   <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                    <div className="flex items-center"><span>{pagination.limit} / page</span></div>
+                    <div className="flex items-center"><span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span></div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="5">5 / page</SelectItem>
-                    <SelectItem value="10">10 / page</SelectItem>
-                    <SelectItem value="20">20 / page</SelectItem>
-                    <SelectItem value="50">50 / page</SelectItem>
+                    <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

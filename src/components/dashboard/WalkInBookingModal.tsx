@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { X, Search, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useLanguage } from '../../hooks/use-language';
 
 interface WalkInBookingModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   walkInPackages,
   onWalkInSubmit
 }) => {
+  const { t } = useLanguage();
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -29,11 +31,11 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
   const handleCheckAvailability = async () => {
     if (!walkInForm.checkIn || !walkInForm.checkOut || !walkInForm.packageId) {
-      alert("Please select dates and a package first.");
+      alert(t.dashboard?.selectDatesPackageFirst || "Please select dates and a package first.");
       return;
     }
     if (new Date(walkInForm.checkOut) <= new Date(walkInForm.checkIn)) {
-      alert("Check-out date must be after check-in date.");
+      alert(t.dashboard?.checkOutAfterCheckIn || "Check-out date must be after check-in date.");
       return;
     }
     
@@ -55,12 +57,12 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       if (result.success) {
         setAvailableRooms(result.availableRooms);
       } else {
-        alert(result.message || "Failed to check availability");
+        alert(result.message || (t.dashboard?.failedCheckAvailability || "Failed to check availability"));
         setAvailableRooms(0);
       }
     } catch (error) {
       console.error("Availability check failed:", error);
-      alert("Something went wrong checking availability.");
+      alert(t.dashboard?.errorCheckAvailability || "Something went wrong checking availability.");
     } finally {
       setIsChecking(false);
     }
@@ -81,8 +83,8 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 </svg>
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Add Walk-In Booking</h3>
-                <p className="text-sm text-slate-500 font-medium mt-0.5">Quickly register guests arriving without prior reservation</p>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.addWalkInBooking || "Add Walk-In Booking"}</h3>
+                <p className="text-sm text-slate-500 font-medium mt-0.5">{t.dashboard?.addWalkInDesc || "Quickly register guests arriving without prior reservation"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
@@ -94,10 +96,10 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             {/* Left Column: Guest Info */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Guest Information</h4>
+                <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.guestInformation || "Guest Information"}</h4>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-slate-700">Guest Full Name</label>
+                  <label className="block text-sm font-bold text-slate-700">{t.dashboard?.guestFullName || "Guest Full Name"}</label>
                   <input
                     type="text"
                     value={walkInForm.guestName}
@@ -108,7 +110,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-slate-700">Phone Number</label>
+                  <label className="block text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone Number"}</label>
                   <input
                     type="tel"
                     value={walkInForm.phoneNumber}
@@ -123,11 +125,11 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             {/* Right Column: Stay Details */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Stay & Package</h4>
+                <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.stayAndPackage || "Stay & Package"}</h4>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-slate-700">Check-in Date</label>
+                    <label className="block text-sm font-bold text-slate-700">{t.dashboard?.checkInDate || "Check-in Date"}</label>
                     <input
                       type="date"
                       value={walkInForm.checkIn}
@@ -137,7 +139,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-slate-700">Check-out Date</label>
+                    <label className="block text-sm font-bold text-slate-700">{t.dashboard?.checkOutDate || "Check-out Date"}</label>
                     <input
                       type="date"
                       value={walkInForm.checkOut}
@@ -149,13 +151,13 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-slate-700">Select Room Package</label>
+                  <label className="block text-sm font-bold text-slate-700">{t.dashboard?.selectRoomPackage || "Select Room Package"}</label>
                   <select
                     value={walkInForm.packageId}
                     onChange={(e) => setWalkInForm({ ...walkInForm, packageId: e.target.value })}
                     className="w-full h-12 px-4 border border-slate-200 rounded-xl bg-slate-50/30 focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium text-slate-700 transition-all"
                   >
-                    <option value="">Select a package</option>
+                    <option value="">{t.dashboard?.selectPackage || "Select a package"}</option>
                     {walkInPackages.map(pkg => (
                       <option key={pkg.id} value={pkg.id}>
                         {pkg.name} - ETB {pkg.price}
@@ -173,22 +175,22 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                         className="w-full h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold"
                       >
                         {isChecking ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Search className="h-5 w-5 mr-2" />}
-                        Check Availability
+                        {t.dashboard?.checkAvailability || "Check Availability"}
                       </Button>
                     ) : availableRooms > 0 ? (
                       <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
                         <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                         <div>
-                          <p className="text-sm font-bold text-emerald-900">Rooms Available</p>
-                          <p className="text-xs font-medium text-emerald-700">{availableRooms} rooms match this package.</p>
+                          <p className="text-sm font-bold text-emerald-900">{t.dashboard?.roomsAvailable || "Rooms Available"}</p>
+                          <p className="text-xs font-medium text-emerald-700">{availableRooms} {t.dashboard?.roomsMatchPackage || "rooms match this package."}</p>
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 border border-rose-100">
                         <AlertCircle className="h-6 w-6 text-rose-600" />
                         <div>
-                          <p className="text-sm font-bold text-rose-900">No Availability</p>
-                          <p className="text-xs font-medium text-rose-700">All rooms for this package are booked.</p>
+                          <p className="text-sm font-bold text-rose-900">{t.dashboard?.noAvailability || "No Availability"}</p>
+                          <p className="text-xs font-medium text-rose-700">{t.dashboard?.roomsAllBooked || "All rooms for this package are booked."}</p>
                         </div>
                       </div>
                     )}
@@ -199,7 +201,9 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
           </div>
           
           <div className="flex gap-4 mt-10 pt-6 border-t border-slate-100">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">Cancel</Button>
+            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">
+              {t.dashboard?.cancel || "Cancel"}
+            </Button>
             <Button 
               onClick={onWalkInSubmit} 
               disabled={availableRooms === null || availableRooms === 0}
@@ -207,7 +211,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 availableRooms && availableRooms > 0 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25 active:scale-95' : 'bg-slate-300 shadow-none cursor-not-allowed'
               }`}
             >
-              Confirm Booking
+              {t.dashboard?.confirmBooking || "Confirm Booking"}
             </Button>
           </div>
         </div>

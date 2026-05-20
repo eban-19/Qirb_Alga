@@ -14,6 +14,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Expense, Booking } from '../../types/dashboard';
+import { useLanguage } from '../../hooks/use-language';
 
 interface ReportsSectionProps {
   totalRevenue: number;
@@ -43,6 +44,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
   occupancyMetrics,
   bookingTrends
 }) => {
+  const { t } = useLanguage();
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
   
@@ -54,6 +56,18 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     .filter(b => b.status?.toLowerCase() === 'pending')
     .reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
 
+  const getLocalizedCategoryName = (cat: string) => {
+    switch (cat.toLowerCase()) {
+      case 'staff salaries': return t.dashboard?.staffSalaries || "Staff Salaries";
+      case 'utilities': return t.dashboard?.utilities || "Utilities";
+      case 'maintenance': return t.dashboard?.maintenance || "Maintenance";
+      case 'supplies': return t.dashboard?.supplies || "Supplies";
+      case 'marketing': return t.dashboard?.marketing || "Marketing";
+      case 'rent': return t.dashboard?.rent || "Rent";
+      default: return t.dashboard?.other || "Other";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Financial Overview Cards */}
@@ -62,9 +76,9 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardContent className="p-6 relative">
             <div className="flex items-center justify-between">
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">Total Revenue</p>
+                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">{t.dashboard?.totalRevenue || "Total Revenue"}</p>
                 <p className="text-3xl font-bold text-emerald-800">ETB {totalRevenue.toLocaleString()}</p>
-                <span className="text-xs font-bold text-green-700">{bookings.length} bookings total</span>
+                <span className="text-xs font-bold text-green-700">{bookings.length} {t.dashboard?.bookingsTotal || "bookings total"}</span>
               </div>
               <div className="rounded-2xl p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg text-white">
                 <DollarSign className="h-7 w-7" />
@@ -77,9 +91,9 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardContent className="p-6 relative">
             <div className="flex items-center justify-between">
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-red-700 uppercase tracking-wide">Total Expenses</p>
+                <p className="text-sm font-semibold text-red-700 uppercase tracking-wide">{t.dashboard?.totalExpenses || "Total Expenses"}</p>
                 <p className="text-3xl font-bold text-red-800">ETB {totalExpenses.toLocaleString()}</p>
-                <span className="text-xs font-bold text-amber-700">{expensesData.length} entries logged</span>
+                <span className="text-xs font-bold text-amber-700">{expensesData.length} {t.dashboard?.entriesLogged || "entries logged"}</span>
               </div>
               <div className="rounded-2xl p-3 bg-gradient-to-br from-red-500 to-red-600 shadow-lg text-white">
                 <CreditCard className="h-7 w-7" />
@@ -92,9 +106,11 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardContent className="p-6 relative">
             <div className="flex items-center justify-between">
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">Net Profit</p>
+                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">{t.dashboard?.netProfit || "Net Profit"}</p>
                 <p className={`text-3xl font-bold ${netProfit >= 0 ? 'text-blue-800' : 'text-red-700'}`}>ETB {netProfit.toLocaleString()}</p>
-                <span className={`text-xs font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{netProfit >= 0 ? 'Profitable' : 'Loss'}</span>
+                <span className={`text-xs font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {netProfit >= 0 ? (t.dashboard?.profitable || 'Profitable') : (t.dashboard?.loss || 'Loss')}
+                </span>
               </div>
               <div className="rounded-2xl p-3 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg text-white">
                 <Target className="h-7 w-7" />
@@ -107,9 +123,9 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardContent className="p-6 relative">
             <div className="flex items-center justify-between">
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Profit Margin</p>
+                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide">{t.dashboard?.profitMargin || "Profit Margin"}</p>
                 <p className="text-3xl font-bold text-purple-800">{profitMargin}%</p>
-                <span className="text-xs font-bold text-purple-700">Revenue vs Expenses</span>
+                <span className="text-xs font-bold text-purple-700">{t.dashboard?.revenueVsExpenses || "Revenue vs Expenses"}</span>
               </div>
               <div className="rounded-2xl p-3 bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg text-white">
                 <BarChart3 className="h-7 w-7" />
@@ -125,22 +141,22 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardHeader>
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-emerald-600" />
-              Revenue Breakdown
+              {t.dashboard?.revenueBreakdown || "Revenue Breakdown"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50">
                 <div>
-                  <p className="font-bold text-emerald-700">Confirmed Bookings</p>
-                  <p className="text-xs text-emerald-600">{bookings.filter(b => b.status?.toLowerCase() === 'confirmed').length} bookings</p>
+                  <p className="font-bold text-emerald-700">{t.dashboard?.confirmedBookings || "Confirmed Bookings"}</p>
+                  <p className="text-xs text-emerald-600">{bookings.filter(b => b.status?.toLowerCase() === 'confirmed').length} {t.dashboard?.bookings || "bookings"}</p>
                 </div>
                 <p className="text-xl font-bold text-emerald-700">ETB {confirmedRevenue.toLocaleString()}</p>
               </div>
               <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50">
                 <div>
-                  <p className="font-bold text-amber-700">Pending Bookings</p>
-                  <p className="text-xs text-amber-600">{bookings.filter(b => b.status?.toLowerCase() === 'pending').length} bookings</p>
+                  <p className="font-bold text-amber-700">{t.dashboard?.pendingBookings || "Pending Bookings"}</p>
+                  <p className="text-xs text-amber-600">{bookings.filter(b => b.status?.toLowerCase() === 'pending').length} {t.dashboard?.bookings || "bookings"}</p>
                 </div>
                 <p className="text-xl font-bold text-amber-700">ETB {pendingRevenue.toLocaleString()}</p>
               </div>
@@ -152,20 +168,20 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
           <CardHeader>
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-red-600" />
-              Expense Analysis
+              {t.dashboard?.expenseAnalysis || "Expense Analysis"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {Object.entries(expensesByCategory).map(([category, amount]) => (
                 <div key={category} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                  <span className="text-sm text-slate-600 capitalize">{category}</span>
+                  <span className="text-sm text-slate-600 capitalize">{getLocalizedCategoryName(category)}</span>
                   <span className="font-bold text-slate-900">ETB {amount.toLocaleString()}</span>
                 </div>
               ))}
               {Object.keys(expensesByCategory).length === 0 && (
                 <div className="text-center py-6 text-slate-400">
-                  <p className="text-sm">No expenses logged yet</p>
+                  <p className="text-sm">{t.dashboard?.noExpensesLogged || "No expenses logged yet"}</p>
                 </div>
               )}
             </div>
@@ -178,38 +194,38 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
         <CardHeader>
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <Plus className="h-5 w-5 text-amber-600" />
-            Log New Expense
+            {t.dashboard?.logNewExpense || "Log New Expense"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onAddExpense} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Category</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">{t.dashboard?.category || "Category"}</Label>
               <select name="category" required className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm bg-white outline-none">
-                <option value="Staff Salaries">Staff Salaries</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Supplies">Supplies</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Rent">Rent</option>
-                <option value="Other">Other</option>
+                <option value="Staff Salaries">{t.dashboard?.staffSalaries || "Staff Salaries"}</option>
+                <option value="Utilities">{t.dashboard?.utilities || "Utilities"}</option>
+                <option value="Maintenance">{t.dashboard?.maintenance || "Maintenance"}</option>
+                <option value="Supplies">{t.dashboard?.supplies || "Supplies"}</option>
+                <option value="Marketing">{t.dashboard?.marketing || "Marketing"}</option>
+                <option value="Rent">{t.dashboard?.rent || "Rent"}</option>
+                <option value="Other">{t.dashboard?.other || "Other"}</option>
               </select>
             </div>
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Description</Label>
-              <Input name="description" placeholder="E.g. Electricity bill" className="rounded-lg" />
+              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">{t.dashboard?.description || "Description"}</Label>
+              <Input name="description" placeholder={t.dashboard?.electricityBillPlaceholder || "E.g. Electricity bill"} className="rounded-lg" />
             </div>
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Amount (ETB)</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">{t.dashboard?.amountEtb || "Amount (ETB)"}</Label>
               <Input name="amount" type="number" step="0.01" required placeholder="0.00" className="rounded-lg" />
             </div>
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Date</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">{t.dashboard?.date || "Date"}</Label>
               <Input name="expense_date" type="date" required className="rounded-lg" />
             </div>
             <div className="flex items-end">
               <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg rounded-lg">
-                <Plus className="h-4 w-4 mr-1.5" /> Add Expense
+                <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard?.addExpense || "Add Expense"}
               </Button>
             </div>
           </form>

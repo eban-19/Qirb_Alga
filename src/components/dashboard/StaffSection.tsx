@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { LayoutDashboard, Edit, Trash2, MessageSquare, Phone, Mail, BarChart3, User, Building, DollarSign } from 'lucide-react';
 import { Staff } from '../../types/dashboard';
 import { useLanguage } from '@/hooks/use-language';
-import { TranslationText } from '@/components/TranslationText';
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
@@ -64,6 +63,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   totalItems = 0,
   language
 }) => {
+  const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   // Ensure staff is always an array
   const safeStaff = Array.isArray(staff) ? staff : [];
@@ -82,9 +82,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
         <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
             <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} selected
+              {selectedRows.length} {t.dashboard?.selected || "selected"}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">{selectedRows.length === 1 ? '1 staff member selected' : `${selectedRows.length} staff members selected`}</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">
+              {selectedRows.length === 1 
+                ? (t.dashboard?.oneStaffMemberSelected || '1 staff member selected') 
+                : (t.dashboard?.multipleStaffMembersSelected ? t.dashboard.multipleStaffMembersSelected.replace('{count}', selectedRows.length.toString()) : `${selectedRows.length} staff members selected`)}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {selectedRows.length === 1 && (
@@ -98,7 +102,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                 }}
               >
                 <Edit className="h-4 w-4 mr-1.5" />
-                Edit Profile
+                {t.dashboard?.editProfile || "Edit Profile"}
               </Button>
             )}
             <Button 
@@ -107,7 +111,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               className="font-bold text-slate-600 border-slate-200"
               onClick={() => onSelectAll?.([])}
             >
-              Clear
+              {t.dashboard?.clear || "Clear"}
             </Button>
             <Button 
               size="sm" 
@@ -115,7 +119,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               onClick={() => setShowConfirmDelete(true)}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
-              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
+              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
             </Button>
           </div>
         </div>
@@ -128,8 +132,10 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           selectedRows.forEach(id => onDeleteStaff(id));
           onSelectAll?.([]);
         }}
-        title={selectedRows.length === 1 ? "Delete Staff Member" : "Delete Staff Members"}
-        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this staff member" : "these " + selectedRows.length + " staff members"}? This will remove all their records from the system.`}
+        title={selectedRows.length === 1 ? (t.dashboard?.deleteStaffMember || "Delete Staff Member") : (t.dashboard?.deleteStaffMembers || "Delete Staff Members")}
+        description={selectedRows.length === 1 
+          ? (t.dashboard?.confirmDeleteStaffSingleDescription || "Are you sure you want to permanently delete this staff member? This will remove all their records from the system.")
+          : (t.dashboard?.confirmDeleteStaffMultipleDescription ? t.dashboard.confirmDeleteStaffMultipleDescription.replace('{count}', selectedRows.length.toString()) : `Are you sure you want to permanently delete these ${selectedRows.length} staff members? This will remove all their records from the system.`)}
         itemCount={selectedRows.length}
       />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -146,7 +152,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             }`}
           >
             <LayoutDashboard className="h-4 w-4" />
-            <TranslationText text="Cards" language={language} />
+            {t.dashboard?.cards || "Cards"}
           </Button>
           <Button 
             variant={viewMode === "table" ? "default" : "ghost"}
@@ -159,7 +165,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             }`}
           >
             <BarChart3 className="h-4 w-4" />
-            <TranslationText text="Table" language={language} />
+            {t.dashboard?.table || "Table"}
           </Button>
         </div>
 
@@ -171,14 +177,14 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
           >
             <LayoutDashboard className="h-4 w-4 rotate-180" />
-            <TranslationText text="Bulk Upload" language={language} />
+            {t.dashboard?.bulkUpload || "Bulk Upload"}
           </Button>
           <Button 
             onClick={onAddNewStaff}
             className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
           >
             <User className="h-4 w-4" />
-            <TranslationText text="Add Staff" language={language} />
+            {t.dashboard?.addStaff || "Add Staff"}
           </Button>
         </div>
       </div>
@@ -204,14 +210,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                       {member.full_name ? member.full_name.split(" ").map((n) => n[0]).join("") : "S"}
                     </Avatar>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{member.full_name || 'Unknown'}</h3>
+                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{member.full_name || (t.dashboard?.unknown || 'Unknown')}</h3>
                       <Badge className={`${
                         member.status === 'Active' ? 'bg-emerald-500 shadow-emerald-500/25' :
                         member.status === 'On Leave' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-slate-500 shadow-slate-500/25'
                       } text-white text-xs shadow-sm`}>
-                        <TranslationText text={member.status} language={language} />
+                        {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
                       </Badge>
-
                     </div>
                   </div>
                 </div>
@@ -220,23 +225,22 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      <TranslationText text="Role" language={language} />
+                      {t.dashboard?.role || "Role"}
                     </span>
-                    <span className="font-bold text-slate-900 text-sm">{member.role || "N/A"}</span>
-
+                    <span className="font-bold text-slate-900 text-sm">{member.role || (t.dashboard?.na || "N/A")}</span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
                       <Phone className="h-4 w-4" />
-                      <TranslationText text="Contact" language={language} />
+                      {t.dashboard?.contact || "Contact"}
                     </span>
                     <span className="font-bold text-slate-900 text-sm">{member.phone}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
                     <span className="text-sm font-bold text-emerald-700 flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      <TranslationText text="Salary" language={language} />
+                      {t.dashboard?.salary || "Salary"}
                     </span>
                     <span className="font-bold text-emerald-700 text-lg">ETB {member.salary.toLocaleString()}</span>
                   </div>
@@ -250,7 +254,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
                         >
                           <span className="flex items-center gap-2 font-bold">
-                            <TranslationText text="Actions" language={language} />
+                            {t.dashboard?.actions || "Actions"}
                           </span>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </Button>
@@ -261,14 +265,14 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
                         >
                           <Edit className="h-4 w-4" />
-                          <TranslationText text="Edit Profile" language={language} />
+                          {t.dashboard?.editProfile || "Edit Profile"}
                         </DropdownMenuItem>
                         
                         <DropdownMenuItem 
                           className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
                         >
                           <Mail className="h-4 w-4" />
-                          <TranslationText text="Send Message" language={language} />
+                          {t.dashboard?.sendMessage || "Send Message"}
                         </DropdownMenuItem>
  
                         <DropdownMenuSeparator className="bg-slate-100" />
@@ -278,7 +282,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
-                          <TranslationText text="Delete Staff" language={language} />
+                          {t.dashboard?.deleteStaff || "Delete Staff"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -307,13 +311,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                         }}
                       />
                     </TableHead>
-                    <TableHead className="pl-4 whitespace-nowrap"><TranslationText text="Employee" language={language} /></TableHead>
+                    <TableHead className="pl-4 whitespace-nowrap">{t.dashboard?.employee || "Employee"}</TableHead>
                     <TableHead className="whitespace-nowrap">ID</TableHead>
-                    <TableHead className="whitespace-nowrap"><TranslationText text="Role" language={language} /></TableHead>
+                    <TableHead className="whitespace-nowrap">{t.dashboard?.role || "Role"}</TableHead>
 
-                    <TableHead className="whitespace-nowrap"><TranslationText text="Salary" language={language} /></TableHead>
-                    <TableHead className="whitespace-nowrap"><TranslationText text="Status" language={language} /></TableHead>
-                    <TableHead className="text-right pr-4 whitespace-nowrap"><TranslationText text="Actions" language={language} /></TableHead>
+                    <TableHead className="whitespace-nowrap">{t.dashboard?.salary || "Salary"}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t.dashboard?.status || "Status"}</TableHead>
+                    <TableHead className="text-right pr-4 whitespace-nowrap">{t.dashboard?.actions || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -335,13 +339,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           <div className="hidden sm:block flex-1 min-w-0">
                             <div className="font-medium text-slate-900 text-sm">{member.full_name}</div>
                             <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
-                              {member.role || "N/A"}
+                              {member.role || (t.dashboard?.na || "N/A")}
                             </Badge>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{member.id}</TableCell>
-                      <TableCell className="text-sm">{member.role || "N/A"}</TableCell>
+                      <TableCell className="text-sm">{member.role || (t.dashboard?.na || "N/A")}</TableCell>
 
 
                       <TableCell className="text-sm">ETB {member.salary.toLocaleString()}</TableCell>
@@ -350,7 +354,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                           member.status === 'Active' ? 'bg-emerald-500' :
                           member.status === 'On Leave' ? 'bg-amber-500' : 'bg-slate-400'
                         } text-white text-[10px]`}>
-                          <TranslationText text={member.status} language={language} />
+                          {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
                         </Badge>
                       </TableCell>
                        <TableCell className="text-right pr-4">
@@ -362,7 +366,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                                   size="sm"
                                   className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
                                 >
-                                  <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
                                   <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -372,13 +376,13 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
                                 >
                                   <Edit className="h-4 w-4" />
-                                  <TranslationText text="Edit" language={language} />
+                                  {t.dashboard?.edit || "Edit"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
                                 >
                                   <Mail className="h-4 w-4" />
-                                  <TranslationText text="Contact" language={language} />
+                                  {t.dashboard?.contact || "Contact"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem 
@@ -386,7 +390,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                                 >
                                   <Trash2 className="h-4 w-4" />
-                                  <TranslationText text="Delete" language={language} />
+                                  {t.dashboard?.delete || "Delete"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -402,7 +406,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             {/* Unified Pagination Footer */}
             <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
               <div className="text-sm font-bold text-slate-500">
-                Showing <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span> employees
+                {t.dashboard?.showingEmployees ? t.dashboard.showingEmployees.replace('{count}', safeStaff.length.toString()).replace('{total}', totalItems.toString()) : `Showing ${safeStaff.length} of ${totalItems} employees`}
               </div>
 
               <div className="flex items-center gap-2">
@@ -413,14 +417,14 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   >
                     <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
                       <div className="flex items-center">
-                        <span>{pagination.limit} / page</span>
+                        <span>{pagination.limit} {t.dashboard?.perPage || "/ page"}</span>
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 / page</SelectItem>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="5">5 {t.dashboard?.perPage || "/ page"}</SelectItem>
+                      <SelectItem value="10">10 {t.dashboard?.perPage || "/ page"}</SelectItem>
+                      <SelectItem value="20">20 {t.dashboard?.perPage || "/ page"}</SelectItem>
+                      <SelectItem value="50">50 {t.dashboard?.perPage || "/ page"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

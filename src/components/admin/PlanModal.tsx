@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CreditCard, Plus, Trash2, CheckCircle } from "lucide-react";
+import { useLanguage } from '@/hooks/use-language';
 
 interface PlanModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
   plan,
   onSuccess
 }) => {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [features, setFeatures] = useState<string[]>([]);
   const [newFeature, setNewFeature] = useState("");
@@ -82,7 +84,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.price || !formData.duration_days) {
-      toast.error("Please fill required fields");
+      toast.error(t.adminTabs?.payments?.fillRequired || "Please fill required fields");
       return;
     }
 
@@ -108,15 +110,18 @@ export const PlanModal: React.FC<PlanModalProps> = ({
 
       const data = await response.json();
       if (data.success) {
-        toast.success(`Plan ${plan ? 'updated' : 'created'} successfully`);
+        toast.success(plan 
+          ? (t.adminTabs?.payments?.planUpdated || "Plan updated successfully")
+          : (t.adminTabs?.payments?.planCreated || "Plan created successfully")
+        );
         onSuccess();
         onClose();
       } else {
-        toast.error(data.message || "Failed to save plan");
+        toast.error(data.message || (t.adminTabs?.payments?.failedSavePlan || "Failed to save plan"));
       }
     } catch (error) {
       console.error('Plan save error:', error);
-      toast.error("An error occurred");
+      toast.error(t.adminTabs?.payments?.errorOccurred || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -128,20 +133,20 @@ export const PlanModal: React.FC<PlanModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-slate-900">
             <CreditCard className="w-6 h-6 text-blue-600" />
-            {plan ? "Edit Subscription Plan" : "Create New Plan"}
+            {plan ? (t.adminTabs?.payments?.editSubscriptionPlan || "Edit Subscription Plan") : (t.adminTabs?.payments?.createNewPlan || "Create New Plan")}
           </DialogTitle>
           <DialogDescription>
-            Configure pricing, duration, and features for this subscription tier.
+            {t.adminTabs?.payments?.configurePlanDesc || "Configure pricing, duration, and features for this subscription tier."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="name">Plan Name</Label>
+              <Label htmlFor="name">{t.adminTabs?.payments?.planName || "Plan Name"}</Label>
               <Input
                 id="name"
-                placeholder="e.g., Premium Monthly, Business Annual"
+                placeholder={t.adminTabs?.payments?.planNamePlaceholder || "e.g., Premium Monthly, Business Annual"}
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 className="bg-slate-50 border-slate-200"
@@ -149,7 +154,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price (ETB)</Label>
+              <Label htmlFor="price">{t.adminTabs?.payments?.priceEtb || "Price (ETB)"}</Label>
               <Input
                 id="price"
                 type="number"
@@ -161,7 +166,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (Days)</Label>
+              <Label htmlFor="duration">{t.adminTabs?.payments?.durationDaysLabel || "Duration (Days)"}</Label>
               <Input
                 id="duration"
                 type="number"
@@ -173,10 +178,10 @@ export const PlanModal: React.FC<PlanModalProps> = ({
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="promotion_banner">Promotion Banner (Optional)</Label>
+              <Label htmlFor="promotion_banner">{t.adminTabs?.payments?.promotionBanner || "Promotion Banner (Optional)"}</Label>
               <Input
                 id="promotion_banner"
-                placeholder="e.g., Best Value, Save 20%"
+                placeholder={t.adminTabs?.payments?.promoPlaceholder || "e.g., Best Value, Save 20%"}
                 value={formData.promotion_banner}
                 onChange={(e) => setFormData({...formData, promotion_banner: e.target.value})}
                 className="bg-slate-50 border-slate-200"
@@ -190,7 +195,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({...formData, is_active: !!checked})}
                 />
-                <Label htmlFor="is_active" className="cursor-pointer">Active</Label>
+                <Label htmlFor="is_active" className="cursor-pointer">{t.adminTabs?.common?.active || "Active"}</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox 
@@ -198,16 +203,16 @@ export const PlanModal: React.FC<PlanModalProps> = ({
                   checked={formData.is_public}
                   onCheckedChange={(checked) => setFormData({...formData, is_public: !!checked})}
                 />
-                <Label htmlFor="is_public" className="cursor-pointer">Public Visibility</Label>
+                <Label htmlFor="is_public" className="cursor-pointer">{t.adminTabs?.payments?.publicVisibility || "Public Visibility"}</Label>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <Label>Features & Benefits</Label>
+            <Label>{t.adminTabs?.payments?.featuresBenefits || "Features & Benefits"}</Label>
             <div className="flex gap-2">
               <Input
-                placeholder="Add a feature (e.g., Priority Support)"
+                placeholder={t.adminTabs?.payments?.addFeaturePlaceholder || "Add a feature (e.g., Priority Support)"}
                 value={newFeature}
                 onChange={(e) => setNewFeature(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
@@ -237,17 +242,17 @@ export const PlanModal: React.FC<PlanModalProps> = ({
                 </div>
               ))}
               {features.length === 0 && (
-                <p className="text-center text-xs text-slate-400 py-4">No features added yet</p>
+                <p className="text-center text-xs text-slate-400 py-4">{t.adminTabs?.payments?.noFeaturesAdded || "No features added yet"}</p>
               )}
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
-              Cancel
+              {t.adminTabs?.common?.cancel || "Cancel"}
             </Button>
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white gap-2 px-8" disabled={loading}>
-              {loading ? "Saving..." : (plan ? "Update Plan" : "Create Plan")}
+              {loading ? (t.adminTabs?.payments?.saving || "Saving...") : (plan ? (t.adminTabs?.payments?.updatePlan || "Update Plan") : (t.adminTabs?.payments?.createPlan || "Create Plan"))}
             </Button>
           </DialogFooter>
         </form>

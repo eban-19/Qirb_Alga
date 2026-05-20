@@ -324,8 +324,26 @@ model OwnerProfile {
   expiry_date     DateTime? @db.Date
 
   user            User      @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
+  bank_accounts   BankAccount[]
 
   @@map("ownerprofiles")
+}
+
+model BankAccount {
+  id                  Int          @id @default(autoincrement())
+  owner_id            Int
+  bank_id             String       @db.VarChar(100)
+  bank_name           String       @db.VarChar(100)
+  account_name        String       @db.VarChar(100)
+  account_number      String       @db.VarChar(50)
+  chapa_subaccount_id String       @db.VarChar(100)
+  is_active           Boolean      @default(false)
+  created_at          DateTime     @default(now()) @db.Timestamp(0)
+  updated_at          DateTime     @default(now()) @updatedAt @db.Timestamp(0)
+
+  owner               OwnerProfile @relation(fields: [owner_id], references: [owner_id], onDelete: Cascade)
+
+  @@map("bank_accounts")
 }
 
 enum ApprovalStatus {

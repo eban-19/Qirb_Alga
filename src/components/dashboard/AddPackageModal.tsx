@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Package as PackageIcon, X, Upload, Plus, CheckCircle2, Trash2, Box } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import { Package } from '../../types/dashboard';
+import { useLanguage } from '../../hooks/use-language';
 
 interface AddPackageModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
   language,
   handlePackageImageUpload
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const handleRemoveImage = (index: number) => {
@@ -51,10 +53,10 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
               </div>
               <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {editingPackage ? 'Edit Package Tier' : 'Create New Package Tier'}
+                  {editingPackage ? (t.dashboard?.editPackageTier || 'Edit Package Tier') : (t.dashboard?.createNewPackageTier || 'Create New Package Tier')}
                 </h2>
                 <p className="text-sm text-slate-500 font-medium">
-                  {editingPackage ? 'Update your package details and pricing' : 'Define a new pricing category for your rooms'}
+                  {editingPackage ? (t.dashboard?.editPackageDesc || 'Update your package details and pricing') : (t.dashboard?.createPackageDesc || 'Define a new pricing category for your rooms')}
                 </p>
               </div>
             </div>
@@ -69,10 +71,10 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
             {/* Left Column: Basic Details */}
             <div className="space-y-8">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Basic Information</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.basicInformation || "Basic Information"}</h3>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Package Name</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.packageName || "Package Name"}</Label>
                   <Input
                     value={(language === 'en' ? newPackage.name_en : language === 'am' ? newPackage.name_am : newPackage.name_om) || newPackage.name || ''}
                     onChange={(e) => {
@@ -87,7 +89,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Price per Night (ETB)</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.pricePerNight || "Price per Night (ETB)"}</Label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">ETB</span>
                     <Input
@@ -100,7 +102,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Description</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.description || "Description"}</Label>
                   <textarea
                     value={(language === 'en' ? newPackage.description_en : language === 'am' ? newPackage.description_am : newPackage.description_om) || newPackage.description || ''}
                     onChange={(e) => {
@@ -110,22 +112,22 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                       else setNewPackage({ ...newPackage, description_om: value });
                     }}
                     rows={4}
-                    placeholder="Provide a detailed description of what this package offers..."
+                    placeholder={t.dashboard?.descriptionPlaceholder || "Provide a detailed description of what this package offers..."}
                     className="w-full border-slate-200 bg-slate-50/30 rounded-xl px-4 py-3 outline-none resize-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 transition-all min-h-[120px]"
                   />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Settings</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.settings || "Settings"}</h3>
                 <div className="flex items-center justify-between p-5 rounded-[1.5rem] bg-slate-50 border border-slate-100 hover:border-purple-200 transition-all group">
                   <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-2xl transition-all duration-300 ${newPackage.isMostPopular ? 'bg-purple-100 text-purple-600 shadow-inner' : 'bg-white text-slate-400 shadow-sm'}`}>
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
                     <div>
-                      <Label className="text-base font-bold text-slate-800 cursor-pointer">Most Popular</Label>
-                      <p className="text-xs text-slate-500 font-medium">Highlight this package to potential guests</p>
+                      <Label className="text-base font-bold text-slate-800 cursor-pointer">{t.dashboard?.mostPopular || "Most Popular"}</Label>
+                      <p className="text-xs text-slate-500 font-medium">{t.dashboard?.mostPopularDesc || "Highlight this package to potential guests"}</p>
                     </div>
                   </div>
                   <Switch 
@@ -140,13 +142,13 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
             {/* Right Column: Services & Media */}
             <div className="space-y-8">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Services & Amenities</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.servicesAmenities || "Services & Amenities"}</h3>
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input
                       value={newPackage.customService || ''}
                       onChange={(e) => setNewPackage({ ...newPackage, customService: e.target.value })}
-                      placeholder="e.g., Free High-Speed WiFi"
+                      placeholder={t.dashboard?.amenityPlaceholder || "e.g., Free High-Speed WiFi"}
                       className="h-12 border-slate-200 bg-slate-50/30 rounded-xl"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
@@ -194,17 +196,17 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                       </div>
                     ))}
                     {(newPackage.services || []).length === 0 && (
-                      <p className="text-slate-400 text-sm italic font-medium m-auto">No services added yet...</p>
+                      <p className="text-slate-400 text-sm italic font-medium m-auto">{t.dashboard?.noServicesAdded || "No services added yet..."}</p>
                     )}
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Virtual Experience</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.virtualExperience || "Virtual Experience"}</h3>
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Box className="h-4 w-4 text-purple-600" /> Virtual Tour / 3D Image URL
+                    <Box className="h-4 w-4 text-purple-600" /> {t.dashboard?.vrTourUrlLabel || "Virtual Tour / 3D Image URL"}
                   </Label>
                   <Input
                     value={newPackage.virtual_tour_url || ''}
@@ -212,12 +214,12 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     placeholder="e.g., https://my.matterport.com/show/?m=..."
                     className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-purple-500/20"
                   />
-                  <p className="text-[10px] text-slate-500 font-medium">Link to your 360° virtual tour or 3D panorama</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{t.dashboard?.vrTourUrlDesc || "Link to your 360° virtual tour or 3D panorama"}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Package Gallery</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.packageGallery || "Package Gallery"}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {(newPackage.images || []).map((img: string, idx: number) => (
                     <div key={idx} className="relative group aspect-video rounded-2xl overflow-hidden border border-slate-200 shadow-md">
@@ -239,7 +241,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     <div className="p-3 rounded-full bg-white text-purple-600 shadow-sm group-hover:scale-110 transition-transform">
                       <Upload className="h-6 w-6" />
                     </div>
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-purple-600">Upload Image</span>
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-purple-600">{t.dashboard?.uploadImage || "Upload Image"}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -254,16 +256,18 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     />
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter text-center">Recommended size: 1200x800px • Support for JPG, PNG, WEBP</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter text-center">{t.dashboard?.imageUploadTip || "Recommended size: 1200x800px • Support for JPG, PNG, WEBP"}</p>
               </div>
             </div>
           </div>
         </CardContent>
 
         <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex gap-4">
-          <Button variant="outline" onClick={onClose} className="flex-1 h-14 rounded-2xl font-bold text-slate-600 border-2 hover:bg-white transition-all">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 h-14 rounded-2xl font-bold text-slate-600 border-2 hover:bg-white transition-all">
+            {t.dashboard?.cancel || "Cancel"}
+          </Button>
           <Button onClick={onAddPackage} className="flex-[2] h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-xl shadow-purple-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
-            {editingPackage ? 'Update Package Tier' : 'Create Package Tier'}
+            {editingPackage ? (t.dashboard?.updatePackageTier || 'Update Package Tier') : (t.dashboard?.createPackageTier || 'Create Package Tier')}
           </Button>
         </div>
       </Card>

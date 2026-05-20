@@ -650,6 +650,29 @@ class ApiService {
     });
   }
 
+  async getBankAccounts(): Promise<ApiResponse<any[]>> {
+    return this.request('/payments/accounts');
+  }
+
+  async addBankAccount(bankDetails: any): Promise<ApiResponse<any>> {
+    return this.request('/payments/accounts', {
+      method: 'POST',
+      body: JSON.stringify(bankDetails),
+    });
+  }
+
+  async activateBankAccount(id: number): Promise<ApiResponse<any>> {
+    return this.request(`/payments/accounts/${id}/active`, {
+      method: 'PUT',
+    });
+  }
+
+  async deleteBankAccount(id: number): Promise<ApiResponse<any>> {
+    return this.request(`/payments/accounts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Admin methods
   async getAllOwners(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/owners');

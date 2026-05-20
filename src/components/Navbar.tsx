@@ -73,18 +73,34 @@ const Navbar = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground" aria-label={t.navbar.languageLabel}>
-                <Globe className="w-5 h-5" />
+              <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-muted-foreground hover:bg-slate-50" aria-label={t.navbar.languageLabel}>
+
+                {options.find(opt => opt.value === language) && (
+                  <img
+                    src={options.find(opt => opt.value === language)?.flag}
+                    alt=""
+                    className="w-5 h-5 rounded-full object-cover border border-slate-200 shadow-sm"
+                  />
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[120px]">
+            <DropdownMenuContent align="end" className="min-w-[220px] rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-200">
               {options.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
                   onClick={() => setLanguage(option.value as Language)}
-                  className={`cursor-pointer font-medium ${language === option.value ? "bg-primary/10 text-primary" : ""}`}
+                  className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${language === option.value ? "bg-primary/5 text-primary font-bold" : "text-slate-600"}`}
                 >
-                  {option.label}
+                  <img
+                    src={option.flag}
+                    alt=""
+                    className="w-5.5 h-5.5 rounded-full object-cover border border-slate-100 shadow-sm shrink-0"
+                    style={{ width: '22px', height: '22px' }}
+                  />
+                  <span className="truncate flex-1">{option.label}</span>
+                  {language === option.value && (
+                    <span className="text-primary font-bold text-sm mr-1">✓</span>
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -127,7 +143,7 @@ const Navbar = () => {
                   navigate("/");
                 }}
               >
-                Logout
+                {t.booking?.logout || "Logout"}
               </Button>
             </div>
           ) : (
@@ -137,7 +153,7 @@ const Navbar = () => {
               className="text-muted-foreground whitespace-nowrap"
               onClick={() => setIsAuthModalOpen(true)}
             >
-              Login
+              {t.navbar?.login || "Login"}
             </Button>
           )}
         </div>

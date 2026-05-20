@@ -1,11 +1,11 @@
 import React from 'react';
 import { Language } from '@/lib/i18n';
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X, Globe } from 'lucide-react';
+import { useLanguage } from '@/hooks/use-language';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import NotificationBell from '../NotificationBell';
-import { TranslationText } from '../TranslationText';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -44,6 +44,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onLogout
 }) => {
   const isPro = subscriptionStatus?.hasActiveSubscription;
+  const { language: currentLang, setLanguage, options, t } = useLanguage();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-white/80 backdrop-blur-md px-4 lg:px-8 shadow-sm">
@@ -62,7 +63,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Input
               autoFocus
               type="search"
-              placeholder="Search bookings, rooms, guests..."
+              placeholder={t.dashboard?.searchPlaceholder || "Search bookings, rooms, guests..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-50 border-slate-100 pl-10 h-10 rounded-full focus-visible:ring-primary focus-visible:bg-white transition-all shadow-none"
@@ -83,10 +84,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               </Button>
 
               <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
-                {activeTab === "staff" ? <TranslationText text="Staff & HR Management" language={language} /> : 
-                 activeTab === "overview" ? <TranslationText text="Dashboard Overview" language={language} /> : 
-                 activeTab === "availability" ? <TranslationText text="Availability Management" language={language} /> :
-                 activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace("-", " ")}
+                {t.dashboard?.[`header_${activeTab}`] || 
+                 (activeTab === "staff" ? "Staff & HR Management" : 
+                  activeTab === "overview" ? "Dashboard Overview" : 
+                  activeTab === "availability" ? "Availability Management" :
+                  activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace("-", " "))}
               </h1>
             </div>
           </div>
@@ -102,6 +104,41 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </Button>
 
             <NotificationBell />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-slate-600 hover:bg-slate-100" aria-label={t.navbar?.languageLabel || "Language"}>
+
+                  {options.find(opt => opt.value === currentLang) && (
+                    <img
+                      src={options.find(opt => opt.value === currentLang)?.flag}
+                      alt=""
+                      className="w-5 h-5 rounded-full object-cover border border-slate-200 shadow-sm"
+                    />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[220px] mt-2 rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+                {options.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => setLanguage(option.value)}
+                    className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${currentLang === option.value ? "bg-primary/5 text-primary font-bold" : "text-slate-600"}`}
+                  >
+                    <img
+                      src={option.flag}
+                      alt=""
+                      className="w-5.5 h-5.5 rounded-full object-cover border border-slate-100 shadow-sm shrink-0"
+                      style={{ width: '22px', height: '22px' }}
+                    />
+                    <span className="truncate flex-1">{option.label}</span>
+                    {currentLang === option.value && (
+                      <span className="text-primary font-bold text-sm mr-1">✓</span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -133,7 +170,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
-                  <span className="font-bold">Sign Out</span>
+                  <span className="font-bold">{t.dashboard?.signOut || "Sign Out"}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

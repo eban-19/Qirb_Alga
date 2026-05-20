@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, Search, LogOut, User, Settings as SettingsIcon, Bell } from 'lucide-react';
+import { Menu, X, Search, LogOut, User, Settings as SettingsIcon, Bell, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/use-language';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +44,7 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
   const { user, logout } = useAuth();
+  const { language: currentLang, setLanguage, options, t } = useLanguage();
 
   return (
     <div className={cn("flex h-screen bg-slate-50 overflow-hidden", className)}>
@@ -93,6 +96,41 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
 
               {/* Notifications */}
               <NotificationBell />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-slate-600 hover:bg-slate-100" aria-label={t.navbar.languageLabel}>
+
+                    {options.find(opt => opt.value === currentLang) && (
+                      <img
+                        src={options.find(opt => opt.value === currentLang)?.flag}
+                        alt=""
+                        className="w-5 h-5 rounded-full object-cover border border-slate-200 shadow-sm"
+                      />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[220px] mt-2 rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+                  {options.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setLanguage(option.value)}
+                      className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${currentLang === option.value ? "bg-primary/5 text-primary font-bold" : "text-slate-600"}`}
+                    >
+                      <img
+                        src={option.flag}
+                        alt=""
+                        className="w-5.5 h-5.5 rounded-full object-cover border border-slate-100 shadow-sm shrink-0"
+                        style={{ width: '22px', height: '22px' }}
+                      />
+                      <span className="truncate flex-1">{option.label}</span>
+                      {currentLang === option.value && (
+                        <span className="text-primary font-bold text-sm mr-1">✓</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Admin Account Dropdown */}
               <DropdownMenu>

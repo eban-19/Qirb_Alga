@@ -81,7 +81,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div className="flex flex-col">
                 <span className="font-bold text-lg leading-none">PensionHub</span>
                 {subscriptionStatus?.hasActiveSubscription && (
-                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Premium</span>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">{t.sidebar?.premium || "Premium"}</span>
                 )}
               </div>
             </div>
@@ -94,7 +94,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             <div className="px-4 py-3 border-b border-slate-100">
               <Select value={selectedPensionId} onValueChange={handlePensionSelectionChange}>
                 <SelectTrigger className="w-full h-9 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Select Pension" />
+                  <SelectValue placeholder={t.sidebar?.selectPension || "Select Pension"} />
                 </SelectTrigger>
                 <SelectContent className="w-64 max-h-60 overflow-y-auto">
                   {pensions
@@ -193,7 +193,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               }}
             >
               <Home className="h-4 w-4" />
-              Back to Home
+              {t.sidebar?.backToHome || "Back to Home"}
             </Button>
             <Button
               variant="ghost"
@@ -201,7 +201,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              {t.sidebar?.logout || "Logout"}
             </Button>
           </div>
         </div>

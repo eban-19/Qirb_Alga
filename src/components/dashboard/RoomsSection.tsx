@@ -9,7 +9,6 @@ import {
   TrashIcon,
   ChevronLeft, 
   ChevronRight, 
-  MoreVertical, 
   Edit2, 
   RotateCcw, 
   CheckCircle2, 
@@ -17,7 +16,6 @@ import {
   ChevronDown 
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import {
@@ -49,7 +47,7 @@ interface RoomsSectionProps {
   onSelectAll?: (ids: (string | number)[]) => void;
   onUpdateStatus?: (roomId: string | number, currentStatus: string) => void;
   totalItems?: number;
-  language?: any;
+  onEditRoom?: (room: any) => void;
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
@@ -66,14 +64,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onToggleSelection,
   onSelectAll,
   totalItems = 0,
-  language
+  onEditRoom
 }) => {
+  const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
 
-  // Generate page numbers
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -89,9 +86,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
         <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
             <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} selected
+              {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected rooms</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsRooms || 'Perform actions on all selected rooms'}</p>
           </div>
           <div className="flex items-center gap-2">
             {selectedRows.length === 1 && (
@@ -105,7 +102,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 }}
               >
                 <Edit2 className="h-4 w-4 mr-1.5" />
-                Edit Room
+                {t.dashboard?.editRoom || 'Edit Room'}
               </Button>
             )}
             <Button 
@@ -114,7 +111,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
               onClick={() => onSelectAll?.([])}
             >
-              Clear Selection
+              {t.dashboard?.clearSelection || 'Clear Selection'}
             </Button>
             <Button 
               size="sm" 
@@ -122,7 +119,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               onClick={() => setShowConfirmDelete(true)}
             >
               <TrashIcon className="h-4 w-4 mr-2" />
-              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
+              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
             </Button>
           </div>
         </div>
@@ -135,10 +132,14 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
           selectedRows.forEach(id => onDeleteRoom?.(id));
           onSelectAll?.([]);
         }}
-        title={selectedRows.length === 1 ? "Delete Room" : "Delete Rooms"}
-        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this room" : "these " + selectedRows.length + " rooms"}? This action cannot be reversed.`}
+        title={selectedRows.length === 1 ? (t.dashboard?.deleteRoom || "Delete Room") : (t.dashboard?.deleteRooms || "Delete Rooms")}
+        description={selectedRows.length === 1 
+          ? (t.dashboard?.confirmDeleteRoomSingleDescription || "Are you sure you want to permanently delete this room? This action cannot be reversed.")
+          : (t.dashboard?.confirmDeleteRoomsMultipleDescription || `Are you sure you want to permanently delete these ${selectedRows.length} rooms? This action cannot be reversed.`)
+        }
         itemCount={selectedRows.length}
       />
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
@@ -153,7 +154,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             }`}
           >
             <LayoutDashboard className="h-4 w-4" />
-            <TranslationText text="Cards" language={language} />
+            {t.dashboard?.cards || "Cards"}
           </Button>
           <Button
             variant={viewMode === "table" ? "default" : "ghost"}
@@ -166,7 +167,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             }`}
           >
             <BarChart3 className="h-4 w-4" />
-            <TranslationText text="Table" language={language} />
+            {t.dashboard?.table || "Table"}
           </Button>
         </div>
 
@@ -178,14 +179,14 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
           >
             <LayoutDashboard className="h-4 w-4 rotate-180" />
-            <TranslationText text="Bulk Upload" language={language} />
+            {t.dashboard?.bulkUpload || "Bulk Upload"}
           </Button>
           <Button 
             onClick={onAddNewRoom}
             className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
           >
             <LayoutDashboard className="h-4 w-4" />
-            <TranslationText text="Add Room" language={language} />
+            {t.dashboard?.addRoom || "Add Room"}
           </Button>
         </div>
       </div>
@@ -199,10 +200,10 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 <LayoutDashboard className="h-12 w-12 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                <TranslationText text="No rooms found" language={language} />
+                {t.dashboard?.noRoomsFound || "No rooms found"}
               </h3>
               <p className="text-slate-500 mb-4">
-                <TranslationText text="Get started by adding your first room to this pension." language={language} />
+                {t.dashboard?.getStartedAddRoom || "Get started by adding your first room to this pension."}
               </p>
             </div>
           ) : (
@@ -229,7 +230,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg text-slate-900">{room.type}</h3>
                           <p className="text-sm text-slate-500">
-                            <TranslationText text="Room" language={language} /> {room.room_number || room.id}
+                            {t.dashboard?.room || "Room"} {room.room_number || room.id}
                           </p>
                         </div>
                       </div>
@@ -237,14 +238,16 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         room.status === "Available" ? "bg-emerald-500" :
                         room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                       } text-white text-xs px-3 py-1 shadow-sm`}>
-                        <TranslationText text={room.status} language={language} />
+                        {room.status === "Available" ? (t.dashboard?.active || 'Available') :
+                         room.status === "Occupied" ? (t.dashboard?.lockedOccupied || 'Occupied') :
+                         (room.status || 'N/A')}
                       </Badge>
                     </div>
 
                     <div className="flex items-center justify-between mb-6">
                       <span className="text-3xl font-bold text-slate-900">ETB {room.price}</span>
                       <span className="text-sm text-slate-500 font-medium">
-                        <TranslationText text="per night" language={language} />
+                        {t.dashboard?.perNight || "per night"}
                       </span>
                     </div>
 
@@ -256,7 +259,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                              className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
                            >
                              <span className="flex items-center gap-2 font-bold">
-                               <TranslationText text="Actions" language={language} />
+                               {t.dashboard?.actions || "Actions"}
                              </span>
                              <ChevronDown className="h-4 w-4 opacity-50" />
                            </Button>
@@ -269,9 +272,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                            >
                              <RotateCcw className="h-4 w-4" />
                              <div className="flex flex-col text-left">
-                               <span className="font-bold text-sm">Toggle Status</span>
+                               <span className="font-bold text-sm">{t.dashboard?.toggleStatus || "Toggle Status"}</span>
                                <span className="text-[10px] text-slate-500">
-                                 {room.status === 'Occupied' ? 'Active booking' : (room.status === 'Available' ? 'Mark as Occupied' : 'Mark as Available')}
+                                 {room.status === 'Occupied' ? (t.dashboard?.activeBooking || 'Active booking') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark as Occupied') : (t.dashboard?.markAsAvailable || 'Mark as Available'))}
                                </span>
                              </div>
                            </DropdownMenuItem>
@@ -283,8 +286,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                            >
                              <TrashIcon className="h-4 w-4" />
                              <div className="flex flex-col text-left">
-                               <span className="font-bold text-sm">Delete Room</span>
-                               <span className="text-[10px] text-slate-500">Remove permanently</span>
+                               <span className="font-bold text-sm">{t.dashboard?.deleteRoom || "Delete Room"}</span>
+                               <span className="text-[10px] text-slate-500">{t.dashboard?.cannotBeUndone || "This action cannot be undone"}</span>
                              </div>
                            </DropdownMenuItem>
                          </DropdownMenuContent>
@@ -320,22 +323,22 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       />
                     </TableHead>
                     <TableHead className="font-bold">
-                      <TranslationText text="Room Number" language={language} />
+                      {t.dashboard?.roomNumber || "Room Number"}
                     </TableHead>
                     <TableHead className="font-bold">
-                      <TranslationText text="Type" language={language} />
+                      {t.dashboard?.type || "Type"}
                     </TableHead>
                     <TableHead className="font-bold">
-                      <TranslationText text="Price" language={language} />
+                      {t.dashboard?.price || "Price"}
                     </TableHead>
                     <TableHead className="font-bold">
-                      <TranslationText text="Status" language={language} />
+                      {t.dashboard?.status || "Status"}
                     </TableHead>
                     <TableHead className="font-bold">
-                      <TranslationText text="Capacity" language={language} />
+                      {t.dashboard?.capacity || "Capacity"}
                     </TableHead>
                     <TableHead className="font-bold text-right pr-4">
-                      <TranslationText text="Actions" language={language} />
+                      {t.dashboard?.actions || "Actions"}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -346,7 +349,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         <div className="flex flex-col items-center">
                           <LayoutDashboard className="h-12 w-12 text-slate-400 mb-2" />
                           <p className="text-slate-500">
-                            <TranslationText text="No rooms found" language={language} />
+                            {t.dashboard?.noRoomsFound || "No rooms found"}
                           </p>
                         </div>
                       </TableCell>
@@ -368,7 +371,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                             room.status === "Available" ? "bg-emerald-500" :
                             room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                           } text-white text-xs shadow-sm`}>
-                            <TranslationText text={room.status} language={language} />
+                            {room.status === "Available" ? (t.dashboard?.active || 'Available') :
+                             room.status === "Occupied" ? (t.dashboard?.lockedOccupied || 'Occupied') :
+                             (room.status || 'N/A')}
                           </Badge>
                         </TableCell>
                         <TableCell>{room.capacity}</TableCell>
@@ -381,7 +386,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                                   size="sm"
                                   className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
                                 >
-                                  <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
                                   <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -393,7 +398,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                                 >
                                   {room.status === 'Available' ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                   <span className="font-medium text-sm">
-                                    {room.status === 'Occupied' ? 'Locked (Occupied)' : (room.status === 'Available' ? 'Mark Occupied' : 'Mark Available')}
+                                    {room.status === 'Occupied' ? (t.dashboard?.lockedOccupied || 'Locked (Occupied)') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark Occupied') : (t.dashboard?.markAsAvailable || 'Mark Available'))}
                                   </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
@@ -402,7 +407,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                                 >
                                   <TrashIcon className="h-4 w-4" />
-                                  <span className="font-medium text-sm">Delete Room</span>
+                                  <span className="font-medium text-sm">{t.dashboard?.deleteRoom || "Delete Room"}</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -418,7 +423,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             {/* Unified Pagination Footer */}
             <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
               <div className="text-sm font-bold text-slate-500">
-                Showing <span className="text-slate-900">{safeRooms.length}</span> of <span className="text-slate-900">{totalItems}</span> rooms
+                {t.dashboard?.showingRooms ? (
+                  t.dashboard.showingRooms.replace('{count}', String(safeRooms.length)).replace('{total}', String(totalItems))
+                ) : (
+                  `Showing ${safeRooms.length} of ${totalItems} rooms`
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -429,14 +438,14 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                   >
                     <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
                       <div className="flex items-center">
-                        <span>{pagination.limit} / page</span>
+                        <span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 / page</SelectItem>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -7,21 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   LayoutDashboard, 
   BarChart3, 
-  Mail, 
   Phone, 
   Building, 
   BedDouble, 
   CalendarCheck, 
   DollarSign,
-  MessageSquare,
-  Edit,
   Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import {
@@ -43,7 +39,6 @@ interface GuestsSectionProps {
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
-  language?: any;
 }
 
 export const GuestsSection: React.FC<GuestsSectionProps> = ({
@@ -56,11 +51,10 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
-  totalItems = 0,
-  language
+  totalItems = 0
 }) => {
+  const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  // Ensure guests is always an array
   const safeGuests = Array.isArray(guests) ? guests : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
 
@@ -83,7 +77,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             }`}
           >
             <LayoutDashboard className="h-4 w-4" />
-            <TranslationText text="Cards" language={language} />
+            {t.dashboard?.cards || "Cards"}
           </Button>
           <Button
             variant={viewMode === "table" ? "default" : "ghost"}
@@ -94,7 +88,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             }`}
           >
             <BarChart3 className="h-4 w-4" />
-            <TranslationText text="Table" language={language} />
+            {t.dashboard?.table || "Table"}
           </Button>
         </div>
       </div>
@@ -104,9 +98,9 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
         <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
             <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} selected
+              {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected guests</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsGuests || 'Perform actions on all selected guests'}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -115,7 +109,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
               onClick={() => onSelectAll?.([])}
             >
-              Clear Selection
+              {t.dashboard?.clearSelection || 'Clear Selection'}
             </Button>
             <Button 
               size="sm" 
@@ -123,7 +117,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               onClick={() => setShowConfirmDelete(true)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
+              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
             </Button>
           </div>
         </div>
@@ -133,12 +127,14 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={() => {
-          // Add actual delete logic here when available
           alert(`Deleting ${selectedRows.length} guests.`);
           onSelectAll?.([]);
         }}
-        title={selectedRows.length === 1 ? "Delete Guest Record" : "Delete Guest Records"}
-        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this guest record" : "these " + selectedRows.length + " guest records"}? This will remove all their history and personal details.`}
+        title={selectedRows.length === 1 ? (t.dashboard?.deleteGuestRecord || "Delete Guest Record") : (t.dashboard?.deleteGuestRecords || "Delete Guest Records")}
+        description={selectedRows.length === 1 
+          ? (t.dashboard?.confirmDeleteGuestSingleDescription || "Are you sure you want to permanently delete this guest record? This will remove all their history and personal details.")
+          : (t.dashboard?.confirmDeleteGuestMultipleDescription || `Are you sure you want to permanently delete these ${selectedRows.length} guest records? This will remove all their history and personal details.`)
+        }
         itemCount={selectedRows.length}
       />
 
@@ -166,24 +162,26 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                     guest.status === 'Checked In' ? 'bg-emerald-500' :
                     guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
                   } text-white text-xs shadow-sm shadow-black/5`}>
-                    <TranslationText text={guest.status} language={language} />
+                    {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
+                     guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                     (guest.status || 'N/A')}
                   </Badge>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><Building className="h-4 w-4 text-purple-600" /><TranslationText text="Nationality" language={language} /></span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><Building className="h-4 w-4 text-purple-600" />{t.dashboard?.nationality || "Nationality"}</span>
                     <span className="font-bold text-slate-900">{guest.nationality}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><BedDouble className="h-4 w-4 text-purple-600" /><TranslationText text="Room" language={language} /></span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><BedDouble className="h-4 w-4 text-purple-600" />{t.dashboard?.room || "Room"}</span>
                     <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><CalendarCheck className="h-4 w-4 text-purple-600" /><TranslationText text="Total Bookings" language={language} /></span>
+                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><CalendarCheck className="h-4 w-4 text-purple-600" />{t.dashboard?.totalBookings || "Total Bookings"}</span>
                     <span className="font-bold text-slate-900">{guest.totalBookings}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 shadow-sm">
-                    <span className="text-sm font-bold text-emerald-700 flex items-center gap-2"><DollarSign className="h-4 w-4" /><TranslationText text="Total Spent" language={language} /></span>
+                    <span className="text-sm font-bold text-emerald-700 flex items-center gap-2"><DollarSign className="h-4 w-4" />{t.dashboard?.totalSpent || "Total Spent"}</span>
                     <span className="font-bold text-emerald-700 text-lg">ETB {guest.totalSpent.toLocaleString()}</span>
                   </div>
                 </div>
@@ -210,13 +208,13 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                         }}
                       />
                     </TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Guest" language={language} /></TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Contact" language={language} /></TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Nationality" language={language} /></TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Room" language={language} /></TableHead>
-                    <TableHead className="font-bold"><TranslationText text="Status" language={language} /></TableHead>
-                    <TableHead className="text-right font-bold"><TranslationText text="Total Bookings" language={language} /></TableHead>
-                    <TableHead className="text-right font-bold"><TranslationText text="Total Spent" language={language} /></TableHead>
+                    <TableHead className="font-bold">{t.dashboard?.guest || "Guest"}</TableHead>
+                    <TableHead className="font-bold">{t.dashboard?.contact || "Contact"}</TableHead>
+                    <TableHead className="font-bold">{t.dashboard?.nationality || "Nationality"}</TableHead>
+                    <TableHead className="font-bold">{t.dashboard?.room || "Room"}</TableHead>
+                    <TableHead className="font-bold">{t.dashboard?.status || "Status"}</TableHead>
+                    <TableHead className="text-right font-bold">{t.dashboard?.totalBookings || "Total Bookings"}</TableHead>
+                    <TableHead className="text-right font-bold">{t.dashboard?.totalSpent || "Total Spent"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -232,7 +230,11 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       <TableCell>
                         <Badge className={`${
                           guest.status === 'Checked In' ? 'bg-emerald-500' : guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
-                        } text-white text-xs shadow-sm`}><TranslationText text={guest.status} language={language} /></Badge>
+                        } text-white text-xs shadow-sm`}>
+                          {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
+                           guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                           (guest.status || 'N/A')}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
                       <TableCell className="text-right font-bold text-emerald-600">ETB {guest.totalSpent.toLocaleString()}</TableCell>
@@ -245,20 +247,24 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             {/* Unified Pagination Footer */}
             <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
               <div className="text-sm font-bold text-slate-500">
-                Showing <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span> guests
+                {t.dashboard?.showingGuests ? (
+                  t.dashboard.showingGuests.replace('{count}', String(safeGuests.length)).replace('{total}', String(totalItems))
+                ) : (
+                  `Showing ${safeGuests.length} of ${totalItems} guests`
+                )}
               </div>
 
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
                     <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                      <div className="flex items-center"><span>{pagination.limit} / page</span></div>
+                      <div className="flex items-center"><span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span></div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 / page</SelectItem>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

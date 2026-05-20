@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Bell, Archive } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface SystemAlert {
   id: string;
@@ -23,6 +24,7 @@ interface AlertsTabProps {
 }
 
 export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Safe handling with fallbacks
@@ -53,8 +55,8 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
             <Bell className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">System Alerts</h2>
-            <p className="text-slate-600">{openAlerts} open alerts</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.alerts?.title || "System Alerts"}</h2>
+            <p className="text-slate-600">{openAlerts} {t.adminTabs?.alerts?.subtitle?.replace('Monitor ', '') || "open alerts"}</p>
           </div>
         </div>
         
@@ -64,7 +66,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
           className="border-red-200 hover:bg-red-50"
         >
           <Archive className="w-4 h-4 mr-2" />
-          Archive Resolved
+          {t.adminTabs?.alerts?.archiveAll || "Archive Resolved"}
         </Button>
       </div>
 
@@ -74,7 +76,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
-              placeholder="Search alerts..."
+              placeholder={t.adminTabs?.alerts?.searchPlaceholder || "Search alerts..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 h-12 text-base border-2 border-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-200"
@@ -88,7 +90,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
         <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b-2 border-slate-200">
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-red-700" />
-            Alerts ({filteredAlerts.length})
+            {t.adminTabs?.common?.properties ? t.adminTabs.alerts.title : "Alerts"} ({filteredAlerts.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -110,7 +112,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
                         variant={alert.status === 'open' ? 'destructive' : 'secondary'}
                         className="text-xs"
                       >
-                        {alert.status}
+                        {t.adminTabs?.common?.[alert.status] || alert.status}
                       </Badge>
                     </div>
                     <p className="text-slate-600 text-sm mb-2">{alert.message}</p>
@@ -124,7 +126,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
                             className="h-7 text-[10px] text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => onAlertAction('resolve', alert.id)}
                           >
-                            Mark Resolved
+                            {t.adminTabs?.alerts?.markResolved || "Mark Resolved"}
                           </Button>
                           {alert.status === 'open' && (
                             <Button 
@@ -133,7 +135,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
                               className="h-7 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                               onClick={() => onAlertAction('investigate', alert.id)}
                             >
-                              Investigate
+                              {t.adminTabs?.alerts?.investigate || "Investigate"}
                             </Button>
                           )}
                         </div>
@@ -144,7 +146,7 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
                         className="h-7 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 ml-auto"
                         onClick={() => onAlertAction('delete', alert.id)}
                       >
-                        Delete
+                        {t.adminTabs?.common?.delete || "Delete"}
                       </Button>
                     </div>
                   </div>
@@ -154,8 +156,8 @@ export function AlertsTab({ alerts, onAlertAction }: AlertsTabProps) {
             {filteredAlerts.length === 0 && (
               <div className="text-center py-12">
                 <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No alerts found</h3>
-                <p className="text-slate-500">Try adjusting your search criteria</p>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">{t.adminTabs?.common?.noResultsFound || "No alerts found"}</h3>
+                <p className="text-slate-500">{t.adminTabs?.common?.adjustSearch || "Try adjusting your search criteria"}</p>
               </div>
             )}
           </div>

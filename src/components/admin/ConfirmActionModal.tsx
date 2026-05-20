@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface ConfirmActionModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function ConfirmActionModal({
   variant = "destructive"
 }: ConfirmActionModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
@@ -48,13 +50,15 @@ export function ConfirmActionModal({
         </DialogHeader>
 
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            {t.adminDetails?.close || "Cancel"}
+          </Button>
           <Button 
             variant={variant} 
             onClick={handleConfirm} 
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Processing..." : confirmText}
+            {isSubmitting ? (t.adminDetails?.processing || "Processing...") : confirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

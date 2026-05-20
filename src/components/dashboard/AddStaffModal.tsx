@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Users, X } from 'lucide-react';
 import { Staff } from '../../types/dashboard';
+import { useLanguage } from '../../hooks/use-language';
 
 interface AddStaffModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   editingStaff,
   onSaveStaff
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   return (
@@ -36,9 +38,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               </div>
               <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
+                  {editingStaff ? (t.dashboard?.editStaffMember || 'Edit Staff Member') : (t.dashboard?.addNewStaffMember || 'Add New Staff Member')}
                 </h2>
-                <p className="text-sm text-slate-500 font-medium mt-1">Manage your team and personnel details</p>
+                <p className="text-sm text-slate-500 font-medium mt-1">{t.dashboard?.staffDesc || "Manage your team and personnel details"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
@@ -51,10 +53,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             {/* Left Column: Personal Info */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Personal Information</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.personalInformation || "Personal Information"}</h3>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Full Name</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.fullName || "Full Name"}</Label>
                   <Input
                     value={newStaff.full_name}
                     onChange={(e) => setNewStaff({ ...newStaff, full_name: e.target.value })}
@@ -64,7 +66,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Email Address</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.emailAddress || "Email Address"}</Label>
                   <Input
                     type="email"
                     value={newStaff.email}
@@ -75,7 +77,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Phone Number</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone Number"}</Label>
                   <Input
                     value={newStaff.phone}
                     onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
@@ -89,10 +91,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             {/* Right Column: Role & Compensation */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Role & Compensation</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.roleCompensation || "Role & Compensation"}</h3>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Position / Role</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.positionRole || "Position / Role"}</Label>
                   <Input
                     value={newStaff.role}
                     onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
@@ -103,7 +105,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700">Monthly Salary</Label>
+                    <Label className="text-sm font-bold text-slate-700">{t.dashboard?.monthlySalary || "Monthly Salary"}</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">ETB</span>
                       <Input
@@ -115,15 +117,15 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700">Employment Status</Label>
+                    <Label className="text-sm font-bold text-slate-700">{t.dashboard?.employmentStatus || "Employment Status"}</Label>
                     <select
                       value={newStaff.status}
                       onChange={(e) => setNewStaff({ ...newStaff, status: e.target.value })}
                       className="w-full h-12 border border-slate-200 bg-slate-50/30 rounded-xl px-4 outline-none font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                     >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="on leave">On Leave</option>
+                      <option value="active">{t.dashboard?.active || "Active"}</option>
+                      <option value="inactive">{t.dashboard?.inactive || "Inactive"}</option>
+                      <option value="on leave">{t.dashboard?.onLeave || "On Leave"}</option>
                     </select>
                   </div>
                 </div>
@@ -132,12 +134,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           </div>
 
           <div className="flex gap-4 pt-6 border-t border-slate-100">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">Cancel</Button>
+            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">
+              {t.dashboard?.cancel || "Cancel"}
+            </Button>
             <Button 
               onClick={onSaveStaff} 
               className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 rounded-xl font-bold text-lg active:scale-95 transition-all"
             >
-              {editingStaff ? 'Update Staff' : 'Add Staff Member'}
+              {editingStaff ? (t.dashboard?.updateStaff || 'Update Staff') : (t.dashboard?.addStaffMember || 'Add Staff Member')}
             </Button>
           </div>
         </CardContent>

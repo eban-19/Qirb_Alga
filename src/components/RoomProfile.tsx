@@ -116,7 +116,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <div>
             <Button variant="ghost" size="sm" className="mt-4 mb-2 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4" /> Back
+              <ArrowLeft className="w-4 h-4" /> {t.rooms.back || "Back"}
             </Button>
             <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{tr(room.name_ml || room.name)}</h1>
             <div className="flex items-center gap-2 mt-3 text-muted-foreground">
@@ -140,7 +140,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
           <section className="space-y-6" style={{ scrollBehavior: 'auto' }}>
             <div className="space-y-4 text-center md:text-left">
               <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
-              <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
+              <p className="text-muted-foreground text-lg">{t.rooms.choosePackageSubtitle || "Choose a package that fits your needs."}</p>
             </div>
 
             {/* Dynamic Promotions Banner */}
@@ -158,10 +158,10 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                       </div>
                       <div>
                         <h3 className="text-2xl md:text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-1">
-                          Special Offers Available!
+                          {t.rooms.specialOffersAvailable || "Special Offers Available!"}
                         </h3>
                         <p className="text-muted-foreground font-medium">
-                          Discounts are automatically applied at checkout when requirements are met.
+                          {t.rooms.discountsAppliedCheckout || "Discounts are automatically applied at checkout when requirements are met."}
                         </p>
                       </div>
                     </div>
@@ -180,13 +180,13 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                           </div>
                           
                           <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-border/50">
-                            {promo.type === 'EARLY_BIRD' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Requires {promo.min_days}+ days advance</span>}
-                            {promo.type === 'LONG_STAY' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Requires {promo.min_days}+ nights stay</span>}
-                            {promo.type === 'LAST_MINUTE' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">Book within {promo.max_days} days</span>}
+                            {promo.type === 'EARLY_BIRD' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">{(t.rooms.requiresDaysAdvance || "Requires {days}+ days advance").replace("{days}", String(promo.min_days))}</span>}
+                            {promo.type === 'LONG_STAY' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">{(t.rooms.requiresNightsStay || "Requires {nights}+ nights stay").replace("{nights}", String(promo.min_days))}</span>}
+                            {promo.type === 'LAST_MINUTE' && <span className="text-[11px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-3 py-1.5 rounded-xl">{(t.rooms.bookWithinDays || "Book within {days} days").replace("{days}", String(promo.max_days))}</span>}
                             {promo.package_id && promo.package ? (
-                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">📦 {promo.package.name} only</span>
+                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">📦 {promo.package.name} {t.rooms.onlySuffix || "only"}</span>
                             ) : (
-                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">✓ All packages</span>
+                              <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1.5 rounded-xl">{t.rooms.allPackages || "✓ All packages"}</span>
                             )}
                           </div>
                         </div>
@@ -292,10 +292,10 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-muted-foreground text-sm">No services specified by owner</p>
+                              <p className="text-muted-foreground text-sm">{t.rooms.noServices || "No services specified by owner"}</p>
                             );
                           })() : (
-                            <p className="text-muted-foreground text-sm">No services specified by owner</p>
+                            <p className="text-muted-foreground text-sm">{t.rooms.noServices || "No services specified by owner"}</p>
                           )}
                         </div>
 
@@ -328,7 +328,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                                 playsInline
                               />
                               <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 z-10 shadow-lg">
-                                <PlayCircle className="w-4 h-4" /> Demo
+                                <PlayCircle className="w-4 h-4" /> {t.rooms.demoBadge || "Demo"}
                               </div>
                             </>
                           ) : (
@@ -459,7 +459,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PhoneCall className="w-5 h-5" />
-              Contact Host
+              {t.rooms.contactHostTitle || "Contact Host"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -473,7 +473,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
                   <Phone className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">Phone</p>
+                    <p className="font-medium">{t.rooms.phoneLabel || "Phone"}</p>
                     <a 
                       href={`tel:${room.phone}`}
                       className="text-primary hover:underline"
@@ -488,7 +488,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
                   <Mail className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">Email</p>
+                    <p className="font-medium">{t.rooms.emailLabel || "Email"}</p>
                     <a 
                       href={`mailto:${room.email}`}
                       className="text-primary hover:underline"
@@ -501,14 +501,14 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               
               {!room.phone && !room.email && (
                 <p className="text-center text-muted-foreground py-4">
-                  Contact information not available
+                  {t.rooms.contactNotAvailable || "Contact information not available"}
                 </p>
               )}
             </div>
             
             <div className="flex justify-end pt-4">
               <Button variant="outline" onClick={() => setShowContactModal(false)}>
-                Close
+                {t.rooms.closeButton || "Close"}
               </Button>
             </div>
           </div>

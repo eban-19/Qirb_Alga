@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 
 interface RoomEditModalProps {
   isOpen: boolean;
@@ -20,7 +19,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
   room,
   onUpdate
 }) => {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     room_type: room?.room_type || '',
     room_type_en: room?.room_type_ml?.en || room?.room_type || '',
@@ -37,7 +36,6 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Construct multilingual room_type object
     const room_type_ml = {
       en: formData.room_type_en || formData.room_type,
       am: formData.room_type_am,
@@ -71,7 +69,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
             </div>
             <div>
               <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">
-                <TranslationText text="Edit Room Details" language={language} />
+                {t.dashboard?.editRoomDetails || "Edit Room Details"}
               </DialogTitle>
               <p className="text-sm text-slate-500 font-medium mt-0.5">Update configuration for this specific room unit</p>
             </div>
@@ -86,7 +84,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Multilingual Naming</h3>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700"><TranslationText text="Room Type (English)" language={language} /></Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeEn || "Room Type (English)"}</Label>
                   <Input
                     value={formData.room_type_en}
                     onChange={(e) => handleChange('room_type_en', e.target.value)}
@@ -97,7 +95,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700"><TranslationText text="Room Type (Amharic)" language={language} /></Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeAm || "Room Type (Amharic)"}</Label>
                   <Input
                     value={formData.room_type_am}
                     onChange={(e) => handleChange('room_type_am', e.target.value)}
@@ -107,7 +105,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700"><TranslationText text="Room Type (Afaan Oromo)" language={language} /></Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeOm || "Room Type (Afaan Oromo)"}</Label>
                   <Input
                     value={formData.room_type_om}
                     onChange={(e) => handleChange('room_type_om', e.target.value)}
@@ -125,7 +123,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="floor" className="text-sm font-bold text-slate-700"><TranslationText text="Floor" language={language} /></Label>
+                    <Label htmlFor="floor" className="text-sm font-bold text-slate-700">{t.dashboard?.floor || "Floor"}</Label>
                     <Input
                       id="floor"
                       value={formData.floor}
@@ -137,7 +135,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="price_per_night" className="text-sm font-bold text-slate-700"><TranslationText text="Price per Night (ETB)" language={language} /></Label>
+                    <Label htmlFor="price_per_night" className="text-sm font-bold text-slate-700">{t.dashboard?.pricePerNightEtb || "Price per Night (ETB)"}</Label>
                     <Input
                       id="price_per_night"
                       type="number"
@@ -152,7 +150,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="number_of_beds" className="text-sm font-bold text-slate-700"><TranslationText text="Number of Beds" language={language} /></Label>
+                    <Label htmlFor="number_of_beds" className="text-sm font-bold text-slate-700">{t.dashboard?.numberOfBeds || "Number of Beds"}</Label>
                     <Input
                       id="number_of_beds"
                       type="number"
@@ -164,7 +162,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="capacity" className="text-sm font-bold text-slate-700"><TranslationText text="Capacity" language={language} /></Label>
+                    <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">{t.dashboard?.capacity || "Capacity"}</Label>
                     <Input
                       id="capacity"
                       type="number"
@@ -178,24 +176,24 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="availability_status" className="text-sm font-bold text-slate-700"><TranslationText text="Availability Status" language={language} /></Label>
+                    <Label htmlFor="availability_status" className="text-sm font-bold text-slate-700">{t.dashboard?.availabilityStatus || "Availability Status"}</Label>
                     <Select
                       value={formData.availability_status}
                       onValueChange={(value) => handleChange('availability_status', value)}
                     >
                       <SelectTrigger className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 font-medium">
-                        <SelectValue placeholder={<TranslationText text="Select status" language={language} />} />
+                        <SelectValue placeholder={t.dashboard?.selectStatus || "Select status"} />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                        <SelectItem value="Available" className="rounded-lg"><TranslationText text="Available" language={language} /></SelectItem>
-                        <SelectItem value="Occupied" className="rounded-lg"><TranslationText text="Occupied" language={language} /></SelectItem>
-                        <SelectItem value="Maintenance" className="rounded-lg"><TranslationText text="Maintenance" language={language} /></SelectItem>
+                        <SelectItem value="Available" className="rounded-lg">{t.dashboard?.available || "Available"}</SelectItem>
+                        <SelectItem value="Occupied" className="rounded-lg">{t.dashboard?.occupied || "Occupied"}</SelectItem>
+                        <SelectItem value="Maintenance" className="rounded-lg">{t.dashboard?.maintenance || "Maintenance"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="package_id" className="text-sm font-bold text-slate-700"><TranslationText text="Package ID" language={language} /></Label>
+                    <Label htmlFor="package_id" className="text-sm font-bold text-slate-700">{t.dashboard?.packageId || "Package ID"}</Label>
                     <Input
                       id="package_id"
                       value={formData.package_id}
@@ -210,10 +208,10 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
 
           <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
             <Button type="button" variant="outline" onClick={onClose} className="h-12 px-8 rounded-xl font-bold border-2">
-              <TranslationText text="Cancel" language={language} />
+              {t.dashboard?.cancel || "Cancel"}
             </Button>
             <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 rounded-xl font-bold text-lg active:scale-95 transition-all">
-              <TranslationText text="Update Room" language={language} />
+              {t.dashboard?.updateRoom || "Update Room"}
             </Button>
           </div>
         </form>

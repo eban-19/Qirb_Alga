@@ -134,20 +134,23 @@ const Dashboard: React.FC = () => {
             <div>
               {ui.activeTab === "overview" ? (
                 <h2 className="text-3xl font-black text-slate-900">
-                  Dashboard Overview
+                  {t.dashboard?.header_overview || "Dashboard Overview"}
                 </h2>
               ) : (
                 <h2 className="text-3xl font-bold text-slate-900">
-                  {ui.activeTab === "staff" ? "Staff & HR Management" : 
-                   ui.activeTab === "bookings" ? "Bookings Management" :
-                   ui.activeTab === "rooms" ? "Rooms Management" :
-                   ui.activeTab === "pension-profile" ? "Pension Profile" :
-                   ui.activeTab === "packages" ? "Package Tiers" :
-                   ui.activeTab === "promotions" ? "Promotions & Offers" :
-                   ui.activeTab === "reports" ? "Reports & Analytics" :
-                   ui.activeTab.startsWith("settings-") ? "Settings" :
-                   ui.activeTab === "subscription" ? "Subscription Plans" :
-                   "Dashboard Section"}
+                  {t.dashboard?.[`header_${ui.activeTab.replace('-', '_')}`] ||
+                   (ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") : 
+                   ui.activeTab === "bookings" ? (t.dashboard?.header_bookings || "Bookings Management") :
+                   ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
+                   ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
+                   ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                   ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
+                   ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
+                   ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                   ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
+                   ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                   ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
+                   "Dashboard Section")}
                 </h2>
               )}
             </div>
@@ -158,7 +161,7 @@ const Dashboard: React.FC = () => {
                   className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-11 px-6 rounded-xl font-bold"
                 >
                   <Plus className="h-4 w-4" /> 
-                  <span>New Booking</span>
+                  <span>{t.dashboard?.newBooking || "New Booking"}</span>
                 </Button>
               )}
             </div>

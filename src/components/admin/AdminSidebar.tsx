@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { adminSidebarLinks, getAdminIcon, getBadgeVariant, SidebarLink, updateAlertsBadge } from '@/data/mock/adminSidebarData';
+import { useLanguage } from '@/hooks/use-language';
+
 interface AdminSidebarProps {
   className?: string;
   collapsed?: boolean;
@@ -24,6 +26,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({
     users: true // Expand by default if needed, or based on active route
   });
@@ -39,6 +42,24 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     navigate(href);
     if (isMobile && onCloseMobile) {
       onCloseMobile();
+    }
+  };
+
+  const getTranslatedLabel = (id: string, defaultLabel: string) => {
+    switch (id) {
+      case "overview": return t.sidebar?.overview || defaultLabel;
+      case "users": return t.sidebar?.users || "Users";
+      case "owners": return t.sidebar?.owners || "Owners";
+      case "customers": return t.sidebar?.customers || "Customers";
+      case "staffs": return t.sidebar?.staff || "Admin Staffs";
+      case "pensions": return t.sidebar?.pensions || "Pensions";
+      case "bookings": return t.sidebar?.bookings || defaultLabel;
+      case "payments": return t.sidebar?.payments || "Payments & Plans";
+      case "system-settings": return t.sidebar?.settings || defaultLabel;
+      case "settings-account": return t.sidebar?.account || "Account";
+      case "settings-financial": return t.sidebar?.financial || "Financial (VAT)";
+      case "settings-security": return t.sidebar?.security || defaultLabel;
+      default: return defaultLabel;
     }
   };
 
@@ -65,7 +86,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <div className="flex items-center gap-3">
               <Icon className="w-5 h-5 text-slate-400" />
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                {link.label}
+                {getTranslatedLabel(link.id, link.label)}
               </span>
             </div>
           </div>
@@ -107,7 +128,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             {(!collapsed || isMobile) && (
               <>
                 <span className="font-medium relative z-10 flex-1 text-left text-sm">
-                  {link.label}
+                  {getTranslatedLabel(link.id, link.label)}
                 </span>
                 {link.badge && !hasChildren && (
                   <Badge variant={badgeVariant as any} className="relative z-10 text-xs">
@@ -128,7 +149,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="ml-2">
-          <p>{link.label}</p>
+          <p>{getTranslatedLabel(link.id, link.label)}</p>
         </TooltipContent>
       </Tooltip>
       
@@ -171,8 +192,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               </div>
               {(!collapsed && !isMobile) && (
                 <div>
-                  <h2 className="text-lg font-bold text-white">Admin Panel</h2>
-                  <p className="text-xs text-slate-400">Management System</p>
+                  <h2 className="text-lg font-bold text-white">{t.sidebar?.adminPanel || "Admin Panel"}</h2>
+                  <p className="text-xs text-slate-400">{t.sidebar?.managementSystem || "Management System"}</p>
                 </div>
               )}
             </div>
@@ -205,7 +226,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           >
             <LogOut className={cn("w-5 h-5 transition-transform group-hover:scale-110")} />
             {(!collapsed || isMobile) && (
-              <span className="font-medium">Logout</span>
+              <span className="font-medium">{t.dashboard?.logout || "Logout"}</span>
             )}
           </button>
         </div>

@@ -23,9 +23,9 @@ import {
   Users,
   Search,
   ChevronDown,
-  ChevronRight,
   User,
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface Booking {
   id: string;
@@ -140,6 +140,7 @@ function OwnerRow({ summary }: { summary: OwnerSummary }) {
 }
 
 export function BookingsTab({ bookings }: BookingsTabProps) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [filterOwner, setFilterOwner] = useState("all");
 
@@ -229,9 +230,9 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
           <Calendar className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Bookings Overview</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.bookings?.title || "Bookings Overview"}</h2>
           <p className="text-slate-500 text-sm">
-            Aggregated totals by owner and pension
+            {t.adminTabs?.bookings?.subtitle || "Aggregated totals by owner and pension"}
           </p>
         </div>
       </div>
@@ -295,7 +296,7 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
-              placeholder="Search by owner or pension name..."
+              placeholder={t.adminTabs?.bookings?.searchPlaceholder || "Search by owner or pension name..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 h-10 border-slate-200"
@@ -307,7 +308,7 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
               <SelectValue placeholder="All Owners" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Owners</SelectItem>
+              <SelectItem value="all">{t.adminTabs?.common?.all || "All Owners"}</SelectItem>
               {ownerList.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
                   {o.name}
@@ -323,9 +324,9 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-100 py-4 px-5">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="w-4 h-4 text-emerald-600" />
-            Bookings by Owner → Pension
+            {t.adminTabs?.common?.customer || "Bookings by Owner → Pension"}
             <span className="ml-auto text-sm font-normal text-slate-500">
-              {filtered.length} owner{filtered.length !== 1 ? "s" : ""} · click a row to expand
+              {filtered.length} {t.adminTabs?.common?.owner?.toLowerCase() || "owner"}{filtered.length !== 1 ? "s" : ""}
             </span>
           </CardTitle>
         </CardHeader>
@@ -333,11 +334,11 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="font-semibold text-slate-700">Owner</TableHead>
-                <TableHead className="font-semibold text-slate-700 text-center">Pensions</TableHead>
-                <TableHead className="font-semibold text-slate-700 text-center">Total Bookings</TableHead>
-                <TableHead className="font-semibold text-slate-700 text-center">Confirmed</TableHead>
-                <TableHead className="font-semibold text-slate-700 text-right">Revenue (ETB)</TableHead>
+                <TableHead className="font-semibold text-slate-700">{t.adminTabs?.common?.owner || "Owner"}</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-center">{t.adminTabs?.pensions?.title || "Pensions"}</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-center">{t.adminTabs?.bookings?.title || "Total Bookings"}</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-center">{t.adminTabs?.common?.status || "Confirmed"}</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-right">{t.adminTabs?.common?.revenue || "Revenue"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -345,7 +346,7 @@ export function BookingsTab({ bookings }: BookingsTabProps) {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-16 text-slate-400">
                     <Calendar className="w-10 h-10 mx-auto mb-3 text-slate-200" />
-                    No bookings found matching the current filters
+                    {t.adminTabs?.common?.noResultsFound || "No bookings found matching the current filters"}
                   </TableCell>
                 </TableRow>
               ) : (
