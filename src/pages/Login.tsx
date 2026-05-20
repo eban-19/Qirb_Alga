@@ -30,7 +30,7 @@ const Login = () => {
   
   // Auth state methods
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
-  const [step, setStep] = useState<'input' | 'otp' | 'password'>('input');
+  const [step, setStep] = useState<'input' | 'otp' | 'password' | 'register_details'>('input');
   
   // Form input states
   const [identifier, setIdentifier] = useState(''); // email or phone
@@ -252,8 +252,36 @@ const Login = () => {
           toast.success('Welcome back!');
         }
       } else {
-        await otpLogin(identifier, otpCode, fullName);
-        toast.success('Successfully authenticated!');
+        if (step === 'otp') {
+          // Verify OTP first without logging in
+          const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: identifier, code: otpCode })
+          });
+          const verifyData = await verifyRes.json();
+          
+          if (!verifyData.success) {
+            throw new Error(verifyData.message || 'Invalid or expired OTP code');
+          }
+
+          if (isNewUser) {
+            // Move to register_details phase
+            setStep('register_details');
+            setLoading(false);
+            return;
+          } else {
+            // Existing user, log them in
+            await otpLogin(identifier, otpCode);
+            toast.success('Successfully authenticated!');
+          }
+        } else if (step === 'register_details') {
+          if (!fullName.trim()) {
+            throw new Error('Full Name is required');
+          }
+          await otpLogin(identifier, otpCode, fullName);
+          toast.success('Account created and authenticated successfully!');
+        }
       }
     } catch (err: any) {
       const statusError = getAccountStatusMessage(err, identifier);
@@ -279,9 +307,11 @@ const Login = () => {
               ? `Choose your login method to connect to your profile` 
               : step === 'otp' 
                 ? `Enter the verification code sent to your phone`
-                : isNewUser 
-                  ? "Let's create your account to get started"
-                  : "Enter your password to continue"}
+                : step === 'register_details'
+                  ? `Almost there! Please provide your full name to complete registration`
+                  : isNewUser 
+                    ? "Let's create your account to get started"
+                    : "Enter your password to continue"}
           </CardDescription>
         </CardHeader>
         
@@ -364,19 +394,6 @@ const Login = () => {
 
             {step === 'otp' && (
               <div className="space-y-5">
-                {isNewUser && (
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-slate-700 font-bold text-sm">Your Full Name (Optional)</Label>
-                    <Input
-                      id="fullName"
-                      placeholder="Abebe Bikila"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="h-13 rounded-xl border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-medium"
-                      disabled={loading}
-                    />
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="otp" className="text-slate-700 font-bold text-sm">6-Digit Verification Code</Label>
                   <Input
@@ -406,6 +423,40 @@ const Login = () => {
                   disabled={loading}
                 >
                   Change Phone Number
+                </button>
+              </div>
+            )}
+
+            {step === 'register_details' && (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-slate-700 font-bold text-sm">Your Full Name</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="e.g. Abebe Bikila"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="h-13 rounded-xl border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-medium"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full h-13 rounded-xl text-base font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]" 
+                  disabled={loading || !fullName.trim()}
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+                </Button>
+                
+                <button 
+                  type="button" 
+                  className="w-full text-sm text-blue-600 font-bold hover:underline py-1"
+                  onClick={() => { setStep('input'); setOtpCode(''); setFullName(''); }}
+                  disabled={loading}
+                >
+                  Start Over
                 </button>
               </div>
             )}

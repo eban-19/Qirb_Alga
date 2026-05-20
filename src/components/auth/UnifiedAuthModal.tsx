@@ -17,7 +17,7 @@ interface UnifiedAuthModalProps {
 const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, onSuccess, defaultFullName }) => {
   const { login, otpLogin } = useAuth();
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
-  const [step, setStep] = useState<'input' | 'otp' | 'password'>('input');
+  const [step, setStep] = useState<'input' | 'otp' | 'password' | 'register_details'>('input');
   const [identifier, setIdentifier] = useState(''); // email or phone
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -229,20 +229,47 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           }
         }
       } else {
-        const res = await otpLogin(identifier, otpCode, fullName);
-        if (res.success) {
-          toast.success('Login successful!');
-          const role = res.data?.user?.role?.toLowerCase() || '';
-          if (role === 'owner') {
-            window.location.href = '/dashboard';
-          } else if (role === 'admin') {
-            window.location.href = '/dashboard/admin';
-          } else {
-            onSuccess();
-            onClose();
+        if (step === 'otp') {
+          // Verify OTP first without logging in
+          const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: identifier, code: otpCode })
+          });
+          const verifyData = await verifyRes.json();
+          
+          if (!verifyData.success) {
+            throw new Error(verifyData.message || 'Invalid or expired OTP code');
           }
-        } else {
-          setError(res.message || 'Verification failed. Please check the code.');
+
+          if (isNewUser) {
+            setStep('register_details');
+            setIsLoading(false);
+            return;
+          } else {
+            const res = await otpLogin(identifier, otpCode);
+            if (res.success) {
+              toast.success('Login successful!');
+              const role = res.data?.user?.role?.toLowerCase() || '';
+              if (role === 'owner') window.location.href = '/dashboard';
+              else if (role === 'admin') window.location.href = '/dashboard/admin';
+              else { onSuccess(); onClose(); }
+            } else {
+              setError(res.message || 'Verification failed. Please check the code.');
+            }
+          }
+        } else if (step === 'register_details') {
+          if (!fullName.trim()) throw new Error('Full Name is required');
+          const res = await otpLogin(identifier, otpCode, fullName);
+          if (res.success) {
+            toast.success('Login successful!');
+            const role = res.data?.user?.role?.toLowerCase() || '';
+            if (role === 'owner') window.location.href = '/dashboard';
+            else if (role === 'admin') window.location.href = '/dashboard/admin';
+            else { onSuccess(); onClose(); }
+          } else {
+            setError(res.message || 'Registration failed.');
+          }
         }
       }
     } catch (err: any) {
@@ -265,9 +292,11 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               ? `Enter your ${method === 'phone' ? 'phone number' : 'email address'} to continue.` 
               : step === 'otp' 
                 ? `Enter the 6-digit code sent to ${identifier}`
-                : isNewUser 
-                  ? "Create your account to complete your booking."
-                  : "Enter your password to continue."}
+                : step === 'register_details'
+                  ? `Almost there! Please provide your full name to complete registration`
+                  : isNewUser 
+                    ? "Create your account to complete your booking."
+                    : "Enter your password to continue."}
           </DialogDescription>
         </DialogHeader>
 
@@ -337,16 +366,6 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           {step === 'otp' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Your Full Name (Optional)</Label>
-                <Input
-                  id="fullName"
-                  placeholder="Abebe Bikila"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="h-14 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="otp">6-Digit Code</Label>
                 <Input
                   id="otp"
@@ -366,6 +385,33 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                 onClick={() => { setStep('input'); setError(null); }}
               >
                 Change Phone Number
+              </button>
+            </div>
+          )}
+
+          {step === 'register_details' && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Your Full Name</Label>
+                <Input
+                  id="fullName"
+                  placeholder="Abebe Bikila"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="h-14 rounded-xl"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full h-14 rounded-xl text-lg font-bold" disabled={isLoading || !fullName.trim()}>
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+              </Button>
+              <button 
+                type="button" 
+                className="w-full text-sm text-primary font-medium hover:underline"
+                onClick={() => { setStep('input'); setError(null); setOtpCode(''); setFullName(''); }}
+              >
+                Start Over
               </button>
             </div>
           )}
