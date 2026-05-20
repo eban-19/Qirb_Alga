@@ -260,6 +260,17 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
+    if (availability_status && availability_status !== room.availability_status) {
+      await prisma.roomAvailabilityLog.create({
+        data: {
+          room_id: id,
+          changed_by: userId,
+          old_status: room.availability_status,
+          new_status: availability_status as RoomStatus
+        }
+      });
+    }
+
     await prisma.room.update({
       where: { room_id: id },
       data: {
