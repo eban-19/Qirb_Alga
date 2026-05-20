@@ -245,20 +245,27 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             </div>
 
             {/* Unified Pagination Footer */}
-            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="text-sm font-bold text-slate-500">
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
+              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
                 {t.dashboard?.showingGuests ? (
                   t.dashboard.showingGuests.replace('{count}', String(safeGuests.length)).replace('{total}', String(totalItems))
                 ) : (
-                  `Showing ${safeGuests.length} of ${totalItems} guests`
+                  <>
+                    <span className="hidden xs:inline sm:inline">Showing </span>
+                    <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span>
+                    <span className="hidden xs:inline sm:inline"> guests</span>
+                  </>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
-                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                      <div className="flex items-center"><span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span></div>
+                    <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                      <div className="flex items-center">
+                        <span className="sm:hidden">{pagination.limit}/p</span>
+                        <span className="hidden sm:inline">{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
@@ -269,17 +276,17 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
-                    <ChevronLeft className="h-5 w-5" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                   {getPageNumbers().map(pageNum => (
-                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
                       {pageNum}
                     </Button>
                   ))}
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
-                    <ChevronRight className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>

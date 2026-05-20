@@ -93,18 +93,43 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
     case AUTH_ACTIONS.LOGIN_SUCCESS:
     case AUTH_ACTIONS.REGISTER_SUCCESS:
-    case AUTH_ACTIONS.LOAD_USER_SUCCESS:
-      // Store token and user in localStorage
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
+      if (action.payload.token) {
+        localStorage.setItem('token', action.payload.token);
+      }
+      if (action.payload.user) {
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
+      }
       return {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
-        isAuthenticated: true,
+        isAuthenticated: !!action.payload.user,
         loading: false,
         error: null,
       };
+
+    case AUTH_ACTIONS.LOAD_USER_SUCCESS:
+      if (action.payload.user) {
+        localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
+        return {
+          ...state,
+          user: action.payload.user,
+          token: action.payload.token,
+          isAuthenticated: true,
+          loading: false,
+          error: null,
+        };
+      } else {
+        return {
+          ...state,
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          loading: false,
+          error: null,
+        };
+      }
 
     case AUTH_ACTIONS.UPDATE_USER:
       localStorage.setItem('user', JSON.stringify(action.payload));

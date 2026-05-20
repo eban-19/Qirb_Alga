@@ -1,6 +1,7 @@
 import { useLanguage } from './use-language';
 import apiService from '../services/api';
 import { Package, Staff, Room } from '../types/dashboard';
+import { toast } from 'sonner';
 
 export const useDashboardHandlers = (
   data: any,
@@ -60,13 +61,11 @@ export const useDashboardHandlers = (
   };
 
   const handleDeleteStaff = async (id: string | number) => {
-    if (window.confirm('Are you sure you want to delete this staff member?')) {
-      try {
-        await apiService.deleteStaff(id);
-        await loadRealData();
-      } catch (error) {
-        console.error('Delete staff error:', error);
-      }
+    try {
+      await apiService.deleteStaff(id);
+      await loadRealData();
+    } catch (error) {
+      console.error('Delete staff error:', error);
     }
   };
 
@@ -200,13 +199,11 @@ export const useDashboardHandlers = (
   };
 
   const handleDeleteRoom = async (roomId: string | number) => {
-    if (window.confirm('Are you sure you want to delete this room?')) {
-      try {
-        await apiService.deleteRoom(roomId);
-        await loadRealData();
-      } catch (error) {
-        console.error('Delete room error:', error);
-      }
+    try {
+      await apiService.deleteRoom(roomId);
+      await loadRealData();
+    } catch (error) {
+      console.error('Delete room error:', error);
     }
   };
 
@@ -380,13 +377,11 @@ export const useDashboardHandlers = (
   };
 
   const handleDeletePackage = async (id: string | number) => {
-    if (window.confirm('Are you sure you want to delete this package?')) {
-      try {
-        await apiService.deletePackage(data.selectedPensionId, id);
-        await loadRealData();
-      } catch (error) {
-        console.error('Delete package error:', error);
-      }
+    try {
+      await apiService.deletePackage(data.selectedPensionId, id);
+      await loadRealData();
+    } catch (error) {
+      console.error('Delete package error:', error);
     }
   };
 
@@ -525,12 +520,58 @@ export const useDashboardHandlers = (
     try {
       const response = await apiService.addExpense(data.selectedPensionId, expenseData);
       if (response.success) {
+        toast.success(response.message || 'Expense logged successfully!');
         // Reset form
         (e.target as HTMLFormElement).reset();
         await loadRealData();
+      } else {
+        toast.error(response.message || 'Failed to log expense.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Add expense error:', error);
+      toast.error(error.originalResponse?.message || error.message || 'An error occurred while logging the expense.');
+    }
+  };
+
+  const handleUpdateExpense = async (expenseId: number, expenseData: any) => {
+    try {
+      ui.setIsUpdating(true);
+      const response = await apiService.updateExpense(expenseId, expenseData);
+      if (response.success) {
+        toast.success(response.message || 'Expense updated successfully!');
+        await loadRealData();
+        return true;
+      } else {
+        toast.error(response.message || 'Failed to update expense.');
+        return false;
+      }
+    } catch (error: any) {
+      console.error('Update expense error:', error);
+      toast.error(error.originalResponse?.message || error.message || 'An error occurred while updating the expense.');
+      return false;
+    } finally {
+      ui.setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: number) => {
+    try {
+      ui.setIsUpdating(true);
+      const response = await apiService.deleteExpense(expenseId);
+      if (response.success) {
+        toast.success(response.message || 'Expense deleted successfully!');
+        await loadRealData();
+        return true;
+      } else {
+        toast.error(response.message || 'Failed to delete expense.');
+        return false;
+      }
+    } catch (error: any) {
+      console.error('Delete expense error:', error);
+      toast.error(error.originalResponse?.message || error.message || 'An error occurred while deleting the expense.');
+      return false;
+    } finally {
+      ui.setIsUpdating(false);
     }
   };
 
@@ -579,6 +620,8 @@ export const useDashboardHandlers = (
     handleWalkInSubmit,
     handleSavePropertySettings,
     handleSaveSecuritySettings,
-    handleAddExpense
+    handleAddExpense,
+    handleUpdateExpense,
+    handleDeleteExpense
   };
 };

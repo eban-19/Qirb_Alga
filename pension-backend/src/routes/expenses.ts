@@ -97,6 +97,57 @@ router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, r
   }
 });
 
+// PUT - Update an expense
+router.put('/:expenseId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
+  try {
+    const { expenseId } = req.params;
+    const { category, description, amount, expense_date }: ExpenseData = req.body;
+    const userId = req.user.userId;
+    const eId = parseInt(expenseId);
+
+    if (!category || !amount || !expense_date) {
+      return res.status(400).json({ success: false, message: 'Category, amount, and date are required' });
+    }
+
+    // Verify ownership via relationship
+    const expense = await prisma.expense.findUnique({
+      where: { expense_id: eId },
+      include: {
+        pension: {
+          select: { owner_id: true }
+        }
+      }
+    });
+
+    if (!expense) {
+      return res.status(404).json({ success: false, message: 'Expense not found' });
+    }
+
+    if (expense.pension?.owner_id !== userId && req.user.role?.toLowerCase() !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const updatedExpense = await prisma.expense.update({
+      where: { expense_id: eId },
+      data: {
+        category,
+        description: description || '',
+        amount: new Prisma.Decimal(amount),
+        expense_date: new Date(expense_date)
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Expense updated successfully',
+      data: updatedExpense
+    });
+  } catch (error: any) {
+    console.error('Update expense error:', error);
+    next(error);
+  }
+});
+
 // DELETE - Remove an expense
 router.delete('/:expenseId', authenticateToken as any, async (req: any, res: express.Response, next: express.NextFunction) => {
   try {

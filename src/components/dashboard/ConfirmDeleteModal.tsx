@@ -29,7 +29,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   return ReactDOM.createPortal(
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-300" onClick={onClose}>
       <div 
-        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100" 
+        className="bg-white rounded-[2rem] shadow-none w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200" 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative p-8 text-center">
@@ -61,7 +61,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
               {t.dashboard?.cancel || "Cancel"}
             </Button>
             <Button 
-              className="flex-1 h-14 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold shadow-lg shadow-red-200 transition-all hover:scale-[1.02] active:scale-95"
+              className="flex-1 h-14 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all hover:scale-[1.02] active:scale-95"
               onClick={() => {
                 onConfirm();
                 onClose();

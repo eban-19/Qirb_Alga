@@ -19,7 +19,6 @@ import { useLanguage } from "@/hooks/use-language";
 import type { Language } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import UnifiedAuthModal from "./auth/UnifiedAuthModal";
 
 const Navbar = () => {
   const { language, setLanguage, options, t } = useLanguage();
@@ -30,7 +29,6 @@ const Navbar = () => {
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackResult, setTrackResult] = useState<any>(null);
   const [trackError, setTrackError] = useState("");
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleTrackBooking = async () => {
     if (!trackId.trim()) return;
@@ -147,27 +145,17 @@ const Navbar = () => {
               </Button>
             </div>
           ) : (
-              <Button
+            <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground whitespace-nowrap"
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={() => navigate("/login")}
             >
               {t.navbar?.login || "Login"}
             </Button>
           )}
         </div>
       </div>
-
-      <UnifiedAuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-        onSuccess={() => {
-          setIsAuthModalOpen(false);
-          // Reload the page to ensure all components get the updated user state correctly
-          window.location.reload();
-        }} 
-      />
     </nav>
   );
 };

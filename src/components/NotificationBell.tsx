@@ -267,24 +267,24 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
       {isOpen && (
         <div 
           ref={notificationRef}
-          className="absolute right-0 top-12 w-64 sm:w-80 md:w-96 bg-white rounded-lg shadow-xl border border-slate-200 z-[9999] max-h-80 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200 origin-top-right"
+          className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[9999] max-h-[450px] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200 origin-top-right"
           onClick={(e) => e.stopPropagation()}
         >
             {/* Header */}
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-200">
+            <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-100 shrink-0 bg-white z-10">
               <h3 className="text-sm sm:text-base font-semibold text-slate-900">Notifications</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={closeNotifications}
-                className="p-1 hover:bg-slate-100"
+                className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-slate-500" />
               </Button>
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-80 overflow-y-auto">
+            <div className="overflow-y-auto flex-1 min-h-0 bg-slate-50/20">
               {isLoading ? (
                 <div className="text-center p-6 sm:p-8 text-slate-500">
                   <div className="animate-spin h-6 w-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto mb-2"></div>
@@ -299,12 +299,28 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
                 notifications.map((notification) => (
                   <div
                     key={notification.notification_id}
-                    className={`p-3 sm:p-4 border-b border-slate-100 cursor-pointer transition-colors ${
-                      !notification.is_read ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' : 'hover:bg-slate-50'
+                    className={`p-3 sm:p-4 border-b border-slate-100 cursor-pointer transition-colors relative group/item ${
+                      !notification.is_read ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-100/50' : 'hover:bg-slate-50'
                     }`}
                     onClick={() => markAsRead(notification.notification_id)}
                   >
-                    <div className="flex items-start gap-2 sm:gap-3">
+                    {/* Dismiss Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Dismiss/remove notification from state
+                        setNotifications(prev => prev.filter(n => n.notification_id !== notification.notification_id));
+                        if (!notification.is_read) {
+                          markAsRead(notification.notification_id);
+                        }
+                      }}
+                      className="absolute top-3.5 right-3 h-6 w-6 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all z-20"
+                      title="Dismiss notification"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+
+                    <div className="flex items-start gap-2 sm:gap-3 pr-6">
                       <div className="flex-shrink-0 mt-0.5 sm:mt-1">
                         <div className="text-blue-600">{"\ud83d\udccb"}</div>
                       </div>
@@ -316,7 +332,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
                             {notification.title}
                           </h4>
                           {!notification.is_read && (
-                            <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></div>
+                            <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 ml-2 mr-2"></div>
                           )}
                         </div>
                         <p className="text-xs sm:text-sm text-slate-600 mb-1 line-clamp-2 sm:line-clamp-3">
@@ -347,27 +363,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) =
             </div>
 
             {/* Footer */}
-            {notifications.length > 0 && (
-              <div className="p-3 sm:p-4 border-t border-slate-200 space-y-2">
-                {unreadCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs text-slate-600 hover:text-slate-900"
-                    onClick={markAllAsRead}
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Mark all as read
-                  </Button>
-                )}
+            {notifications.length > 0 && unreadCount > 0 && (
+              <div className="p-3 sm:p-4 border-t border-slate-100 bg-white shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs text-slate-600 hover:text-slate-900 border border-slate-100 hover:bg-slate-50 rounded-lg"
-                  onClick={() => navigate('/dashboard/admin/notifications')}
+                  className="w-full text-xs text-slate-600 hover:text-slate-950 border border-slate-100 hover:bg-slate-50 rounded-lg font-bold"
+                  onClick={markAllAsRead}
                 >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  View all notifications
+                  <CheckCircle className="h-4 w-4 mr-1.5 text-emerald-600" />
+                  Mark all as read
                 </Button>
               </div>
             )}
