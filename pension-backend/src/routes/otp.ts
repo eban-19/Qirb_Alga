@@ -29,7 +29,7 @@ router.post('/verify', async (req, res) => {
   }
 
   try {
-    const isVerified = await OTPService.verifyOTP(phone, code);
+    const isVerified = await OTPService.verifyOTP(phone, code, false);
     if (isVerified) {
       res.json({ success: true, message: 'Phone verified successfully' });
     } else {

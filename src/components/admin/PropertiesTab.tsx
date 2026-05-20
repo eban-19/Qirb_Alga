@@ -9,8 +9,8 @@ import { Plus, Building, MapPin, Package } from "lucide-react";
 import { PropertyCard } from "./PropertyCard";
 
 import { PropertyForm } from "./PropertyForm";
-
 import { Room } from "@/lib/rooms";
+import { useLanguage } from "@/hooks/use-language";
 
 
 
@@ -22,7 +22,7 @@ interface PropertiesTabProps {
 
 
 export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabProps) {
-
+  const { t } = useLanguage();
   const [showForm, setShowForm] = useState(false);
 
   const [selectedProperty, setSelectedProperty] = useState<Room | undefined>();
@@ -100,11 +100,8 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
           </div>
 
           <div className="text-center sm:text-left">
-
-            <h2 className="text-2xl font-bold text-slate-900">Properties Management</h2>
-
-            <p className="text-slate-600">Manage pension properties and room packages</p>
-
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.properties?.title || "Properties Management"}</h2>
+            <p className="text-slate-600">{t.adminTabs?.properties?.subtitle || "Manage pension properties and room packages"}</p>
           </div>
 
         </div>
@@ -367,11 +364,8 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
         <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 border-b-2 border-slate-200">
 
           <CardTitle className="flex items-center gap-2">
-
             <Building className="w-5 h-5 text-purple-700" />
-
-            Properties Directory ({safeProperties.length})
-
+            {t.adminTabs?.common?.properties || "Properties Directory"} ({safeProperties.length})
           </CardTitle>
 
         </CardHeader>
@@ -399,12 +393,9 @@ export function PropertiesTab({ properties, onPropertyAction }: PropertiesTabPro
             {safeProperties.length === 0 && (
 
               <div className="col-span-2 text-center py-12">
-
                 <Building className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No properties found</h3>
-
-                <p className="text-slate-500 mb-4">Start by adding your first pension property</p>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">{t.adminTabs?.common?.noResultsFound || "No properties found"}</h3>
+                <p className="text-slate-500 mb-4">{t.adminTabs?.common?.adjustSearch || "Start by adding your first pension property"}</p>
 
                 <Button onClick={handleCreateProperty} variant="outline" className="hover:bg-purple-50 hover:border-purple-300">
 

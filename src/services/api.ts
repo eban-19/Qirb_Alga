@@ -638,10 +638,38 @@ class ApiService {
     });
   }
 
-  async updateExpense(expenseId: number, expenseData: any): Promise<ApiResponse<any>> {
-    return this.request(`/expenses/${expenseId}`, {
+  // Payment & Bank methods
+  async getBanks(): Promise<ApiResponse<any>> {
+    return this.request('/payments/banks');
+  }
+
+  async createSubaccount(bankDetails: any): Promise<ApiResponse<any>> {
+    return this.request('/payments/subaccount', {
+      method: 'POST',
+      body: JSON.stringify(bankDetails),
+    });
+  }
+
+  async getBankAccounts(): Promise<ApiResponse<any[]>> {
+    return this.request('/payments/accounts');
+  }
+
+  async addBankAccount(bankDetails: any): Promise<ApiResponse<any>> {
+    return this.request('/payments/accounts', {
+      method: 'POST',
+      body: JSON.stringify(bankDetails),
+    });
+  }
+
+  async activateBankAccount(id: number): Promise<ApiResponse<any>> {
+    return this.request(`/payments/accounts/${id}/active`, {
       method: 'PUT',
-      body: JSON.stringify(expenseData),
+    });
+  }
+
+  async deleteBankAccount(id: number): Promise<ApiResponse<any>> {
+    return this.request(`/payments/accounts/${id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -652,10 +680,6 @@ class ApiService {
 
   async getAllCustomers(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/customers');
-  }
-
-  async getCustomerBookingsForAdmin(customerId: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/admin/customers/${customerId}/bookings`);
   }
 
   async getAllStaffs(): Promise<ApiResponse<any[]>> {

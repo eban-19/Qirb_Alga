@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Search, Plus, Users, Shield, TrendingUp, Eye, Edit, Trash2, MoreHorizontal, ChevronDown, Check, X, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 import { OwnerCard } from "./OwnerCard";
 
@@ -99,7 +100,7 @@ export function OwnersTab({
   onBulkOwnerAction
 
 }: OwnersTabProps) {
-
+  const { t } = useLanguage();
   const [showForm, setShowForm] = useState(false);
 
   const [selectedOwner, setSelectedOwner] = useState<PensionOwner | undefined>();
@@ -248,11 +249,8 @@ export function OwnersTab({
           </div>
 
           <div>
-
-            <h2 className="text-2xl font-bold text-slate-900">Owners Management</h2>
-
-            <p className="text-slate-600">Manage pension property owners and verify businesses</p>
-
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.owners?.title || "Owners Management"}</h2>
+            <p className="text-slate-600">{t.adminTabs?.owners?.subtitle || "Manage pension property owners and verify businesses"}</p>
           </div>
 
         </div>
@@ -349,7 +347,7 @@ export function OwnersTab({
       <div className="flex gap-4 mb-4">
         <div className="flex-1 relative">
           <Input
-            placeholder="Search owners..."
+            placeholder={t.adminTabs?.owners?.searchPlaceholder || "Search owners..."}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="h-10 text-sm bg-white/80 backdrop-blur-sm border-2 border-white/50 focus:border-blue-400 focus:ring-4 focus:ring-blue-200 rounded-lg shadow-md"
@@ -360,16 +358,16 @@ export function OwnersTab({
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent className="bg-white/95 backdrop-blur-xl border-2 border-white/50 shadow-2xl rounded-xl">
-            <SelectItem value="all" className="font-semibold">All</SelectItem>
-            <SelectItem value="pending" className="font-semibold">Pending</SelectItem>
-            <SelectItem value="verified" className="font-semibold">Verified</SelectItem>
-            <SelectItem value="rejected" className="font-semibold">Rejected</SelectItem>
-            <SelectItem value="suspended" className="font-semibold">Suspended</SelectItem>
+            <SelectItem value="all" className="font-semibold">{t.adminTabs?.common?.all || "All"}</SelectItem>
+            <SelectItem value="pending" className="font-semibold">{t.adminTabs?.common?.pending || "Pending"}</SelectItem>
+            <SelectItem value="verified" className="font-semibold">{t.adminTabs?.common?.verified || "Verified"}</SelectItem>
+            <SelectItem value="rejected" className="font-semibold">{t.adminTabs?.common?.rejected || "Rejected"}</SelectItem>
+            <SelectItem value="suspended" className="font-semibold">{t.adminTabs?.common?.suspended || "Suspended"}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex items-center text-sm text-slate-600">
-          <span>Total Results: </span>
-          <span className="font-semibold">{filteredOwners.length}</span>
+          <span>{t.adminTabs?.common?.totalResults || "Total Results:"} </span>
+          <span className="font-semibold ml-1">{filteredOwners.length}</span>
         </div>
       </div>
 
@@ -383,7 +381,7 @@ export function OwnersTab({
               <div className="mb-6 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-4">
                 <div className="flex items-center gap-4">
                   <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-3 py-1">
-                    {selectedOwnerIds.size} selected
+                    {selectedOwnerIds.size} {t.adminTabs?.common?.selected || "selected"}
                   </Badge>
                   <div className="flex items-center gap-2">
                     <Button 
@@ -393,7 +391,7 @@ export function OwnersTab({
                       onClick={() => handleBulkAction('approve')}
                       disabled={isBulkLoading !== null}
                     >
-                      {isBulkLoading === 'approve' ? 'Approving...' : 'Approve'}
+                      {isBulkLoading === 'approve' ? (t.adminTabs?.owners?.approving || 'Approving...') : (t.adminTabs?.common?.approve || 'Approve')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -402,7 +400,7 @@ export function OwnersTab({
                       onClick={() => handleBulkAction('reject')}
                       disabled={isBulkLoading !== null}
                     >
-                      {isBulkLoading === 'reject' ? 'Rejecting...' : 'Reject'}
+                      {isBulkLoading === 'reject' ? (t.adminTabs?.owners?.rejecting || 'Rejecting...') : (t.adminTabs?.common?.reject || 'Reject')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -411,7 +409,7 @@ export function OwnersTab({
                       onClick={() => handleBulkAction('suspend')}
                       disabled={isBulkLoading !== null}
                     >
-                      {isBulkLoading === 'suspend' ? 'Suspending...' : 'Suspend'}
+                      {isBulkLoading === 'suspend' ? (t.adminTabs?.owners?.suspending || 'Suspending...') : (t.adminTabs?.common?.suspend || 'Suspend')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -420,7 +418,7 @@ export function OwnersTab({
                       onClick={() => handleBulkAction('reactivate')}
                       disabled={isBulkLoading !== null}
                     >
-                      {isBulkLoading === 'reactivate' ? 'Reactivating...' : 'Reactivate'}
+                      {isBulkLoading === 'reactivate' ? (t.adminTabs?.owners?.reactivating || 'Reactivating...') : (t.adminTabs?.common?.reactivate || 'Reactivate')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -432,7 +430,7 @@ export function OwnersTab({
                       }}
                       disabled={isBulkLoading !== null}
                     >
-                      {isBulkLoading === 'delete' ? 'Deleting...' : 'Delete'}
+                      {isBulkLoading === 'delete' ? (t.adminTabs?.owners?.deleting || 'Deleting...') : (t.adminTabs?.common?.delete || 'Delete')}
                     </Button>
                   </div>
                 </div>
@@ -442,7 +440,7 @@ export function OwnersTab({
                   onClick={() => setSelectedOwnerIds(new Set())}
                   className="text-slate-500 hover:text-slate-700"
                 >
-                  <X className="w-4 h-4 mr-1" /> Clear
+                  <X className="w-4 h-4 mr-1" /> {t.adminTabs?.common?.clear || "Clear"}
                 </Button>
               </div>
             )}
@@ -460,13 +458,13 @@ export function OwnersTab({
                         className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
                       />
                     </TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Owner</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Business</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Contact</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Properties</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Revenue</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Status</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">Actions</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.owner || "Owner"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.business || "Business"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.contact || "Contact"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.properties || "Properties"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.revenue || "Revenue"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.status || "Status"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">{t.adminTabs?.common?.actions || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -538,7 +536,7 @@ export function OwnersTab({
                                 size="sm"
                                 className="hover:bg-blue-50 hover:border-blue-300 flex items-center gap-2 px-3 py-1.5 text-sm"
                               >
-                                <span>Actions</span>
+                                <span>{t.adminTabs?.common?.actions || "Actions"}</span>
                                 <ChevronDown className="w-3 h-3" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -551,14 +549,14 @@ export function OwnersTab({
                                     className="flex items-center gap-2 text-green-600 hover:bg-green-50"
                                   >
                                     <Check className="w-4 h-4" />
-                                    <span>Approve</span>
+                                    <span>{t.adminTabs?.common?.approve || "Approve"}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     onClick={() => onOwnerAction("reject", owner.id, owner)}
                                     className="flex items-center gap-2 text-red-600 hover:bg-red-50"
                                   >
                                     <X className="w-4 h-4" />
-                                    <span>Reject</span>
+                                    <span>{t.adminTabs?.common?.reject || "Reject"}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
@@ -572,7 +570,7 @@ export function OwnersTab({
                                     className="flex items-center gap-2 text-orange-600 hover:bg-orange-50"
                                   >
                                     <Shield className="w-4 h-4" />
-                                    <span>Suspend</span>
+                                    <span>{t.adminTabs?.common?.suspend || "Suspend"}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
@@ -586,7 +584,7 @@ export function OwnersTab({
                                     className="flex items-center gap-2 text-green-600 hover:bg-green-50"
                                   >
                                     <Check className="w-4 h-4" />
-                                    <span>Reactivate</span>
+                                    <span>{t.adminTabs?.common?.reactivate || "Reactivate"}</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
@@ -596,13 +594,12 @@ export function OwnersTab({
                               <DropdownMenuItem 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  console.log('=== Dropdown View Details clicked ===');
                                   onOwnerAction("view", owner.id, owner);
                                 }}
                                 className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
                               >
                                 <Eye className="w-4 h-4" />
-                                <span>View Details</span>
+                                <span>{t.adminTabs?.common?.viewDetails || "View Details"}</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -610,7 +607,7 @@ export function OwnersTab({
                                 className="flex items-center gap-2 text-red-600 hover:bg-red-50"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                <span>Delete</span>
+                                <span>{t.adminTabs?.common?.delete || "Delete"}</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -623,8 +620,8 @@ export function OwnersTab({
               
               {filteredOwners.length === 0 && (
                 <div className="text-center py-12">
-                  <div className="text-slate-500 text-lg">No owners found</div>
-                  <div className="text-slate-400 text-sm mt-2">Try adjusting your search or filter criteria</div>
+                  <div className="text-slate-500 text-lg">{t.adminTabs?.common?.noResultsFound || "No owners found"}</div>
+                  <div className="text-slate-400 text-sm mt-2">{t.adminTabs?.common?.adjustSearch || "Try adjusting your search or filter criteria"}</div>
                 </div>
               )}
 
@@ -633,7 +630,7 @@ export function OwnersTab({
                 <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-slate-600">
-                      Showing {startIndex + 1} to {Math.min(endIndex, filteredOwners.length)} of {filteredOwners.length} owners
+                      {t.adminTabs?.common?.showing || "Showing"} {startIndex + 1} {t.adminTabs?.common?.to || "to"} {Math.min(endIndex, filteredOwners.length)} {t.adminTabs?.common?.of || "of"} {filteredOwners.length} {t.adminTabs?.common?.entries || "owners"}
                     </span>
                     <Select value={itemsPerPage.toString()} onValueChange={(value) => {
                       setItemsPerPage(parseInt(value));
@@ -643,10 +640,10 @@ export function OwnersTab({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="5">5 per page</SelectItem>
-                        <SelectItem value="10">10 per page</SelectItem>
-                        <SelectItem value="20">20 per page</SelectItem>
-                        <SelectItem value="50">50 per page</SelectItem>
+                        <SelectItem value="5">5 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                        <SelectItem value="10">10 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                        <SelectItem value="20">20 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                        <SelectItem value="50">50 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -1,6 +1,7 @@
 import { Building, X, CheckCircle, Clock, XCircle, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PensionOwner } from "@/types/admin";
+import { useLanguage } from "@/hooks/use-language";
 
 interface OwnerDetailsModalProps {
   selectedOwner: PensionOwner;
@@ -9,6 +10,7 @@ interface OwnerDetailsModalProps {
 }
 
 export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOwnerAction }: OwnerDetailsModalProps) => {
+  const { t } = useLanguage();
   // Helper function to get full document URL
   const getDocumentUrl = (documentPath: string) => {
     if (!documentPath) return '';
@@ -30,7 +32,7 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{selectedOwner.businessName}</h2>
-                <p className="text-blue-100">Business Details</p>
+                <p className="text-blue-100">{t.adminDetails?.businessInfo || "Business Details"}</p>
               </div>
             </div>
             <Button
@@ -49,40 +51,40 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
           {/* Business Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Business Information</h3>
+              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">{t.adminDetails?.businessInfo || "Business Information"}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Business Name</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.businessName || "Business Name"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.businessName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Business Email</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.businessEmail || "Business Email"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Business Phone</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.businessPhone || "Business Phone"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">License Number</p>
-                  <p className="text-slate-900 font-medium">{selectedOwner.licenseNumber || 'Not provided'}</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.licenseNumber || "License Number"}</p>
+                  <p className="text-slate-900 font-medium">{selectedOwner.licenseNumber || t.adminDetails?.notProvided || 'Not provided'}</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Owner Information</h3>
+              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">{t.adminDetails?.ownerInfo || "Owner Information"}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Owner Name</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.ownerName || "Owner Name"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.ownerName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Registration Date</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.regDate || "Registration Date"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.registrationDate}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Document Status</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.docStatus || "Document Status"}</p>
                   <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
                     selectedOwner.documentStatus === 'approved'
                       ? 'bg-green-100 text-green-800'
@@ -93,11 +95,11 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
                     {selectedOwner.documentStatus === 'approved' && <CheckCircle className="w-4 h-4" />}
                     {selectedOwner.documentStatus === 'pending' && <Clock className="w-4 h-4" />}
                     {selectedOwner.documentStatus === 'rejected' && <XCircle className="w-4 h-4" />}
-                    Document {selectedOwner.documentStatus}
+                    {t.adminDetails?.document || "Document"} {selectedOwner.documentStatus}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">ID Document</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.idDocument || "ID Document"}</p>
                   {selectedOwner.documentUrl ? (
                     <a 
                       href={getDocumentUrl(selectedOwner.documentUrl)} 
@@ -106,10 +108,10 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
                       className="text-blue-600 hover:text-blue-800 underline flex items-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
-                      View Document
+                      {t.adminDetails?.viewDocument || "View Document"}
                     </a>
                   ) : (
-                    <p className="text-slate-500 italic">No document uploaded</p>
+                    <p className="text-slate-500 italic">{t.adminDetails?.noDocUploaded || "No document uploaded"}</p>
                   )}
                 </div>
               </div>
@@ -119,10 +121,10 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
           {/* Business Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Business Status</h3>
+              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">{t.adminDetails?.businessStatus || "Business Status"}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Approval Status</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.approvalStatus || "Approval Status"}</p>
                   <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
                     selectedOwner.status === 'verified' 
                       ? 'bg-green-100 text-green-800'
@@ -139,21 +141,21 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Total Properties</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.totalProperties || "Total Properties"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.totalProperties}</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Performance</h3>
+              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">{t.adminDetails?.performance || "Performance"}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Total Revenue</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.totalRevenue || "Total Revenue"}</p>
                   <p className="text-slate-900 font-medium">${selectedOwner.totalRevenue.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Rating</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.rating || "Rating"}</p>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
                       <Star 
@@ -172,14 +174,14 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">{t.adminDetails?.quickActions || "Quick Actions"}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Last Active</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.lastActive || "Last Active"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.lastActive}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Business ID</p>
+                  <p className="text-sm font-medium text-slate-600">{t.adminDetails?.businessId || "Business ID"}</p>
                   <p className="text-slate-900 font-medium">{selectedOwner.businessId}</p>
                 </div>
               </div>
@@ -203,7 +205,7 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Approve Business
+                  {t.adminDetails?.approveBusiness || "Approve Business"}
                 </Button>
                 <Button
                   onClick={() => {
@@ -214,7 +216,7 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
                   className="flex-1"
                 >
                   <XCircle className="w-4 h-4 mr-2" />
-                  Reject Business
+                  {t.adminDetails?.rejectBusiness || "Reject Business"}
                 </Button>
               </>
             )}
@@ -224,7 +226,7 @@ export const OwnerDetailsModal = ({ selectedOwner, setShowOwnerDetails, handleOw
               variant="outline"
               className="flex-1"
             >
-              Close
+              {t.adminDetails?.close || "Close"}
             </Button>
           </div>
         </div>

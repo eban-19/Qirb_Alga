@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PlatformMetrics, SystemAlert } from "@/types/admin";
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
+import { useLanguage } from "@/hooks/use-language";
 
 interface PensionOwner {
   id: string;
@@ -122,12 +123,13 @@ const getStatusIcon = (status: string) => {
 export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps) {
   const navigate = useNavigate();
   const ui = useAdminDashboardData();
+  const { t } = useLanguage();
 
   const liveMetrics = ui.metrics;
 
   const statCards = [
     {
-      label: "Total Users",
+      label: t.adminDetails?.totalUsers || "Total Users",
       value: liveMetrics.totalUsers ?? 0,
       icon: Users,
       gradient: "from-blue-600 to-blue-500",
@@ -137,7 +139,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
       badge: null,
     },
     {
-      label: "Total Bookings",
+      label: t.adminDetails?.totalBookings || "Total Bookings",
       value: liveMetrics.totalBookings,
       icon: Calendar,
       gradient: "from-emerald-600 to-green-500",
@@ -147,7 +149,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
       badge: null,
     },
     {
-      label: "Registered Pensions",
+      label: t.adminDetails?.registeredPensions || "Registered Pensions",
       value: liveMetrics.totalProperties,
       icon: Building,
       gradient: "from-violet-600 to-purple-500",
@@ -160,7 +162,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
           : null,
     },
     {
-      label: "Total Owners",
+      label: t.adminDetails?.totalOwners || "Total Owners",
       value: liveMetrics.totalOwners,
       icon: Shield,
       gradient: "from-orange-600 to-amber-500",
@@ -226,7 +228,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
       <div>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-slate-500" />
-          <h2 className="text-lg font-bold text-slate-800">Quick Actions</h2>
+          <h2 className="text-lg font-bold text-slate-800">{t.adminDetails?.quickActions || "Quick Actions"}</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {QUICK_LINKS.map((link) => {
@@ -243,10 +245,10 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                   <Icon className="w-5 h-5" />
                 </div>
                 <span className="text-xs font-bold text-slate-800 group-hover:text-slate-900 leading-tight mb-1">
-                  {link.label}
+                  {t.adminDetails?.[link.label.replace(/ & /g, '').replace(/ /g, '').replace(/^./, str => str.toLowerCase()) as keyof typeof t.adminDetails] || link.label}
                 </span>
                 <span className="text-xs text-slate-400 leading-tight hidden sm:block">
-                  {link.description}
+                  {t.adminDetails?.[`${link.label.replace(/ & /g, '').replace(/ /g, '').replace(/^./, str => str.toLowerCase())}Desc` as keyof typeof t.adminDetails] || link.description}
                 </span>
               </button>
             );
@@ -263,7 +265,7 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                 <div className="p-1.5 bg-blue-500 rounded-lg text-white">
                   <Users className="w-4 h-4" />
                 </div>
-                Recent Owner Registrations
+                {t.adminDetails?.recentRegistrations || "Recent Owner Registrations"}
               </CardTitle>
               <Button
                 variant="outline"
@@ -271,13 +273,13 @@ export function OverviewTab({ recentOwners, metrics, alerts }: OverviewTabProps)
                 onClick={() => navigate("/dashboard/admin/owners")}
                 className="text-xs h-8"
               >
-                View All
+                {t.adminDetails?.viewAll || "View All"}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-4 space-y-3">
             {(recentOwners || []).length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-6">No recent registrations</p>
+              <p className="text-slate-400 text-sm text-center py-6">{t.adminDetails?.noRecentRegistrations || "No recent registrations"}</p>
             ) : (
               (recentOwners || []).slice(0, 5).map((owner) => (
                 <div

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface ExtendSubscriptionModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface ExtendSubscriptionModalProps {
 }
 
 export function ExtendSubscriptionModal({ isOpen, onClose, subscription, onExtend }: ExtendSubscriptionModalProps) {
+  const { t } = useLanguage();
   const [duration, setDuration] = useState("30");
   const [customDuration, setCustomDuration] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,49 +43,51 @@ export function ExtendSubscriptionModal({ isOpen, onClose, subscription, onExten
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600" />
-            Extend Subscription
+            {t.adminTabs?.payments?.extendSubscription || "Extend Subscription"}
           </DialogTitle>
           <DialogDescription>
-            Add extra days to <strong>{subscription.owner?.full_name}'s</strong> subscription.
+            {t.adminTabs?.payments?.extendSubDesc?.replace("{name}", subscription.owner?.full_name) || `Add extra days to ${subscription.owner?.full_name}'s subscription.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label>Extension Period</Label>
+            <Label>{t.adminTabs?.payments?.extensionPeriod || "Extension Period"}</Label>
             <Select value={duration} onValueChange={setDuration}>
               <SelectTrigger>
-                <SelectValue placeholder="Select duration" />
+                <SelectValue placeholder={t.adminTabs?.payments?.selectDuration || "Select duration"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7">7 Days</SelectItem>
-                <SelectItem value="14">14 Days</SelectItem>
-                <SelectItem value="30">1 Month (30 Days)</SelectItem>
-                <SelectItem value="90">3 Months (90 Days)</SelectItem>
-                <SelectItem value="365">1 Year (365 Days)</SelectItem>
-                <SelectItem value="custom">Custom Duration</SelectItem>
+                <SelectItem value="7">7 {t.adminTabs?.payments?.days || "Days"}</SelectItem>
+                <SelectItem value="14">14 {t.adminTabs?.payments?.days || "Days"}</SelectItem>
+                <SelectItem value="30">1 {t.adminTabs?.payments?.month || "Month"} (30 {t.adminTabs?.payments?.days || "Days"})</SelectItem>
+                <SelectItem value="90">3 {t.adminTabs?.payments?.months || "Months"} (90 {t.adminTabs?.payments?.days || "Days"})</SelectItem>
+                <SelectItem value="365">1 {t.adminTabs?.payments?.year || "Year"} (365 {t.adminTabs?.payments?.days || "Days"})</SelectItem>
+                <SelectItem value="custom">{t.adminTabs?.payments?.customDuration || "Custom Duration"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {duration === "custom" && (
             <div className="space-y-2">
-              <Label>Custom Days</Label>
+              <Label>{t.adminTabs?.payments?.customDays || "Custom Days"}</Label>
               <Input 
                 type="number" 
                 min="1" 
                 value={customDuration} 
                 onChange={(e) => setCustomDuration(e.target.value)} 
-                placeholder="Enter number of days" 
+                placeholder={t.adminTabs?.payments?.enterDays || "Enter number of days"} 
               />
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            {t.adminTabs?.common?.cancel || "Cancel"}
+          </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting || (duration === "custom" && !customDuration)}>
-            {isSubmitting ? "Extending..." : "Extend Subscription"}
+            {isSubmitting ? (t.adminTabs?.payments?.extending || "Extending...") : (t.adminTabs?.payments?.extendSubscription || "Extend Subscription")}
           </Button>
         </DialogFooter>
       </DialogContent>

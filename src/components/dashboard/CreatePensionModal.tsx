@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { LocationPicker } from '../ui/LocationPicker';
+import { useLanguage } from '../../hooks/use-language';
 
 interface CreatePensionModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
   pensionImageFile,
   setPensionImageFile
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   return (
@@ -36,8 +38,8 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create New Pension</h2>
-                <p className="text-sm text-slate-500 font-medium mt-0.5">Define your property details and public profile</p>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.createNewPension || "Create New Pension"}</h2>
+                <p className="text-sm text-slate-500 font-medium mt-0.5">{t.dashboard?.pensionDesc || "Define your property details and public profile"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
@@ -70,64 +72,64 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             {/* Essential Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name" className="text-sm font-bold text-slate-700">Pension Name *</Label>
+                <Label htmlFor="name" className="text-sm font-bold text-slate-700">{t.dashboard?.pensionNameRequired || "Pension Name *"}</Label>
                 <Input
                   id="name"
-                  value={language === 'en' ? newPension.name_en : language === 'am' ? newPension.name_am : newPension.name_om}
+                  value={(language === 'en' ? newPension.name_en : language === 'am' ? newPension.name_am : newPension.name_om) || newPension.name || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (language === 'en') setNewPension({ ...newPension, name_en: value, name: value });
                     else if (language === 'am') setNewPension({ ...newPension, name_am: value });
                     else setNewPension({ ...newPension, name_om: value });
                   }}
-                  placeholder="Enter pension name"
+                  placeholder={t.dashboard?.enterPensionName || "Enter pension name"}
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
 
               <div>
-                <Label htmlFor="phone" className="text-sm font-bold text-slate-700">Phone</Label>
+                <Label htmlFor="phone" className="text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone"}</Label>
                 <Input
                   id="phone"
                   value={newPension.phone}
                   onChange={(e) => setNewPension({ ...newPension, phone: e.target.value })}
-                  placeholder="Enter phone number"
+                  placeholder={t.dashboard?.enterPhoneNumber || "Enter phone number"}
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
 
               <div>
-                <Label htmlFor="email" className="text-sm font-bold text-slate-700">Email</Label>
+                <Label htmlFor="email" className="text-sm font-bold text-slate-700">{t.dashboard?.email || "Email"}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={newPension.email}
                   onChange={(e) => setNewPension({ ...newPension, email: e.target.value })}
-                  placeholder="Enter email"
+                  placeholder={t.dashboard?.enterEmail || "Enter email"}
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <Label htmlFor="room_details" className="text-sm font-bold text-slate-700">Room Details *</Label>
+                <Label htmlFor="room_details" className="text-sm font-bold text-slate-700">{t.dashboard?.roomDetailsRequired || "Room Details *"}</Label>
                 <textarea
                   id="room_details"
                   rows={2}
                   className="flex min-h-[60px] w-full rounded-xl border border-slate-200 bg-slate-50/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all mt-1.5"
-                  value={language === 'en' ? newPension.room_details_en : language === 'am' ? newPension.room_details_am : newPension.room_details_om}
+                  value={(language === 'en' ? newPension.room_details_en : language === 'am' ? newPension.room_details_am : newPension.room_details_om) || newPension.room_details || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (language === 'en') setNewPension({ ...newPension, room_details_en: value, room_details: value });
                     else if (language === 'am') setNewPension({ ...newPension, room_details_am: value });
                     else setNewPension({ ...newPension, room_details_om: value });
                   }}
-                  placeholder="e.g. Single and double rooms with private bathroom options..."
+                  placeholder={t.dashboard?.roomDetailsPlaceholder || "e.g. Single and double rooms with private bathroom options..."}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">Total Capacity (Rooms)</Label>
+                <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">{t.dashboard?.totalCapacityRooms || "Total Capacity (Rooms)"}</Label>
                 <Input
                   id="capacity"
                   type="number"
@@ -142,42 +144,42 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             {/* Description & Info Sections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="description" className="text-sm font-bold text-slate-700">Description</Label>
+                <Label htmlFor="description" className="text-sm font-bold text-slate-700">{t.dashboard?.description || "Description"}</Label>
                 <textarea
                   id="description"
                   rows={3}
                   className="flex min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all mt-1.5"
-                  value={language === 'en' ? newPension.description_en : language === 'am' ? newPension.description_am : newPension.description_om}
+                  value={(language === 'en' ? newPension.description_en : language === 'am' ? newPension.description_am : newPension.description_om) || newPension.description || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (language === 'en') setNewPension({ ...newPension, description_en: value, description: value });
                     else if (language === 'am') setNewPension({ ...newPension, description_am: value });
                     else setNewPension({ ...newPension, description_om: value });
                   }}
-                  placeholder="Brief description..."
+                  placeholder={t.dashboard?.briefDescriptionPlaceholder || "Brief description..."}
                 />
               </div>
 
               <div>
-                <Label htmlFor="owner_info" className="text-sm font-bold text-slate-700">Owner Info</Label>
+                <Label htmlFor="owner_info" className="text-sm font-bold text-slate-700">{t.dashboard?.ownerInfo || "Owner Info"}</Label>
                 <textarea
                   id="owner_info"
                   rows={3}
                   className="flex min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all mt-1.5"
-                  value={language === 'en' ? newPension.owner_info_en : language === 'am' ? newPension.owner_info_am : newPension.owner_info_om}
+                  value={(language === 'en' ? newPension.owner_info_en : language === 'am' ? newPension.owner_info_am : newPension.owner_info_om) || newPension.owner_info || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (language === 'en') setNewPension({ ...newPension, owner_info_en: value, owner_info: value });
                     else if (language === 'am') setNewPension({ ...newPension, owner_info_am: value });
                     else setNewPension({ ...newPension, owner_info_om: value });
                   }}
-                  placeholder="Ownership details..."
+                  placeholder={t.dashboard?.ownerDetailsPlaceholder || "Ownership details..."}
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="image" className="text-sm font-bold text-slate-700">Property Cover Image</Label>
+              <Label htmlFor="image" className="text-sm font-bold text-slate-700">{t.dashboard?.propertyCoverImage || "Property Cover Image"}</Label>
               <div className="mt-1.5 border-2 border-dashed border-primary/20 rounded-xl p-3 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer group relative overflow-hidden">
                 <Input
                   id="image"
@@ -197,7 +199,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                     <Plus className="w-4 h-4" />
                   </div>
                   <span className="text-sm font-bold text-slate-600 group-hover:text-primary transition-colors">
-                    {pensionImageFile ? pensionImageFile.name : "Upload Pension Photo"}
+                    {pensionImageFile ? pensionImageFile.name : (t.dashboard?.uploadPensionPhoto || "Upload Pension Photo")}
                   </span>
                 </label>
               </div>
@@ -206,13 +208,13 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             <div className="flex gap-3 pt-2">
               <Button
                 onClick={onCreatePension}
-                disabled={!newPension.name || !newPension.address}
+                disabled={!newPension.name && !newPension.name_en && !newPension.name_am && !newPension.name_om || !newPension.address}
                 className="flex-1 h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl"
               >
-                Create Pension
+                {t.dashboard?.createPension || "Create Pension"}
               </Button>
               <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-medium rounded-xl border-slate-200">
-                Cancel
+                {t.dashboard?.cancel || "Cancel"}
               </Button>
             </div>
           </div>

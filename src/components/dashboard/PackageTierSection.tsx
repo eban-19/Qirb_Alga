@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { 
   Package as PackageIcon,
@@ -76,12 +76,11 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
   totalItems = 0,
   language: langProp
 }) => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const currentLang = langProp || language;
   const [viewingPackage, setViewingPackage] = useState<Package | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
 
   const handleViewDetails = (pkg: Package) => {
     setViewingPackage(pkg);
@@ -99,7 +98,6 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
 
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
 
-  // Generate page numbers
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -115,9 +113,13 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
         <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
             <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-              {selectedRows.length} selected
+              {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">{selectedRows.length === 1 ? '1 tier selected' : `${selectedRows.length} tiers selected`}</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">
+              {selectedRows.length === 1 
+                ? (t.dashboard?.oneStaffMemberSelected || '1 tier selected').replace('staff member', 'tier') 
+                : (t.dashboard?.multipleStaffMembersSelected || '{count} tiers selected').replace('{count}', String(selectedRows.length)).replace('staff members', 'tiers')}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {selectedRows.length === 1 && (
@@ -131,7 +133,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                 }}
               >
                 <Edit2 className="h-4 w-4 mr-1.5" />
-                Edit Tier
+                {t.dashboard?.editTier || 'Edit Tier'}
               </Button>
             )}
             <Button 
@@ -140,7 +142,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
               className="font-bold text-slate-600 border-slate-200"
               onClick={() => onSelectAll?.([])}
             >
-              Clear
+              {t.dashboard?.clear || 'Clear'}
             </Button>
             <Button 
               size="sm" 
@@ -148,7 +150,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
               onClick={() => setShowConfirmDelete(true)}
             >
               <TrashIcon className="h-4 w-4 mr-1.5" />
-              {selectedRows.length === 1 ? 'Delete' : `Delete ${selectedRows.length}`}
+              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
             </Button>
           </div>
         </div>
@@ -161,20 +163,31 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
           selectedRows.forEach(id => onDeletePackage?.(id));
           onSelectAll?.([]);
         }}
-        title={selectedRows.length === 1 ? "Delete Package Tier" : "Delete Package Tiers"}
-        description={`Are you sure you want to permanently delete ${selectedRows.length === 1 ? "this package tier" : "these " + selectedRows.length + " package tiers"}? This will also affect any rooms associated with ${selectedRows.length === 1 ? "this tier" : "these tiers"}.`}
+        title={selectedRows.length === 1 ? (t.dashboard?.deletePackageTier || "Delete Package Tier") : (t.dashboard?.deletePackageTiers || "Delete Package Tiers")}
+        description={selectedRows.length === 1 
+          ? (t.dashboard?.confirmDeletePackageSingleDescription || "Are you sure you want to permanently delete this package tier? This will also affect any rooms associated with this tier.")
+          : (t.dashboard?.confirmDeletePackageMultipleDescription || `Are you sure you want to permanently delete these ${selectedRows.length} package tiers? This will also affect any rooms associated with these tiers.`)
+        }
         itemCount={selectedRows.length}
       />
 
-
-      {/* Section Header - outside the table card */}
-      <div className="flex justify-end mb-4 animate-fade-in">
+      {/* Section Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
+            <PackageIcon className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.packageTiers || "Package Tiers"}</h2>
+            <p className="text-slate-500 text-sm font-medium mt-0.5">{t.dashboard?.packageTiersDescription || "Manage your property's room categories and pricing levels."}</p>
+          </div>
+        </div>
         <Button
           onClick={onAddNewPackage}
-          className="h-10 sm:h-11 px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex gap-2 items-center text-xs sm:text-sm"
+          className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex gap-2"
         >
-          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span>Create New Tier</span>
+          <Plus className="h-5 w-5" />
+          <span>{t.dashboard?.createNewTier || "Create New Tier"}</span>
         </Button>
       </div>
 
@@ -196,11 +209,11 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                       }}
                     />
                   </TableHead>
-                  <TableHead className="px-6 py-4 font-bold text-slate-600">Package Name</TableHead>
-                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">Price / Night</TableHead>
-                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">Room Inventory</TableHead>
-                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">Status</TableHead>
-                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-right">Actions</TableHead>
+                  <TableHead className="px-6 py-4 font-bold text-slate-600">{t.dashboard?.packageName || "Package Name"}</TableHead>
+                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">{t.dashboard?.priceNight || "Price / Night"}</TableHead>
+                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">{t.dashboard?.roomInventory || "Room Inventory"}</TableHead>
+                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-center">{t.dashboard?.status || "Status"}</TableHead>
+                  <TableHead className="px-6 py-4 font-bold text-slate-600 text-right">{t.dashboard?.actions || "Actions"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,10 +224,10 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                         <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100">
                           <PackageIcon className="h-10 w-10 text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-black text-slate-900">No Package Tiers Found</h3>
-                        <p className="text-slate-500 max-w-xs mx-auto mt-2 font-medium">Start by creating your first package tier to define room pricing.</p>
+                        <h3 className="text-xl font-black text-slate-900">{t.dashboard?.noPackageTiersFound || "No Package Tiers Found"}</h3>
+                        <p className="text-slate-500 max-w-xs mx-auto mt-2 font-medium">{t.dashboard?.startCreatePackageTier || "Start by creating your first package tier to define room pricing."}</p>
                         <Button onClick={onAddNewPackage} variant="outline" className="mt-8 rounded-2xl border-2 font-bold px-8">
-                          Create First Tier
+                          {t.dashboard?.createFirstTier || "Create First Tier"}
                         </Button>
                       </div>
                     </TableCell>
@@ -235,7 +248,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-900 text-sm">{pkg.name}</span>
                             {pkg.isMostPopular && (
-                              <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-2 py-0 h-5 text-[10px] font-black uppercase">Most Popular</Badge>
+                              <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-2 py-0 h-5 text-[10px] font-black uppercase">{t.dashboard?.mostPopular || "Most Popular"}</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -246,12 +259,12 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                           <div className="flex flex-col items-center gap-2">
                             <div className="flex items-center gap-4">
                               <div className="text-center">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t.dashboard?.amount || "Total"}</p>
                                 <p className="text-sm font-black text-slate-700">{stats.total}</p>
                               </div>
                               <div className="w-px h-6 bg-slate-200"></div>
                               <div className="text-center">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Available</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t.dashboard?.availableRooms || "Available"}</p>
                                 <p className="text-sm font-black text-emerald-600">{stats.available}</p>
                               </div>
                             </div>
@@ -267,12 +280,12 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                           {stats.total > 0 ? (
                             <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none flex gap-1.5 px-3 w-fit mx-auto">
                               <CheckCircle2 className="h-3 w-3" />
-                              Active
+                              {t.dashboard?.active || "Active"}
                             </Badge>
                           ) : (
                             <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-none flex gap-1.5 px-3 w-fit mx-auto">
                               <AlertCircle className="h-3 w-3" />
-                              No Rooms
+                              {t.dashboard?.noRooms || "No Rooms"}
                             </Badge>
                           )}
                         </TableCell>
@@ -283,10 +296,10 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  className="h-7 sm:h-9 px-1.5 sm:px-3 gap-1 sm:gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold shrink-0"
+                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
                                 >
-                                  <span className="text-[10px] sm:text-xs font-bold">Actions</span>
-                                  <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-50 shrink-0" />
+                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-[160px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
@@ -295,29 +308,29 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-amber-50 focus:text-amber-600 transition-colors"
                                 >
                                   <Star className={`h-4 w-4 ${pkg.isMostPopular ? 'fill-current' : ''}`} />
-                                  <span className="font-bold text-sm">{pkg.isMostPopular ? "Remove Popular" : "Mark Popular"}</span>
+                                  <span className="font-bold text-sm">{pkg.isMostPopular ? (t.dashboard?.removePopular || "Remove Popular") : (t.dashboard?.markPopular || "Mark Popular")}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleViewDetails(pkg)}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-indigo-50 focus:text-indigo-600 transition-colors"
                                 >
                                   <Eye className="h-4 w-4" />
-                                  <span className="font-bold text-sm">View Details</span>
+                                  <span className="font-bold text-sm">{t.dashboard?.viewDetails || "View Details"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => onEditPackage(pkg)}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
                                 >
                                   <Edit2 className="h-4 w-4" />
-                                  <span className="font-bold text-sm">Edit Tier</span>
+                                  <span className="font-bold text-sm">{t.dashboard?.editTier || "Edit Tier"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem 
-                                  onClick={() => setPackageToDelete(pkg)}
+                                  onClick={() => onDeletePackage(pkgId)}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                                 >
                                   <TrashIcon className="h-4 w-4" />
-                                  <span className="font-bold text-sm">Delete Tier</span>
+                                  <span className="font-bold text-sm">{t.dashboard?.deleteTier || "Delete Tier"}</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -332,43 +345,44 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
           </div>
 
           {/* Pagination Footer */}
-          <div className="p-3 sm:p-4 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
-            <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
-              <span className="hidden xs:inline sm:inline">Showing </span>
-              <span className="text-slate-900">{packages.length}</span> of <span className="text-slate-900">{totalItems}</span>
-              <span className="hidden xs:inline sm:inline"> tiers</span>
+          <div className="p-4 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <div className="text-sm font-bold text-slate-500">
+              {t.dashboard?.showingTiers ? (
+                t.dashboard.showingTiers.replace('{count}', String(packages.length)).replace('{total}', String(totalItems))
+              ) : (
+                `Showing ${packages.length} of ${totalItems} tiers`
+              )}
             </div>
 
-            <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
-              <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Select
                   value={String(pagination.limit)}
                   onValueChange={(val) => onLimitChange?.(parseInt(val))}
                 >
-                  <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                  <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
                     <div className="flex items-center">
-                      <span className="sm:hidden">{pagination.limit}/p</span>
-                      <span className="hidden sm:inline">{pagination.limit} / page</span>
+                      <span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="5">5 / page</SelectItem>
-                    <SelectItem value="10">10 / page</SelectItem>
-                    <SelectItem value="20">20 / page</SelectItem>
-                    <SelectItem value="50">50 / page</SelectItem>
+                    <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                    <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onPageChange?.(pagination.page - 1)}
                   disabled={pagination.page <= 1}
-                  className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
+                  className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
                 >
-                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
                 
                 {getPageNumbers().map(pageNum => (
@@ -376,7 +390,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                     key={pageNum}
                     variant={pagination.page === pageNum ? "default" : "ghost"}
                     onClick={() => onPageChange?.(pageNum)}
-                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${
+                    className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
                       pagination.page === pageNum 
                         ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
                         : "text-slate-500 hover:bg-slate-50"
@@ -391,9 +405,9 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                   size="icon"
                   onClick={() => onPageChange?.(pagination.page + 1)}
                   disabled={pagination.page >= totalPages}
-                  className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
+                  className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
                 >
-                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -407,23 +421,6 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
         pkg={viewingPackage}
         language={currentLang}
       />
-
-      {/* Individual Package Tier Custom Delete Confirmation Modal */}
-      <ConfirmDeleteModal 
-        isOpen={!!packageToDelete}
-        onClose={() => setPackageToDelete(null)}
-        onConfirm={() => {
-          if (packageToDelete && onDeletePackage) {
-            onDeletePackage(packageToDelete.id || packageToDelete.package_id);
-          }
-          setPackageToDelete(null);
-        }}
-        title="Delete Package Tier"
-        description={`Are you sure you want to permanently delete the package tier "${packageToDelete?.name || ''}"? This will affect any rooms associated with this tier.`}
-        itemCount={1}
-      />
     </div>
   );
 };
-
-

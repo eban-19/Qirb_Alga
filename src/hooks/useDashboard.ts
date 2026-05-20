@@ -109,6 +109,9 @@ export const useDashboard = () => {
   const [businessProfile, setBusinessProfile] = useState({
     businessName: '', businessEmail: '', businessPhone: ''
   });
+  const [bankSettings, setBankSettings] = useState({
+    bankId: '', bankName: '', accountName: '', accountNumber: '', chapaSubaccountId: ''
+  });
   const [securitySettings, setSecuritySettings] = useState({
     currentPassword: '', newPassword: '', twoFactorEnabled: false
   });
@@ -172,6 +175,7 @@ export const useDashboard = () => {
     staffBulkUpload, setStaffBulkUpload,
     propertySettings, setPropertySettings,
     businessProfile, setBusinessProfile,
+    bankSettings, setBankSettings,
     securitySettings, setSecuritySettings,
     pensionImageFile, setPensionImageFile,
     packageImageFile, setPackageImageFile,

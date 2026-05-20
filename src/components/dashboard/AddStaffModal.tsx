@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Users, X } from 'lucide-react';
+import { useLanguage } from "@/hooks/use-language";
 import { Staff } from '../../types/dashboard';
 
 interface AddStaffModalProps {
@@ -23,6 +24,8 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   editingStaff,
   onSaveStaff
 }) => {
+  const { t } = useLanguage();
+
   if (!isOpen) return null;
 
   return (
@@ -37,9 +40,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">
-                    {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
+                    {editingStaff ? (t.dashboard?.editStaffMember || 'Edit Staff Member') : (t.dashboard?.addNewStaffMember || 'Add New Staff Member')}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-550 font-medium mt-1 text-slate-500 truncate sm:whitespace-normal">Manage your team and personnel details</p>
+                  <p className="text-xs sm:text-sm text-slate-550 font-medium mt-1 text-slate-500 truncate sm:whitespace-normal">{t.dashboard?.staffDesc || "Manage your team and personnel details"}</p>
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">
@@ -52,10 +55,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               {/* Left Column: Personal Info */}
               <div className="space-y-4 sm:space-y-6">
                 <div className="space-y-4">
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-400">Personal Information</h3>
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.personalInformation || "Personal Information"}</h3>
                   
                   <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-bold text-slate-700">Full Name</Label>
+                    <Label className="text-xs sm:text-sm font-bold text-slate-700">{t.dashboard?.fullName || "Full Name"}</Label>
                     <Input
                       value={newStaff.full_name}
                       onChange={(e) => setNewStaff({ ...newStaff, full_name: e.target.value })}
@@ -133,12 +136,12 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             </div>
 
             <div className="flex gap-3 mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-slate-100">
-              <Button variant="outline" onClick={onClose} className="flex-1 h-11 sm:h-12 rounded-xl font-bold border border-slate-200 text-sm sm:text-base">Cancel</Button>
+              <Button variant="outline" onClick={onClose} className="flex-1 h-11 sm:h-12 rounded-xl font-bold border border-slate-200 text-sm sm:text-base">{t.dashboard?.cancel || "Cancel"}</Button>
               <Button 
                 onClick={onSaveStaff} 
                 className="flex-1 h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm sm:text-base active:scale-95 transition-all"
               >
-                {editingStaff ? 'Update Staff' : 'Add Staff Member'}
+                {editingStaff ? (t.dashboard?.updateStaff || 'Update Staff') : (t.dashboard?.addStaffMember || 'Add Staff Member')}
               </Button>
             </div>
           </CardContent>

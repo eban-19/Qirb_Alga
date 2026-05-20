@@ -70,7 +70,7 @@ export class OTPService {
    * @param phone Phone number
    * @param code 6-digit code
    */
-  static async verifyOTP(phone: string, code: string): Promise<boolean> {
+  static async verifyOTP(phone: string, code: string, markVerified: boolean = true): Promise<boolean> {
     try {
       const normalizedPhone = this.normalizePhone(phone);
       
@@ -92,11 +92,13 @@ export class OTPService {
         return false;
       }
 
-      // Mark as verified
-      await prisma.phoneVerification.update({
-        where: { verification_id: verification.verification_id },
-        data: { is_verified: true }
-      });
+      if (markVerified) {
+        // Mark as verified
+        await prisma.phoneVerification.update({
+          where: { verification_id: verification.verification_id },
+          data: { is_verified: true }
+        });
+      }
 
       return true;
     } catch (error: any) {

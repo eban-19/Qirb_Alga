@@ -1,5 +1,6 @@
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PensionOwner, AdminBooking, SystemAlert } from "@/types/admin";
+import { useLanguage } from "@/hooks/use-language";
 
 interface AdminTabsListProps {
   owners: PensionOwner[];
@@ -9,6 +10,8 @@ interface AdminTabsListProps {
 }
 
 export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsListProps) => {
+  const { t } = useLanguage();
+
   return (
     <div className="relative">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-blue-100 to-indigo-100 rounded-2xl opacity-50"></div>
@@ -25,7 +28,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Overview</span>
+              <span className="font-bold">{t.sidebar?.overview || "Overview"}</span>
             </span>
           </TabsTrigger>
 
@@ -39,7 +42,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Owners</span>
+              <span className="font-bold">{t.sidebar?.owners || "Owners"}</span>
               <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-black px-2 py-1 rounded-full group-hover:scale-110 transition-transform duration-300 shadow-md">
                 {owners.filter(o => o.status === 'pending' || o.documentStatus === 'pending').length}
               </div>
@@ -56,7 +59,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Properties</span>
+              <span className="font-bold">{t.sidebar?.properties || "Properties"}</span>
             </span>
           </TabsTrigger>
 
@@ -70,7 +73,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Pension Approvals</span>
+              <span className="font-bold">{t.sidebar?.pensionApproval || "Pension Approvals"}</span>
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-black px-2 py-1 rounded-full group-hover:scale-110 transition-transform duration-300 shadow-md">
                 {pensions.filter(p => p.status === 'pending').length}
               </div>
@@ -87,7 +90,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Bookings</span>
+              <span className="font-bold">{t.sidebar?.bookings || "Bookings"}</span>
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-black px-2 py-1 rounded-full group-hover:scale-110 transition-transform duration-300 shadow-md">
                 {bookings.filter(b => b.status === 'pending').length}
               </div>
@@ -104,7 +107,7 @@ export const AdminTabsList = ({ owners, pensions, bookings, alerts }: AdminTabsL
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
-              <span className="font-bold">Alerts</span>
+              <span className="font-bold">{t.sidebar?.alerts || "Alerts"}</span>
               <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-black px-2 py-1 rounded-full group-hover:scale-110 transition-transform duration-300 shadow-md">
                 {alerts.filter(a => a.status === 'open').length}
               </div>

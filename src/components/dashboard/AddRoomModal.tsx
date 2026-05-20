@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { useLanguage } from "@/hooks/use-language";
 import {
   Bed, X, Package as PackageIcon, Home, Hash, Users,
   AlertCircle, Sparkles, Upload, Keyboard, Plus, Trash2, CheckCircle2
@@ -32,6 +33,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
   existingRooms,
   errorMessage
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   // Local state for tabs and inputs
@@ -199,8 +201,8 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                 <Bed className="h-6 w-6" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">Add New Rooms</h2>
-                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 truncate sm:whitespace-normal">Configure your property's room details and inventory</p>
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">{t.dashboard?.addNewRoom || "Add New Rooms"}</h2>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 truncate sm:whitespace-normal">{t.dashboard?.addRoomDesc || "Configure your property's room details and inventory"}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">

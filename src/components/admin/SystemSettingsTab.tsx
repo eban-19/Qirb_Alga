@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import apiService from "@/services/api";
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/hooks/use-language";
 
 interface SystemSettingsTabProps {
   activeSection?: 'financial' | 'account' | 'security';
@@ -38,6 +39,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
   const [saving, setSaving] = useState(false);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const { user, logout, updateProfile, changePassword } = useAuth();
+  const { t } = useLanguage();
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -159,9 +161,9 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 capitalize">
-          {activeSection === 'financial' ? 'Financial (VAT)' : activeSection} Settings
+          {activeSection === 'financial' ? (t.adminTabs?.settings?.financialSettings || 'Financial Settings') : (activeSection === 'account' ? (t.adminTabs?.settings?.accountSettings || 'Account Settings') : (activeSection === 'security' ? (t.adminTabs?.settings?.securitySettings || 'Security Settings') : `${activeSection} Settings`))}
         </h2>
-        <p className="text-slate-500">Manage system parameters and your personal account.</p>
+        <p className="text-slate-500">{t.adminTabs?.settings?.subtitle || "Manage system parameters and your personal account."}</p>
       </div>
 
       {activeSection === 'financial' && (
@@ -175,7 +177,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
               className="gap-2 rounded-lg"
             >
               <RefreshCcw className={loading ? "animate-spin w-4 h-4" : "w-4 h-4"} />
-              Refresh Data
+              {t.adminTabs?.common?.refresh || "Refresh Data"}
             </Button>
           </div>
 
@@ -188,8 +190,8 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     <Percent className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle>VAT Percentage</CardTitle>
-                    <CardDescription>Value Added Tax applied to bookings</CardDescription>
+                    <CardTitle>{t.adminTabs?.settings?.vatPercentage || "VAT Percentage"}</CardTitle>
+                    <CardDescription>{t.adminTabs?.settings?.vatDescription || "Value Added Tax applied to bookings"}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -209,7 +211,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3 text-xs">
                   <Info className="w-4 h-4 text-blue-500 shrink-0" />
-                  <p className="text-slate-600">Ethiopia Standard VAT is typically 15%.</p>
+                  <p className="text-slate-600">{t.adminTabs?.settings?.vatHint || "Ethiopia Standard VAT is typically 15%."}</p>
                 </div>
               </CardContent>
             </Card>
@@ -222,8 +224,8 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     <CreditCard className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle>Service Fee</CardTitle>
-                    <CardDescription>Platform processing fee</CardDescription>
+                    <CardTitle>{t.adminTabs?.settings?.serviceFee || "Service Fee"}</CardTitle>
+                    <CardDescription>{t.adminTabs?.settings?.serviceFeeDescription || "Platform processing fee"}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -243,7 +245,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex gap-3 text-xs">
                   <Info className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <p className="text-slate-600">Fee charged to owners for using the platform.</p>
+                  <p className="text-slate-600">{t.adminTabs?.settings?.serviceFeeHint || "Fee charged to owners for using the platform."}</p>
                 </div>
               </CardContent>
             </Card>
@@ -256,7 +258,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 h-12 rounded-xl font-bold shadow-lg shadow-blue-500/20 gap-2 transition-all"
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Save Configuration
+              {t.adminTabs?.settings?.saveConfiguration || "Save Configuration"}
             </Button>
           </div>
         </div>
@@ -274,13 +276,13 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     <UserIcon className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle>Profile Information</CardTitle>
-                    <CardDescription>Manage your public display details.</CardDescription>
+                    <CardTitle>{t.adminTabs?.settings?.profileInfo || "Profile Information"}</CardTitle>
+                    <CardDescription>{t.adminTabs?.settings?.profileDescription || "Manage your public display details."}</CardDescription>
                   </div>
                 </div>
                 {!isEditingProfile && (
                   <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="rounded-lg gap-2">
-                    <Edit2 className="w-3 h-3" /> Edit
+                    <Edit2 className="w-3 h-3" /> {t.adminTabs?.common?.edit || "Edit"}
                   </Button>
                 )}
               </CardHeader>
@@ -340,10 +342,10 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
 
                 {isEditingProfile && (
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="ghost" onClick={() => setIsEditingProfile(false)} disabled={updatingProfile}>Cancel</Button>
+                    <Button variant="ghost" onClick={() => setIsEditingProfile(false)} disabled={updatingProfile}>{t.adminTabs?.common?.cancel || "Cancel"}</Button>
                     <Button onClick={handleUpdateProfile} disabled={updatingProfile} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6">
                       {updatingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                      Update Profile
+                      {t.adminTabs?.settings?.updateProfile || "Update Profile"}
                     </Button>
                   </div>
                 )}
@@ -383,7 +385,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     onClick={logout}
                     className="w-full rounded-xl font-bold gap-2 shadow-lg shadow-red-500/10"
                   >
-                    <LogOut className="w-4 h-4" /> Sign Out
+                    <LogOut className="w-4 h-4" /> {t.adminTabs?.settings?.signOut || "Sign Out"}
                   </Button>
                 </CardContent>
               </Card>
@@ -403,8 +405,8 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     <Key className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle>Change Password</CardTitle>
-                    <CardDescription>Update your login credentials.</CardDescription>
+                    <CardTitle>{t.adminTabs?.settings?.changePassword || "Change Password"}</CardTitle>
+                    <CardDescription>{t.adminTabs?.settings?.changePasswordDescription || "Update your login credentials."}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -489,7 +491,7 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 font-bold mt-4"
                   >
                     {changingPassword ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
-                    Update Password
+                    {t.adminTabs?.settings?.updatePassword || "Update Password"}
                   </Button>
                 </form>
               </CardContent>

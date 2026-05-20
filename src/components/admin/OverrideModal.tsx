@@ -21,6 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Shield, Clock, Gift } from "lucide-react";
+import { useLanguage } from '@/hooks/use-language';
 
 interface OverrideModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
   plans,
   onSuccess
 }) => {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     ownerId: "",
@@ -49,7 +51,7 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.ownerId || !formData.planId || !formData.durationDays) {
-      toast.error("Please fill all required fields");
+      toast.error(t.adminTabs?.payments?.fillRequired || "Please fill all required fields");
       return;
     }
 
@@ -67,15 +69,15 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
 
       const data = await response.json();
       if (data.success) {
-        toast.success("Subscription override successful");
+        toast.success(t.adminTabs?.payments?.overrideSuccess || "Subscription override successful");
         onSuccess();
         onClose();
       } else {
-        toast.error(data.message || "Failed to override subscription");
+        toast.error(data.message || (t.adminTabs?.payments?.overrideFailed || "Failed to override subscription"));
       }
     } catch (error) {
       console.error('Override error:', error);
-      toast.error("An error occurred");
+      toast.error(t.adminTabs?.payments?.errorOccurred || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -87,23 +89,23 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-slate-900">
             <Shield className="w-6 h-6 text-indigo-600" />
-            Manual Access Override
+            {t.adminTabs?.payments?.manualAccessOverride || "Manual Access Override"}
           </DialogTitle>
           <DialogDescription>
-            Grant manual subscription or free access to an owner.
+            {t.adminTabs?.payments?.manualAccessDesc || "Grant manual subscription or free access to an owner."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="owner">Select Owner</Label>
+              <Label htmlFor="owner">{t.adminTabs?.payments?.selectOwner || "Select Owner"}</Label>
               <Select 
                 value={formData.ownerId} 
                 onValueChange={(val) => setFormData({...formData, ownerId: val})}
               >
                 <SelectTrigger className="bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Select an owner" />
+                  <SelectValue placeholder={t.adminTabs?.payments?.selectAnOwner || "Select an owner"} />
                 </SelectTrigger>
                 <SelectContent>
                   {owners.map((owner) => (
@@ -116,13 +118,13 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="plan">Select Plan Level</Label>
+              <Label htmlFor="plan">{t.adminTabs?.payments?.selectPlanLevel || "Select Plan Level"}</Label>
               <Select 
                 value={formData.planId} 
                 onValueChange={(val) => setFormData({...formData, planId: val})}
               >
                 <SelectTrigger className="bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Select a plan tier" />
+                  <SelectValue placeholder={t.adminTabs?.payments?.selectPlanTier || "Select a plan tier"} />
                 </SelectTrigger>
                 <SelectContent>
                   {plans.map((plan) => (
@@ -136,7 +138,7 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="duration">Duration (Days)</Label>
+                <Label htmlFor="duration">{t.adminTabs?.payments?.durationDaysLabel || "Duration (Days)"}</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -153,16 +155,16 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
                 />
                 <Label htmlFor="isFree" className="flex items-center gap-1 cursor-pointer">
                   <Gift className="w-4 h-4 text-purple-600" />
-                  Grant for Free
+                  {t.adminTabs?.payments?.grantForFree || "Grant for Free"}
                 </Label>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reason">Reason / Notes</Label>
+              <Label htmlFor="reason">{t.adminTabs?.payments?.reasonNotes || "Reason / Notes"}</Label>
               <Input
                 id="reason"
-                placeholder="e.g., Marketing partnership, troubleshooting compensation"
+                placeholder={t.adminTabs?.payments?.reasonPlaceholder || "e.g., Marketing partnership, troubleshooting compensation"}
                 value={formData.reason}
                 onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 className="bg-slate-50 border-slate-200"
@@ -172,10 +174,10 @@ export const OverrideModal: React.FC<OverrideModalProps> = ({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
-              Cancel
+              {t.adminTabs?.common?.cancel || "Cancel"}
             </Button>
             <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 px-8" disabled={loading}>
-              {loading ? "Processing..." : "Grant Access Now"}
+              {loading ? (t.adminTabs?.payments?.processing || "Processing...") : (t.adminTabs?.payments?.grantAccessNow || "Grant Access Now")}
             </Button>
           </DialogFooter>
         </form>

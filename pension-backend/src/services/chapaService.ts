@@ -14,10 +14,20 @@ export interface ChapaInitializeData {
   tx_ref: string;
   callback_url: string;
   return_url: string;
+  "subaccounts[id]"?: string;
   customization?: {
     title: string;
     description: string;
   };
+}
+
+export interface ChapaSubaccountData {
+  business_name: string;
+  account_name: string;
+  bank_code: string;
+  account_number: string;
+  split_type: 'percentage' | 'flat';
+  split_value: number;
 }
 
 export const initializePayment = async (data: ChapaInitializeData) => {
@@ -48,5 +58,21 @@ export const verifyPayment = async (txRef: string) => {
   } catch (error: any) {
     console.error('Chapa Verification Error Details:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || error.message || 'Failed to verify Chapa payment');
+  }
+};
+
+export const createSubaccount = async (data: ChapaSubaccountData) => {
+  try {
+    const authHeader = `Bearer ${process.env.CHAPA_SECRET_KEY}`;
+    const response = await axios.post(`${CHAPA_URL}/subaccount`, data, {
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Chapa Subaccount Creation Error Details:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to create Chapa subaccount');
   }
 };

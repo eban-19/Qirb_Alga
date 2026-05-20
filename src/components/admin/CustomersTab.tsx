@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Search, Mail, Phone, Calendar, X, Loader2, Info, CalendarDays, CalendarRange, Building2, CreditCard, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/hooks/use-language";
 import apiService from "@/services/api";
 
 interface Customer {
@@ -21,6 +22,7 @@ interface CustomersTabProps {
 }
 
 export function CustomersTab({ customers = [] }: CustomersTabProps) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -65,8 +67,8 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Customers Management</h2>
-            <p className="text-slate-600">View and manage registered customers</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.customers?.title || "Customers Management"}</h2>
+            <p className="text-slate-600">{t.adminTabs?.customers?.subtitle || "View and manage registered customers"}</p>
           </div>
         </div>
       </div>
@@ -76,7 +78,7 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
         <Card className="border border-slate-200 shadow-sm">
           <CardContent className="p-4">
             <div className="text-2xl font-black text-slate-700 mb-0.5">{customers.length}</div>
-            <div className="text-xs text-slate-500 font-medium">Total Customers</div>
+            <div className="text-xs text-slate-500 font-medium">{t.adminTabs?.common?.totalResults || "Total Customers"}</div>
           </CardContent>
         </Card>
         <Card className="border border-slate-200 shadow-sm">
@@ -84,7 +86,7 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
             <div className="text-2xl font-black text-blue-700 mb-0.5">
               {customers.filter(c => c.totalBookings > 0).length}
             </div>
-            <div className="text-xs text-slate-500 font-medium">Active Bookers</div>
+            <div className="text-xs text-slate-500 font-medium">{t.adminTabs?.common?.customer || "Active Bookers"}</div>
           </CardContent>
         </Card>
         <Card className="border border-slate-200 shadow-sm">
@@ -92,7 +94,7 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
             <div className="text-2xl font-black text-emerald-700 mb-0.5">
               {customers.reduce((sum, c) => sum + (c.totalBookings || 0), 0)}
             </div>
-            <div className="text-xs text-slate-500 font-medium">Total Bookings Made</div>
+            <div className="text-xs text-slate-500 font-medium">{t.adminTabs?.common?.amount || "Total Bookings Made"}</div>
           </CardContent>
         </Card>
       </div>
@@ -103,7 +105,7 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
-              placeholder="Search by name, email or phone..."
+              placeholder={t.adminTabs?.customers?.searchPlaceholder || "Search by name, email or phone..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 border-slate-200"
@@ -121,12 +123,12 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-slate-200">
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Customer</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Contact</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">Total Bookings</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">Status</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">Joined</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">Actions</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.customer || "Customer"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.contact || "Contact"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">{t.adminTabs?.bookings?.title || "Total Bookings"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">{t.adminTabs?.common?.status || "Status"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">{t.adminTabs?.common?.date || "Joined"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">{t.adminTabs?.common?.actions || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -134,8 +136,8 @@ export function CustomersTab({ customers = [] }: CustomersTabProps) {
                     <TableRow>
                       <TableCell colSpan={6} className="py-12 text-center">
                         <Users className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                        <div className="text-slate-500 text-lg font-medium">No customers found</div>
-                        <div className="text-slate-400 text-sm mt-1">Try adjusting your search filters.</div>
+                        <div className="text-slate-500 text-lg font-medium">{t.adminTabs?.common?.noResultsFound || "No customers found"}</div>
+                        <div className="text-slate-400 text-sm mt-1">{t.adminTabs?.common?.adjustSearch || "Try adjusting your search filters."}</div>
                       </TableCell>
                     </TableRow>
                   ) : (

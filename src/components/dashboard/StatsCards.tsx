@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Users, BedDouble, CalendarCheck, DollarSign } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 
 interface StatsCardsProps {
   staffCount: number;
@@ -17,7 +16,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
   activeBookings, 
   totalRevenue 
 }) => {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   return (
     <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {/* Total Staff */}
@@ -28,12 +27,12 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide"><TranslationText text="Total Staff" language={language} /></p>
+                <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">{t.dashboard?.totalStaff || "Total Staff"}</p>
               </div>
               <p className="text-3xl font-bold text-blue-800 group-hover:text-blue-900 transition-colors">{staffCount}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-green-100/50 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="text-xs font-bold text-green-700">+2 from last month</span>
+                <span className="text-xs font-bold text-green-700">{t.dashboard?.statsStaffChange || "+2 from last month"}</span>
               </div>
             </div>
             <div className="group-hover:rotate-12 transition-transform duration-500 rounded-2xl p-3 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg group-hover:shadow-blue-500/25">
@@ -51,14 +50,14 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide"><TranslationText text="Available Rooms" language={language} /></p>
+                <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">{t.dashboard?.availableRooms || "Available Rooms"}</p>
               </div>
               <p className="text-3xl font-bold text-emerald-800 group-hover:text-emerald-900 transition-colors">
                 {availableRooms}
               </p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-green-100/50 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="text-xs font-bold text-green-700">+5 from yesterday</span>
+                <span className="text-xs font-bold text-green-700">{t.dashboard?.statsRoomsChange || "+5 from yesterday"}</span>
               </div>
             </div>
             <div className="group-hover:rotate-12 transition-transform duration-500 rounded-2xl p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg group-hover:shadow-emerald-500/25">
@@ -76,12 +75,12 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide"><TranslationText text="Active Bookings" language={language} /></p>
+                <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide">{t.dashboard?.activeBookings || "Active Bookings"}</p>
               </div>
               <p className="text-3xl font-bold text-purple-800 group-hover:text-purple-900 transition-colors">{activeBookings}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-red-100/50 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-red-600" />
-                <span className="text-xs font-bold text-red-700">-1 from yesterday</span>
+                <span className="text-xs font-bold text-red-700">{t.dashboard?.statsBookingsChange || "-1 from yesterday"}</span>
               </div>
             </div>
             <div className="group-hover:rotate-12 transition-transform duration-500 rounded-2xl p-3 bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg group-hover:shadow-purple-500/25">
@@ -99,12 +98,12 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide"><TranslationText text="Total Revenue" language={language} /></p>
+                <p className="text-sm font-semibold text-amber-700 uppercase tracking-wide">{t.dashboard?.totalRevenue || "Total Revenue"}</p>
               </div>
               <p className="text-3xl font-bold text-amber-800 group-hover:text-amber-900 transition-colors">ETB {totalRevenue.toLocaleString()}</p>
               <div className="flex items-center gap-2 mt-2 p-2 bg-green-100/50 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="text-xs font-bold text-green-700">+12% from last month</span>
+                <span className="text-xs font-bold text-green-700">{t.dashboard?.statsRevenueChange || "+12% from last month"}</span>
               </div>
             </div>
             <div className="group-hover:rotate-12 transition-transform duration-500 rounded-2xl p-3 bg-gradient-to-br from-amber-500 to-amber-600 shadow-lg group-hover:shadow-amber-500/25">

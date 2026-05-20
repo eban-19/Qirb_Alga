@@ -3,29 +3,23 @@ import ReactDOM from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   LayoutDashboard, 
   BarChart3, 
-  Mail, 
   BedDouble, 
   CalendarCheck, 
   Calendar, 
   X, 
-  TrashIcon, 
-  Search,
+  Filter,
   CheckCircle,
-  Plus,
   IdCard,
-  MoreVertical,
-  Eye,
+  ChevronDown,
   AlertCircle
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, Filter, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -38,7 +32,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 interface BookingSectionProps {
@@ -54,14 +47,14 @@ interface BookingSectionProps {
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
-  language?: any;
-  onNewBooking?: () => void;
 }
 
 interface WalkInForm {
   guestName: string;
   phoneNumber: string;
   packageId: string;
+  checkIn?: string;
+  checkOut?: string;
 }
 
 interface InlineMessage {
@@ -74,21 +67,20 @@ interface InlineMessage {
 const BookingCard = ({ 
   booking, 
   onCompleteEarly, 
-  language, 
   onViewId,
   isSelected = false,
   onToggleSelection,
   onUpdateStatus
 }: { 
   booking: any; 
-  onCompleteEarly: (id: string) => void; 
-  language: any; 
+  onCompleteEarly: (id: string | number) => void; 
   onViewId: (idUrl: string) => void;
   isSelected?: boolean;
   onToggleSelection?: (id: string | number) => void;
   onUpdateStatus: (id: string | number, status: string) => void;
 }) => {
-  const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
+  const { t } = useLanguage();
+  const roomInfo = booking.room_number || booking.room_name || booking.room_type || `${t.dashboard?.room || 'Room'} ${booking.room_id || 'N/A'}`;
   const bookingId = booking.id || booking.booking_id;
   
   return (
@@ -103,7 +95,7 @@ const BookingCard = ({
       <CardHeader className="relative pb-0">
         <div className="flex justify-between items-start mb-4 pr-8">
           <div className="space-y-2">
-            <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || <TranslationText text="Guest" language={language} />}</h3>
+            <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{booking.user_name || t.dashboard?.guest || "Guest"}</h3>
             {(booking.user_phone || booking.phone) && (
               <p className="text-sm text-slate-600 flex items-center gap-1">
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,9 +107,13 @@ const BookingCard = ({
           </div>
           <Badge className={`${
             booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
-            booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-red-500 shadow-red-500/25'
+            booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' :
+            booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500 shadow-blue-500/25' : 'bg-slate-500 shadow-slate-500/25'
           } text-white text-xs shadow-sm capitalize`}>
-            <TranslationText text={booking.status} language={language} />
+            {booking.status?.toLowerCase() === 'confirmed' ? (t.dashboard?.confirmedStays || 'Confirmed') :
+             booking.status?.toLowerCase() === 'pending' ? (t.dashboard?.awaitingPayment || 'Pending') :
+             booking.status?.toLowerCase() === 'completed' ? (t.dashboard?.pastBookings || 'Completed') :
+             (booking.status || 'N/A')}
           </Badge>
         </div>
       </CardHeader>
@@ -125,26 +121,26 @@ const BookingCard = ({
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <BedDouble className="h-4 w-4" />
-            <TranslationText text="Room" language={language} />
+            {t.dashboard?.room || "Room"}
           </span>
           <span className="font-bold text-slate-900">{roomInfo}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <CalendarCheck className="h-4 w-4" />
-            <TranslationText text="Check-in" language={language} />
+            {t.dashboard?.checkIn || "Check-in"}
           </span>
           <span className="font-bold text-slate-900">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
           <span className="text-sm text-slate-600 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            <TranslationText text="Check-out" language={language} />
+            {t.dashboard?.checkOut || "Check-out"}
           </span>
           <span className="font-bold text-slate-900">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</span>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100">
-          <span className="text-sm font-bold text-emerald-700"><TranslationText text="Total" language={language} /></span>
+          <span className="text-sm font-bold text-emerald-700">{t.dashboard?.amount || "Total"}</span>
           <span className="font-bold text-emerald-700 text-lg">ETB {parseFloat(booking.total_price || 0).toLocaleString()}</span>
         </div>
         <div className="pt-2 border-t border-slate-100 mt-2">
@@ -155,7 +151,7 @@ const BookingCard = ({
                 className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
               >
                 <span className="flex items-center gap-2 font-bold">
-                  <TranslationText text="Actions" language={language} />
+                  {t.dashboard?.actions || "Actions"}
                 </span>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
@@ -167,7 +163,7 @@ const BookingCard = ({
                   className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
                 >
                   <IdCard className="h-4 w-4" />
-                  <TranslationText text="View ID" language={language} />
+                  {t.dashboard?.viewId || "View ID"}
                 </DropdownMenuItem>
               )}
               
@@ -177,7 +173,7 @@ const BookingCard = ({
                   className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  <TranslationText text="Confirm Manually" language={language} />
+                  {t.dashboard?.confirmManually || "Confirm Manually"}
                 </DropdownMenuItem>
               )}
 
@@ -187,11 +183,9 @@ const BookingCard = ({
                   className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  <TranslationText text="Early Checkout" language={language} />
+                  {t.dashboard?.earlyCheckout || "Early Checkout"}
                 </DropdownMenuItem>
               )}
-
-
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -212,12 +206,9 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
-  totalItems = 0,
-  language: propLanguage,
-  onNewBooking
+  totalItems = 0
 }) => {
-  const { language: hookLanguage } = useLanguage();
-  const language = propLanguage || hookLanguage;
+  const { t } = useLanguage();
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState<WalkInForm>({
     guestName: '',
@@ -226,7 +217,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   });
   const [packages, setPackages] = useState<any[]>([]);
   const [inlineMessages, setInlineMessages] = useState<InlineMessage[]>([]);
-  const [inlineMessagesEnabled, setInlineMessagesEnabled] = useState(true);
+  const [inlineMessagesEnabled] = useState(true);
   const [showEarlyCheckoutConfirm, setShowEarlyCheckoutConfirm] = useState(false);
   const [pendingEarlyCheckoutId, setPendingEarlyCheckoutId] = useState<string | number | null>(null);
   const [isProcessingEarlyCheckout, setIsProcessingEarlyCheckout] = useState(false);
@@ -361,6 +352,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       alert('Failed to create booking');
     }
   };
+
   const handleEarlyCheckoutWithMessages = async (bookingId: string | number) => {
     if (!inlineMessagesEnabled) {
       await onCompleteEarly(bookingId);
@@ -400,119 +392,110 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     return imagePath;
   };
 
-    const selectedBookings = bookings.filter(b => selectedRows.includes(b.id || b.booking_id));
-    const hasPendingSelection = selectedBookings.some(b => b.status?.toLowerCase() === 'pending');
+  const selectedBookings = bookings.filter(b => selectedRows.includes(b.id || b.booking_id));
+  const hasPendingSelection = selectedBookings.some(b => b.status?.toLowerCase() === 'pending');
 
-    return (
-      <div className="space-y-6">
-        {/* Bulk Actions Bar */}
-        {selectedRows.length > 0 && (
-          <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-            <div className="flex items-center gap-3">
-              <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
-                {selectedRows.length} selected
-              </Badge>
-              <p className="text-sm font-medium text-slate-600 hidden sm:block">Perform actions on all selected bookings</p>
-            </div>
-            <div className="flex items-center gap-2">
+  return (
+    <div className="space-y-6">
+      {/* Bulk Actions Bar */}
+      {selectedRows.length > 0 && (
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+              {selectedRows.length} {t.dashboard?.selected || 'selected'}
+            </Badge>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsSelected || 'Perform actions on all selected bookings'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+              onClick={() => onSelectAll?.([])}
+            >
+              {t.dashboard?.clearSelection || 'Clear Selection'}
+            </Button>
+            
+            {hasPendingSelection && (
               <Button 
                 size="sm" 
-                variant="outline" 
-                className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
-                onClick={() => onSelectAll?.([])}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
+                onClick={() => {
+                  selectedBookings
+                    .filter(b => b.status?.toLowerCase() === 'pending')
+                    .forEach(b => onUpdateStatus(b.id || b.booking_id, 'Confirmed'));
+                  onSelectAll?.([]);
+                }}
               >
-                Clear Selection
-              </Button>
-              
-              {hasPendingSelection && (
-                <Button 
-                  size="sm" 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
-                  onClick={() => {
-                    selectedBookings
-                      .filter(b => b.status?.toLowerCase() === 'pending')
-                      .forEach(b => onUpdateStatus(b.id || b.booking_id, 'Confirmed'));
-                    onSelectAll?.([]);
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirm Manually
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mt-6 overflow-hidden">
-          <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 rounded-xl border border-slate-200 min-w-0 flex-1 sm:flex-none">
-              <Filter className="h-4 w-4 text-slate-500 shrink-0" />
-              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as any)}>
-                <SelectTrigger className="w-full sm:w-[150px] h-8 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700 px-1 text-xs sm:text-sm">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                  {[
-                    { id: 'all', label: 'All Bookings', color: 'text-slate-600' },
-                    { id: 'active', label: 'Active Bookings', color: 'text-blue-600' },
-                    { id: 'pending', label: 'Awaiting Payment', color: 'text-amber-600' },
-                    { id: 'confirmed', label: 'Confirmed Stays', color: 'text-emerald-600' },
-                    { id: 'completed', label: 'Past Bookings', color: 'text-indigo-600' }
-                  ].map((filter) => (
-                    <SelectItem key={filter.id} value={filter.id} className="rounded-lg focus:bg-slate-50 cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          filter.id === 'all' ? 'bg-slate-400' :
-                          filter.id === 'active' ? 'bg-blue-400' :
-                          filter.id === 'pending' ? 'bg-amber-400' :
-                          filter.id === 'confirmed' ? 'bg-emerald-400' : 'bg-indigo-400'
-                        }`} />
-                        <span className={`font-medium ${filter.color}`}>
-                          <TranslationText text={filter.label} language={language} />
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {onNewBooking && (
-              <Button 
-                onClick={onNewBooking}
-                className="flex sm:hidden gap-1 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-10 px-2.5 rounded-xl text-[10px] xs:text-xs font-bold shrink-0"
-              >
-                <Plus className="h-3.5 w-3.5" /> 
-                <span>New Booking</span>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {t.dashboard?.confirmManually || 'Confirm Manually'}
               </Button>
             )}
           </div>
+        </div>
+      )}
 
-          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit self-end sm:self-auto shrink-0">
-        <Button
-          variant={viewMode === "card" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <TranslationText text="Cards" language={language} />
-        </Button>
-        <Button
-          variant={viewMode === "table" ? "default" : "ghost"}
-          size="sm"
-          onClick={onToggleView}
-          className={`gap-2 rounded-lg transition-all duration-300 ${
-            viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-          }`}
-        >
-          <BarChart3 className="h-4 w-4" />
-          <TranslationText text="Table" language={language} />
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
+            <Filter className="h-4 w-4 text-slate-500" />
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">{t.dashboard?.filterByStatus || 'Filter by Status:'}</span>
+            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as any)}>
+              <SelectTrigger className="w-[160px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                {[
+                  { id: 'all', label: t.dashboard?.allBookings || 'All Bookings', color: 'text-slate-600' },
+                  { id: 'active', label: t.dashboard?.activeBookings || 'Active Bookings', color: 'text-blue-600' },
+                  { id: 'pending', label: t.dashboard?.awaitingPayment || 'Awaiting Payment', color: 'text-amber-600' },
+                  { id: 'confirmed', label: t.dashboard?.confirmedStays || 'Confirmed Stays', color: 'text-emerald-600' },
+                  { id: 'completed', label: t.dashboard?.pastBookings || 'Past Bookings', color: 'text-indigo-600' }
+                ].map((filter) => (
+                  <SelectItem key={filter.id} value={filter.id} className="rounded-lg focus:bg-slate-50 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        filter.id === 'all' ? 'bg-slate-400' :
+                        filter.id === 'active' ? 'bg-blue-400' :
+                        filter.id === 'pending' ? 'bg-amber-400' :
+                        filter.id === 'confirmed' ? 'bg-emerald-400' : 'bg-indigo-400'
+                      }`} />
+                      <span className={`font-medium ${filter.color}`}>
+                        {filter.label}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit ml-auto">
+          <Button
+            variant={viewMode === "card" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            {t.dashboard?.cards || "Cards"}
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={onToggleView}
+            className={`gap-2 rounded-lg transition-all duration-300 ${
+              viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            {t.dashboard?.table || "Table"}
+          </Button>
+        </div>
       </div>
-    </div>
       
       {/* Cards View */}
       {viewMode === "card" && (
@@ -523,7 +506,6 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               booking={booking} 
               onCompleteEarly={handleEarlyCheckoutClick}
               onViewId={handleViewId}
-              language={language}
               isSelected={selectedRows.includes(booking.id || booking.booking_id)}
               onToggleSelection={onToggleSelection}
               onUpdateStatus={onUpdateStatus}
@@ -531,7 +513,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           ))}
           {filteredBookings.length === 0 && (
             <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100">
-              <p className="text-slate-400 font-medium italic">No bookings found for this filter.</p>
+              <p className="text-slate-400 font-medium italic">{t.dashboard?.noBookingsFilter || "No bookings found for this filter."}</p>
             </div>
           )}
         </div>
@@ -554,128 +536,131 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                         }}
                       />
                     </TableHead>
-                    <TableHead className="text-slate-700 font-bold">Guest</TableHead>
-                    <TableHead className="text-slate-700 font-bold">Room</TableHead>
-                    <TableHead className="text-slate-700 font-bold">Check-in</TableHead>
-                    <TableHead className="text-slate-700 font-bold">Check-out</TableHead>
-                    <TableHead className="text-slate-700 font-bold text-right">Amount</TableHead>
-                    <TableHead className="text-slate-700 font-bold">Status</TableHead>
-                    <TableHead className="text-slate-700 font-bold">Actions</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.guest || "Guest"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.room || "Room"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.checkIn || "Check-in"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.checkOut || "Check-out"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold text-right">{t.dashboard?.amount || "Amount"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.status || "Status"}</TableHead>
+                    <TableHead className="text-slate-700 font-bold">{t.dashboard?.actions || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredBookings.map((booking) => {
                     const bookingId = booking.id || booking.booking_id;
-                    const roomInfo = booking.room_number || booking.room_name || booking.room_type || `Room ${booking.room_id || 'N/A'}`;
+                    const roomInfo = booking.room_number || booking.room_name || booking.room_type || `${t.dashboard?.room || 'Room'} ${booking.room_id || 'N/A'}`;
                     return (
-                    <TableRow key={bookingId} className={`hover:bg-blue-50/50 transition-colors group ${selectedRows.includes(bookingId) ? 'bg-blue-50/30' : ''}`}>
-                      <TableCell className="px-4">
-                        <Checkbox checked={selectedRows.includes(bookingId)} onCheckedChange={() => onToggleSelection?.(bookingId)} />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                            {(booking.user_name || 'G').charAt(0)}
+                      <TableRow key={bookingId} className={`hover:bg-blue-50/50 transition-colors group ${selectedRows.includes(bookingId) ? 'bg-blue-50/30' : ''}`}>
+                        <TableCell className="px-4">
+                          <Checkbox checked={selectedRows.includes(bookingId)} onCheckedChange={() => onToggleSelection?.(bookingId)} />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                              {(booking.user_name || 'G').charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{booking.user_name || t.dashboard?.guest || 'Guest'}</p>
+                              {(booking.user_phone || booking.phone) && (
+                                <p className="text-sm text-slate-500 flex items-center gap-1">
+                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                  {booking.user_phone || booking.phone}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{booking.user_name || 'Guest'}</p>
-                            {(booking.user_phone || booking.phone) && (
-                              <p className="text-sm text-slate-500 flex items-center gap-1">
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                {booking.user_phone || booking.phone}
-                              </p>
-                            )}
+                        </TableCell>
+                        <TableCell><Badge variant="outline" className="bg-slate-50 text-slate-700 font-medium border-slate-200">{roomInfo}</Badge></TableCell>
+                        <TableCell className="text-slate-600">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</TableCell>
+                        <TableCell className="text-slate-600">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</TableCell>
+                        <TableCell className="text-right font-bold text-slate-900">ETB {(booking.total_price || 0).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge className={`${
+                            booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500' :
+                            booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500' :
+                            booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500' : 'bg-slate-500'
+                          } text-white border-none px-3 py-1 font-medium shadow-sm`}>
+                            {booking.status?.toLowerCase() === 'confirmed' ? (t.dashboard?.confirmedStays || 'Confirmed') :
+                             booking.status?.toLowerCase() === 'pending' ? (t.dashboard?.awaitingPayment || 'Pending') :
+                             booking.status?.toLowerCase() === 'completed' ? (t.dashboard?.pastBookings || 'Completed') :
+                             (booking.status || 'N/A')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300">
+                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                                {booking.status?.toLowerCase() === 'pending' && (
+                                  <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'Confirmed')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors">
+                                    <CheckCircle className="h-4 w-4" />{t.dashboard?.confirmManually || "Confirm Manually"}
+                                  </DropdownMenuItem>
+                                )}
+                                {booking.id_document_url && (
+                                  <DropdownMenuItem onClick={() => handleViewId(booking.id_document_url)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors">
+                                    <IdCard className="h-4 w-4" />{t.dashboard?.viewId || "View ID"}
+                                  </DropdownMenuItem>
+                                )}
+                                {booking.status?.toLowerCase() === 'confirmed' && (
+                                  <DropdownMenuItem onClick={() => handleEarlyCheckoutClick(bookingId)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors">
+                                    <CheckCircle className="h-4 w-4" />{t.dashboard?.completeEarly || "Complete Early"}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant="outline" className="bg-slate-50 text-slate-700 font-medium border-slate-200">{roomInfo}</Badge></TableCell>
-                      <TableCell className="text-slate-600">{booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-slate-600">{booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-right font-bold text-slate-900">ETB {(booking.total_price || 0).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge className={`${
-                          booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500' :
-                          booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500' :
-                          booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500' : 'bg-slate-500'
-                        } text-white border-none px-3 py-1 font-medium shadow-sm`}>{booking.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-7 sm:h-9 px-1.5 sm:px-3 gap-1 sm:gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold shrink-0">
-                                <span className="text-[10px] sm:text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
-                                <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-50 shrink-0" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-                              {booking.status?.toLowerCase() === 'pending' && (
-                                <DropdownMenuItem onClick={() => onUpdateStatus(bookingId, 'Confirmed')} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-emerald-50 focus:text-emerald-600 transition-colors">
-                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Confirm Manually" language={language} />
-                                </DropdownMenuItem>
-                              )}
-                              {booking.id_document_url && (
-                                <DropdownMenuItem onClick={() => handleViewId(booking.id_document_url)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors">
-                                  <IdCard className="h-4 w-4" /><TranslationText text="View ID" language={language} />
-                                </DropdownMenuItem>
-                              )}
-                              {booking.status?.toLowerCase() === 'confirmed' && (
-                                <DropdownMenuItem onClick={() => handleEarlyCheckoutClick(bookingId)} className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors">
-                                  <CheckCircle className="h-4 w-4" /><TranslationText text="Complete Early" language={language} />
-                                </DropdownMenuItem>
-                              )}
-
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
             </div>
             {filteredBookings.length === 0 && (
-              <div className="py-20 text-center bg-white"><p className="text-slate-400 font-medium italic">No bookings found for this filter.</p></div>
+              <div className="py-20 text-center bg-white"><p className="text-slate-400 font-medium italic">{t.dashboard?.noBookingsFilter || "No bookings found for this filter."}</p></div>
             )}
 
             {/* Unified Pagination Footer */}
-            <div className="p-3 sm:p-8 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
-              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
-                <span className="hidden xs:inline sm:inline">Showing </span>
-                <span className="text-slate-900">{bookings.length}</span> of <span className="text-slate-900">{totalItems}</span>
-                <span className="hidden xs:inline sm:inline"> bookings</span>
+            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div className="text-sm font-bold text-slate-500">
+                {t.dashboard?.showingBookings ? (
+                  t.dashboard.showingBookings.replace('{count}', String(bookings.length)).replace('{total}', String(totalItems))
+                ) : (
+                  `Showing ${bookings.length} of ${totalItems} bookings`
+                )}
               </div>
 
-              <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
-                <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
-                    <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
-                      <div className="flex items-center">
-                        <span className="sm:hidden">{pagination.limit}/p</span>
-                        <span className="hidden sm:inline">{pagination.limit} / page</span>
-                      </div>
+                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                      <div className="flex items-center"><span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span></div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 / page</SelectItem>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
+                      <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
-                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronLeft className="h-5 w-5" />
                   </Button>
                   {getPageNumbers().map(pageNum => (
-                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
                       {pageNum}
                     </Button>
                   ))}
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
-                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -698,10 +683,10 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowEarlyCheckoutConfirm(false)}>
           <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6 mx-auto"><AlertCircle className="w-8 h-8 text-amber-600" /></div>
-            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Confirm Early Checkout</h3>
-            <p className="text-slate-600 text-center mb-8">Are you sure you want to complete this booking early and make the room available?</p>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">{t.dashboard?.confirmEarlyCheckout || "Confirm Early Checkout"}</h3>
+            <p className="text-slate-600 text-center mb-8">{t.dashboard?.earlyCheckoutConfirmDescription || "Are you sure you want to complete this booking early and make the room available?"}</p>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setShowEarlyCheckoutConfirm(false)}>Cancel</Button>
+              <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setShowEarlyCheckoutConfirm(false)}>{t.dashboard?.cancel || "Cancel"}</Button>
               <Button className="flex-1 rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25" disabled={isProcessingEarlyCheckout} onClick={async () => {
                   if (pendingEarlyCheckoutId) {
                     setIsProcessingEarlyCheckout(true);
@@ -710,7 +695,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     setShowEarlyCheckoutConfirm(false);
                   }
                 }}>
-                {isProcessingEarlyCheckout ? 'Processing...' : 'Confirm'}
+                {isProcessingEarlyCheckout ? (t.dashboard?.processing || 'Processing...') : (t.dashboard?.confirm || 'Confirm')}
               </Button>
             </div>
           </div>
@@ -724,7 +709,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-purple-100 text-purple-600"><IdCard className="h-5 w-5" /></div>
-                <h3 className="text-xl font-bold text-slate-900">ID Document</h3>
+                <h3 className="text-xl font-bold text-slate-900">{t.dashboard?.idDocument || "ID Document"}</h3>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowIdModal(false)} className="rounded-xl"><X className="h-5 w-5" /></Button>
             </div>
@@ -732,8 +717,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               <img src={getFullImageUrl(selectedIdUrl)} alt="ID Document" className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-2xl border-4 border-white" />
             </div>
             <div className="p-6 border-t bg-white flex justify-end gap-3">
-              <Button variant="outline" className="rounded-xl px-6" onClick={() => window.open(getFullImageUrl(selectedIdUrl), '_blank')}>Open Full</Button>
-              <Button onClick={() => setShowIdModal(false)} className="rounded-xl px-8 bg-blue-600 hover:bg-blue-700">Close</Button>
+              <Button variant="outline" className="rounded-xl px-6" onClick={() => window.open(getFullImageUrl(selectedIdUrl), '_blank')}>{t.dashboard?.openFull || "Open Full"}</Button>
+              <Button onClick={() => setShowIdModal(false)} className="rounded-xl px-8 bg-blue-600 hover:bg-blue-700">{t.dashboard?.close || "Close"}</Button>
             </div>
           </div>
         </div>,

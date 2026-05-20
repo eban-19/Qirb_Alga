@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import apiService from "@/services/api";
+import { useLanguage } from "@/hooks/use-language";
 import { OverrideModal } from "./OverrideModal";
 import { PlanModal } from "./PlanModal";
 import { ExtendSubscriptionModal } from "./ExtendSubscriptionModal";
@@ -53,6 +54,7 @@ export function PaymentsTab({
   onToggleSubscriptionStatus,
   onTerminateSubscription
 }: PaymentsTabProps) {
+  const { t } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState("subscriptions");
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
@@ -153,13 +155,13 @@ export function PaymentsTab({
             <CreditCard className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Payments & Subscriptions</h2>
-            <p className="text-slate-600">Monitor revenue and manage owner access levels</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.payments?.title || "Payments & Subscriptions"}</h2>
+            <p className="text-slate-600">{t.adminTabs?.payments?.subtitle || "Monitor revenue and manage owner access levels"}</p>
           </div>
         </div>
         <Button variant="outline" onClick={onRefresh} className="gap-2">
           <Activity className="w-4 h-4" />
-          Refresh Data
+          {t.adminTabs?.common?.refresh || "Refresh Data"}
         </Button>
       </div>
 
@@ -190,10 +192,10 @@ export function PaymentsTab({
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 p-1 rounded-xl">
           <TabsTrigger value="subscriptions" className="rounded-lg py-2.5">
-            Owner Subscriptions
+            {t.adminTabs?.payments?.title || "Owner Subscriptions"}
           </TabsTrigger>
           <TabsTrigger value="plans" className="rounded-lg py-2.5">
-            Subscription Plans
+            {t.adminTabs?.common?.plan || "Subscription Plans"}
           </TabsTrigger>
         </TabsList>
 
@@ -202,8 +204,8 @@ export function PaymentsTab({
             <CardHeader className="bg-slate-50/50 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Recent Subscriptions</CardTitle>
-                  <CardDescription>View and manage all owner payment statuses</CardDescription>
+                  <CardTitle className="text-lg">{t.adminTabs?.payments?.recentSubscriptions || "Recent Subscriptions"}</CardTitle>
+                  <CardDescription>{t.adminTabs?.payments?.manageSubscriptions || "View and manage all owner payment statuses"}</CardDescription>
                 </div>
                 <Button 
                   size="sm" 
@@ -211,7 +213,7 @@ export function PaymentsTab({
                   onClick={() => setIsOverrideModalOpen(true)}
                 >
                   <Shield className="w-4 h-4" />
-                  Grant Free Access
+                  {t.adminTabs?.payments?.grantFreeAccess || "Grant Free Access"}
                 </Button>
               </div>
             </CardHeader>
@@ -219,12 +221,12 @@ export function PaymentsTab({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/30">
-                    <TableHead>Owner / Business</TableHead>
-                    <TableHead>Current Plan</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>Expiry Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t.adminTabs?.common?.owner || "Owner"} / {t.adminTabs?.common?.business || "Business"}</TableHead>
+                    <TableHead>{t.adminTabs?.common?.plan || "Current Plan"}</TableHead>
+                    <TableHead>{t.adminTabs?.common?.date || "Start Date"}</TableHead>
+                    <TableHead>{t.adminTabs?.common?.date || "Expiry Date"}</TableHead>
+                    <TableHead>{t.adminTabs?.common?.status || "Status"}</TableHead>
+                    <TableHead className="text-right">{t.adminTabs?.common?.actions || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -367,7 +369,7 @@ export function PaymentsTab({
                   {subscriptions.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-slate-400">
-                        No subscription records found
+                        {t.adminTabs?.common?.noResultsFound || "No subscription records found"}
                       </TableCell>
                     </TableRow>
                   )}
