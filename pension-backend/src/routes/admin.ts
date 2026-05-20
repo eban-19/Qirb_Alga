@@ -974,6 +974,99 @@ router.get('/customers', authenticateToken as any, requireAdmin as any, async (r
   }
 });
 
+// Get bookings for a specific customer
+router.get('/customers/:customerId/bookings', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const { customerId } = req.params;
+    const id = parseInt(customerId as string);
+    
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid customer ID' });
+    }
+
+    const customer = await prisma.user.findUnique({
+      where: { user_id: id }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: { customer_id: id },
+      include: {
+        room: {
+          include: {
+            pension: {
+              select: {
+                name: true,
+                pension_id: true,
+                owner_id: true,
+                owner: { select: { full_name: true, email: true } }
+              }
+            },
+            availabilityLogs: {
+              orderBy: { changed_at: 'desc' },
+              take: 1,
+              include: {
+                changer: { select: { full_name: true, email: true } }
+              }
+            }
+          }
+        },
+        payment: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    const formattedBookings = bookings.map((booking) => ({
+      id: booking.booking_id.toString(),
+      propertyName: booking.room?.pension?.name || 'Unknown Property',
+      pensionId: booking.room?.pension?.pension_id?.toString() || null,
+      ownerId: booking.room?.pension?.owner_id?.toString() || null,
+      ownerName: booking.room?.pension?.owner?.full_name || 'Unknown Owner',
+      ownerEmail: booking.room?.pension?.owner?.email || '',
+      checkIn: booking.check_in_date,
+      checkOut: booking.check_out_date,
+      actualCheckIn: booking.actual_check_in,
+      actualCheckOut: booking.actual_check_out,
+      totalPrice: booking.total_price,
+      status: booking.status,
+      roomNumber: booking.room_number || booking.room?.room_number || 'N/A',
+      passCode: booking.pass_code,
+      notes: booking.notes,
+      isWalkIn: booking.is_walk_in,
+      bookingSource: booking.booking_source,
+      roomStatus: {
+        currentStatus: booking.room?.availability_status || 'Available',
+        lastChangedBy: booking.room?.availabilityLogs?.[0]?.changer?.full_name || (booking.room?.last_status_update ? 'System (Booking Flow)' : null),
+        lastChangedAt: booking.room?.availabilityLogs?.[0]?.changed_at || booking.room?.last_status_update || null
+      },
+      payment: booking.payment ? {
+        id: booking.payment.payment_id.toString(),
+        reference: booking.payment.reference,
+        amount: booking.payment.amount,
+        status: booking.payment.status,
+        type: booking.payment.type,
+        createdAt: booking.payment.created_at
+      } : null,
+      createdAt: booking.created_at
+    }));
+
+    res.json({
+      success: true,
+      data: formattedBookings
+    });
+  } catch (error: any) {
+    console.error('Get customer bookings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customer bookings'
+    });
+  }
+});
+
+
 // Get all staffs
 router.get('/staffs', authenticateToken as any, requireAdmin as any, async (req: express.Request, res: express.Response) => {
   try {
