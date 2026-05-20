@@ -654,6 +654,10 @@ class ApiService {
     return this.request('/admin/customers');
   }
 
+  async getCustomerBookingsForAdmin(customerId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/admin/customers/${customerId}/bookings`);
+  }
+
   async getAllStaffs(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/staffs');
   }
