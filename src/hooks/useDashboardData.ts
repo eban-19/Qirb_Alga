@@ -263,7 +263,8 @@ export const useDashboardData = (ui?: any) => {
                 amount: parseFloat(e.amount || 0),
                 type: 'expense',
                 status: 'Completed',
-                method: 'Cash'
+                method: 'Cash',
+                rawExpense: e
               }));
               
               const combinedTransactions = [...generatedIncome, ...generatedExpenses].sort((a, b) => 

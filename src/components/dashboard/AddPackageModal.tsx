@@ -41,36 +41,36 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] border-none shadow-2xl bg-white ring-1 ring-slate-200 overflow-hidden flex flex-col rounded-[2rem]">
-        <CardHeader className="pb-4 border-b border-slate-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <Card className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] border-none shadow-2xl bg-white shadow-none ring-1 ring-slate-100 overflow-hidden flex flex-col rounded-2xl sm:rounded-[2rem] animate-in fade-in zoom-in duration-200">
+        <CardHeader className="pb-4 shrink-0 border-b border-slate-50 p-5 sm:p-8">
           <CardTitle className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600 shadow-md">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="hidden sm:flex p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200 shrink-0">
                 <PackageIcon className="h-6 w-6" />
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {editingPackage ? 'Edit Package Tier' : 'Create New Package Tier'}
                 </h2>
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-xs sm:text-sm text-slate-500 font-medium truncate sm:whitespace-normal">
                   {editingPackage ? 'Update your package details and pricing' : 'Define a new pricing category for your rooms'}
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
-              <X className="h-5 w-5 text-slate-400" />
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">
+              <X className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
             </Button>
           </CardTitle>
         </CardHeader>
-        
-        <CardContent className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+
+        <CardContent className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* Left Column: Basic Details */}
             <div className="space-y-8">
               <div className="space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Basic Information</h3>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Package Name</Label>
                   <Input
@@ -85,7 +85,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-purple-500/20"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Price per Night (ETB)</Label>
                   <div className="relative">
@@ -98,7 +98,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">Description</Label>
                   <textarea
@@ -128,7 +128,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                       <p className="text-xs text-slate-500 font-medium">Highlight this package to potential guests</p>
                     </div>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={newPackage.isMostPopular}
                     onCheckedChange={(checked) => setNewPackage({ ...newPackage, isMostPopular: checked })}
                     className="data-[state=checked]:bg-purple-600"
@@ -161,7 +161,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                         }
                       }}
                     />
-                    <Button 
+                    <Button
                       type="button"
                       variant="secondary"
                       className="h-12 w-12 p-0 bg-purple-600 text-white hover:bg-purple-700 rounded-xl shadow-lg shadow-purple-500/20 transition-all active:scale-95"
@@ -182,7 +182,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     {(newPackage.services || []).map((service: string, idx: number) => (
                       <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 rounded-xl text-sm font-bold border border-slate-200 shadow-sm animate-in fade-in zoom-in duration-300 group hover:border-purple-300 hover:text-purple-600 transition-all">
                         {service}
-                        <button 
+                        <button
                           onClick={() => setNewPackage({
                             ...newPackage,
                             services: (newPackage.services || []).filter((_: any, i: number) => i !== idx)
@@ -223,9 +223,9 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     <div key={idx} className="relative group aspect-video rounded-2xl overflow-hidden border border-slate-200 shadow-md">
                       <img src={img} alt={`Package ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           className="h-9 w-9 rounded-full p-0 shadow-xl"
                           onClick={() => handleRemoveImage(idx)}
                         >
@@ -234,7 +234,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                       </div>
                     </div>
                   ))}
-                  
+
                   <div className="relative aspect-video border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-purple-50 hover:border-purple-300 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
                     <div className="p-3 rounded-full bg-white text-purple-600 shadow-sm group-hover:scale-110 transition-transform">
                       <Upload className="h-6 w-6" />
@@ -260,9 +260,9 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
           </div>
         </CardContent>
 
-        <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex gap-4">
-          <Button variant="outline" onClick={onClose} className="flex-1 h-14 rounded-2xl font-bold text-slate-600 border-2 hover:bg-white transition-all">Cancel</Button>
-          <Button onClick={onAddPackage} className="flex-[2] h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-xl shadow-purple-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+        <div className="p-4 sm:p-8 border-t border-slate-50 bg-slate-50/30 flex gap-3 sm:gap-4 shrink-0">
+          <Button variant="outline" onClick={onClose} className="flex-1 h-11 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-600 border border-slate-200 hover:bg-white transition-all text-xs sm:text-base">Cancel</Button>
+          <Button onClick={onAddPackage} className="flex-[2] h-11 sm:h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl sm:rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-base">
             {editingPackage ? 'Update Package Tier' : 'Create Package Tier'}
           </Button>
         </div>

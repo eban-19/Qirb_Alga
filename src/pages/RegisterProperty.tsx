@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, CheckCircle2, Building, User, FileText, ArrowLeft, Building2, Plus, Edit, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,13 @@ const RegisterProperty = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Auto-scroll to error message when it is set
+  useEffect(() => {
+    if (error) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [error]);
+
   // Form State
   const [formData, setFormData] = useState({
     fullName: "",
@@ -46,6 +53,15 @@ const RegisterProperty = () => {
     pensionDescription: "",
     pensionRoomDetails: ""
   });
+
+  const passwordRules = [
+    { label: "At least 8 characters long", met: formData.password.length >= 8 },
+    { label: "At least one uppercase letter (A-Z)", met: /[A-Z]/.test(formData.password) },
+    { label: "At least one lowercase letter (a-z)", met: /[a-z]/.test(formData.password) },
+    { label: "At least one number (0-9)", met: /[0-9]/.test(formData.password) },
+    { label: "At least one special symbol (@$!%*?&#)", met: /[@$!%*?&#]/.test(formData.password) },
+  ];
+  const allPasswordRulesMet = passwordRules.every(rule => rule.met);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
@@ -85,9 +101,125 @@ const RegisterProperty = () => {
     }
   };
 
+  const validateEthiopianPhone = (phone: string, isBusiness: boolean = false): string | null => {
+    const cleanPhone = phone.trim();
+    const label = isBusiness ? "Business phone number" : "Phone number";
+    
+    if (!cleanPhone) {
+      return `${label} is required`;
+    }
+
+    const digitsOnly = cleanPhone.replace('+', '');
+    if (!/^\d+$/.test(digitsOnly)) {
+      return `${label} must contain only numeric digits`;
+    }
+
+    if (cleanPhone.startsWith('+')) {
+      if (!cleanPhone.startsWith('+251')) {
+        return `${label} international format must start with country code +251`;
+      }
+      const afterCountryCode = cleanPhone.slice(4);
+      if (!afterCountryCode.startsWith('9') && !afterCountryCode.startsWith('7')) {
+        return `${label} must start with 9 (Ethio Telecom) or 7 (Safaricom) after +251`;
+      }
+      if (cleanPhone.length > 13) {
+        return `${label} is too long. International format with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`;
+      }
+      if (cleanPhone.length < 13) {
+        return `${label} is too short. International format with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`;
+      }
+    } else if (cleanPhone.startsWith('251')) {
+      const afterCountryCode = cleanPhone.slice(3);
+      if (!afterCountryCode.startsWith('9') && !afterCountryCode.startsWith('7')) {
+        return `${label} must start with 9 (Ethio Telecom) or 7 (Safaricom) after 251`;
+      }
+      if (cleanPhone.length > 12) {
+        return `${label} is too long. International format starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`;
+      }
+      if (cleanPhone.length < 12) {
+        return `${label} is too short. International format starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`;
+      }
+    } else {
+      const startsWithZero = cleanPhone.startsWith('0');
+      const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
+      
+      if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
+        return `${label} must start with 09 (Ethio Telecom) or 07 (Safaricom)`;
+      }
+      
+      const expectedLength = startsWithZero ? 10 : 9;
+      if (cleanPhone.length > expectedLength) {
+        return `${label} is too long. Local format starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`;
+      }
+      if (cleanPhone.length < expectedLength) {
+        return `${label} is too short. Local format starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`;
+      }
+    }
+
+    return null;
+  };
+
   const nextStep = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep((prev) => prev + 1);
+  };
+
+  const handleStep1Next = async () => {
+    setError("");
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate Ethiopian phone number with detailed descriptive validation
+    const phoneError = validateEthiopianPhone(formData.phone);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
+    // Validate Strong Password (Required)
+    if (!formData.password) {
+      setError("Password is required");
+      return;
+    }
+
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!strongPasswordRegex.test(formData.password)) {
+      setError("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., @$!%*?&#)");
+      return;
+    }
+
+    // Check if email already exists in DB
+    try {
+      const emailResponse = await fetch(`http://localhost:3006/api/auth/check-user?identifier=${encodeURIComponent(formData.email.trim())}`);
+      const emailData = await emailResponse.json();
+      if (emailData.success && emailData.exists) {
+        setError("An account with this email address already exists.");
+        return;
+      }
+    } catch (e) {
+      console.error("Error verifying email uniqueness:", e);
+    }
+
+    // Check if phone already exists in DB
+    try {
+      // Normalize phone value to verify uniqueness properly in backend
+      const rawPhone = formData.phone.trim();
+      const phoneResponse = await fetch(`http://localhost:3006/api/auth/check-user?identifier=${encodeURIComponent(rawPhone)}`);
+      const phoneData = await phoneResponse.json();
+      if (phoneData.success && phoneData.exists) {
+        setError("An account with this phone number already exists.");
+        return;
+      }
+    } catch (e) {
+      console.error("Error verifying phone uniqueness:", e);
+    }
+
+    nextStep();
   };
   
   const prevStep = () => {
@@ -98,19 +230,53 @@ const RegisterProperty = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError("");
 
     try {
       // Validate required fields
-      if (!formData.fullName || !formData.email || !formData.password) {
-        setError('Please fill in all required fields: Full Name, Email, and Password');
+      if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+        setError('Please fill in all required fields: Full Name, Email, Phone Number, and Password');
         setIsSubmitting(false);
         return;
       }
 
       // Validate email format
-      const emailRegex = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
         setError('Please enter a valid email address');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate phone format
+      const phoneError = validateEthiopianPhone(formData.phone);
+      if (phoneError) {
+        setError(phoneError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate password strength
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+      if (!strongPasswordRegex.test(formData.password)) {
+        setError("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., @$!%*?&#)");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate business phone if provided
+      if (formData.businessPhone) {
+        const businessPhoneError = validateEthiopianPhone(formData.businessPhone, true);
+        if (businessPhoneError) {
+          setError(businessPhoneError);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Validate business email if provided
+      if (formData.businessEmail && !emailRegex.test(formData.businessEmail)) {
+        setError('Please enter a valid business email address');
         setIsSubmitting(false);
         return;
       }
@@ -151,7 +317,7 @@ const RegisterProperty = () => {
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         role: 'owner', // Send lowercase 'owner' to match backend expectation
-        password: formData.password || 'defaultPassword123', // Use form password or default
+        password: formData.password,
         businessName: formData.businessName,
         businessEmail: formData.businessEmail,
         businessPhone: formData.businessPhone,
@@ -268,7 +434,7 @@ const RegisterProperty = () => {
                     </div>
                     
                     <div className="grid gap-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">Password *</Label>
                       <div className="relative">
                         <Input 
                           id="password" 
@@ -276,8 +442,9 @@ const RegisterProperty = () => {
                           type={showPassword ? "text" : "password"} 
                           value={formData.password} 
                           onChange={handleInputChange} 
-                          required 
+                          required
                           className="h-12 pr-10" 
+                          placeholder="Create a strong password"
                         />
                         <button
                           type="button"
@@ -287,11 +454,32 @@ const RegisterProperty = () => {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+
+                      {/* Dynamic Password Strength Checklist */}
+                      <div className="mt-2 p-4 bg-slate-50/80 border border-slate-100/90 rounded-2xl space-y-2">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          Password Requirements
+                        </p>
+                        <div className="grid gap-1.5">
+                          {passwordRules.map((rule, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs">
+                              {rule.met ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border border-slate-300 bg-white shrink-0" />
+                              )}
+                              <span className={rule.met ? "text-emerald-700 font-semibold transition-colors duration-200" : "text-slate-500 transition-colors duration-200"}>
+                                {rule.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="pt-6 flex justify-end">
-                    <Button onClick={nextStep} disabled={!formData.fullName || !formData.phone || !formData.email} size="lg" className="w-full sm:w-auto px-8 gap-2">
+                    <Button onClick={handleStep1Next} disabled={!formData.fullName || !formData.phone || !formData.email || !allPasswordRulesMet} size="lg" className="w-full sm:w-auto px-8 gap-2">
                       {t.ownerRegistration.next} <ArrowLeft className="w-4 h-4 rotate-180" />
                     </Button>
                   </div>

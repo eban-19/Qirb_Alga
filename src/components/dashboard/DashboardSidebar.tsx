@@ -1,12 +1,12 @@
 import React from 'react';
 import { Home, Building, ChevronDown, LogOut, LucideIcon } from 'lucide-react';
 import { Button } from '../ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '../ui/select';
 import { Pension } from '../../types/dashboard';
 
@@ -68,7 +68,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       <aside className={`fixed left-0 top-0 h-screen w-64 border-r bg-white shadow-sm z-50 transform transition-transform duration-300 ease-in-out flex-shrink-0 overflow-hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center px-6 border-b flex-shrink-0">
-            <div 
+            <div
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
                 setActiveTab('overview');
@@ -88,34 +88,38 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </div>
 
           {(
-            (isPensionOwner() && pensions.filter(p => String(p.owner_id) === String(user?.id)).length > 1) || 
+            (isPensionOwner() && pensions.filter(p => String(p.owner_id) === String(user?.id)).length > 1) ||
             (user?.role?.toLowerCase() === 'admin' && pensions.length > 0)
           ) && (
-            <div className="px-4 py-3 border-b border-slate-100">
-              <Select value={selectedPensionId} onValueChange={handlePensionSelectionChange}>
-                <SelectTrigger className="w-full h-9 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Select Pension" />
-                </SelectTrigger>
-                <SelectContent className="w-64 max-h-60 overflow-y-auto">
-                  {pensions
-                    .filter(p => user?.role?.toLowerCase() === 'admin' || String(p.owner_id) === String(user?.id))
-                    .map((pension) => (
-                      <SelectItem 
-                        key={String(pension.pension_id || pension.id)} 
-                        value={String(pension.pension_id || pension.id)}
-                      >
-                        <div className="flex items-center gap-3 py-1.5">
-                          <Building className="h-4 w-4 text-slate-500" />
-                          <span className="truncate text-sm font-semibold">{pension.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+              <div className="px-4 py-3 border-b border-slate-100">
+                <Select value={selectedPensionId} onValueChange={handlePensionSelectionChange}>
+                  <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-xl px-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Building className="h-4 w-4 text-slate-500 shrink-0" />
+                      <SelectValue placeholder="Select Pension" className="truncate font-bold text-slate-900" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-xl p-1 shadow-2xl border-slate-200">
+                    {pensions
+                      .filter(p => user?.role?.toLowerCase() === 'admin' || String(p.owner_id) === String(user?.id))
+                      .map((pension) => (
+                        <SelectItem
+                          key={String(pension.pension_id || pension.id)}
+                          value={String(pension.pension_id || pension.id)}
+                          className="rounded-lg cursor-pointer py-2.5 transition-colors focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Building className="h-4 w-4 shrink-0" />
+                            <span className="truncate font-bold">{pension.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          <nav className="flex-1 space-y-1.5 px-3 py-6">
+          <nav className="flex-1 space-y-1.5 px-3 py-6 overflow-y-auto no-scrollbar scrollbar-hide">
             {sidebarLinks.map((link) => {
               const Icon = getIcon(link.icon);
               const isActive = activeTab === link.id || (link.id === "settings" && activeTab.startsWith("settings-"));

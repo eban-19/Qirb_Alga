@@ -638,6 +638,13 @@ class ApiService {
     });
   }
 
+  async updateExpense(expenseId: number, expenseData: any): Promise<ApiResponse<any>> {
+    return this.request(`/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(expenseData),
+    });
+  }
+
   // Admin methods
   async getAllOwners(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/owners');

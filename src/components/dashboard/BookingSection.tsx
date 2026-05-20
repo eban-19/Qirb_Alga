@@ -55,6 +55,7 @@ interface BookingSectionProps {
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
   language?: any;
+  onNewBooking?: () => void;
 }
 
 interface WalkInForm {
@@ -212,7 +213,8 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onToggleSelection,
   onSelectAll,
   totalItems = 0,
-  language: propLanguage
+  language: propLanguage,
+  onNewBooking
 }) => {
   const { language: hookLanguage } = useLanguage();
   const language = propLanguage || hookLanguage;
@@ -441,13 +443,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
-              <Filter className="h-4 w-4 text-slate-500" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">Filter by Status:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mt-6 overflow-hidden">
+          <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 rounded-xl border border-slate-200 min-w-0 flex-1 sm:flex-none">
+              <Filter className="h-4 w-4 text-slate-500 shrink-0" />
               <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as any)}>
-                <SelectTrigger className="w-[160px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                <SelectTrigger className="w-full sm:w-[150px] h-8 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700 px-1 text-xs sm:text-sm">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in zoom-in-95 duration-200">
@@ -475,9 +476,19 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
+
+            {onNewBooking && (
+              <Button 
+                onClick={onNewBooking}
+                className="flex sm:hidden gap-1 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-10 px-2.5 rounded-xl text-[10px] xs:text-xs font-bold shrink-0"
+              >
+                <Plus className="h-3.5 w-3.5" /> 
+                <span>New Booking</span>
+              </Button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit ml-auto">
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit self-end sm:self-auto shrink-0">
         <Button
           variant={viewMode === "card" ? "default" : "ghost"}
           size="sm"
@@ -592,9 +603,9 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                         <div className="flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300">
-                                <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
-                                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                              <Button variant="outline" size="sm" className="h-7 sm:h-9 px-1.5 sm:px-3 gap-1 sm:gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold shrink-0">
+                                <span className="text-[10px] sm:text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-50 shrink-0" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
@@ -629,16 +640,21 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
             )}
 
             {/* Unified Pagination Footer */}
-            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="text-sm font-bold text-slate-500">
-                Showing <span className="text-slate-900">{bookings.length}</span> of <span className="text-slate-900">{totalItems}</span> bookings
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
+              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
+                <span className="hidden xs:inline sm:inline">Showing </span>
+                <span className="text-slate-900">{bookings.length}</span> of <span className="text-slate-900">{totalItems}</span>
+                <span className="hidden xs:inline sm:inline"> bookings</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
-                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                      <div className="flex items-center"><span>{pagination.limit} / page</span></div>
+                    <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                      <div className="flex items-center">
+                        <span className="sm:hidden">{pagination.limit}/p</span>
+                        <span className="hidden sm:inline">{pagination.limit} / page</span>
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="5">5 / page</SelectItem>
@@ -649,17 +665,17 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
-                    <ChevronLeft className="h-5 w-5" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                   {getPageNumbers().map(pageNum => (
-                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
                       {pageNum}
                     </Button>
                   ))}
-                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400">
-                    <ChevronRight className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>

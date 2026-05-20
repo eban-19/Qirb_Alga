@@ -57,7 +57,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           >
             <X className="h-5 w-5 text-slate-500" />
           </Button>
-          <div className="relative flex-1">
+          <div className="relative flex-1 max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               autoFocus
@@ -81,13 +81,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               >
                 {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-
-              <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
-                {activeTab === "staff" ? <TranslationText text="Staff & HR Management" language={language} /> : 
-                 activeTab === "overview" ? <TranslationText text="Dashboard Overview" language={language} /> : 
-                 activeTab === "availability" ? <TranslationText text="Availability Management" language={language} /> :
-                 activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace("-", " ")}
-              </h1>
             </div>
           </div>
 

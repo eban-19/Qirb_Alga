@@ -57,12 +57,11 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-4xl max-h-[90vh] border-none shadow-2xl bg-white ring-1 ring-slate-200 overflow-hidden flex flex-col rounded-[2.5rem] animate-in zoom-in-95 duration-300">
-        <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
-        <CardHeader className="pb-4 border-b border-slate-50 p-6">
+      <Card className="w-full max-w-4xl max-h-[90vh] border-none shadow-none bg-white ring-1 ring-slate-200 overflow-hidden flex flex-col rounded-[2.5rem] animate-in zoom-in-95 duration-300">
+        <CardHeader className="pb-4 border-b border-slate-50 p-6 mt-2">
           <CardTitle className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-4">
-              <div className="p-3.5 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
+              <div className="p-3.5 rounded-2xl bg-slate-50 text-slate-600 border border-slate-200">
                 <PackageIcon className="h-7 w-7" />
               </div>
               <div>
@@ -130,14 +129,14 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
               <div className="aspect-[16/10] rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-slate-100 flex flex-col items-center justify-center p-8 group transition-all hover:bg-slate-100/50">
                 {pkg.virtual_tour_url ? (
                   <div className="text-center space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto border border-blue-200">
                       <Box className="h-8 w-8" />
                     </div>
                     <div className="space-y-1">
                       <h4 className="font-bold text-slate-800">3D Interactive Experience</h4>
                       <p className="text-xs text-slate-400 font-medium max-w-[200px] mx-auto">Explore this package tier in full immersive 3D</p>
                     </div>
-                    <Button variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white rounded-xl font-bold transition-all shadow-sm h-11 px-8" asChild>
+                    <Button variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white rounded-xl font-bold transition-all h-11 px-8" asChild>
                       <a href={pkg.virtual_tour_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                         <ExternalLink className="h-4 w-4" />
                         Launch VR Tour

@@ -81,6 +81,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
   const [viewingPackage, setViewingPackage] = useState<Package | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
 
   const handleViewDetails = (pkg: Package) => {
     setViewingPackage(pkg);
@@ -167,21 +168,12 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
 
 
       {/* Section Header - outside the table card */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
-            <PackageIcon className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Package Tiers</h2>
-            <p className="text-slate-500 text-sm font-medium mt-0.5">Manage your property's room categories and pricing levels.</p>
-          </div>
-        </div>
+      <div className="flex justify-end mb-4 animate-fade-in">
         <Button
           onClick={onAddNewPackage}
-          className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex gap-2"
+          className="h-10 sm:h-11 px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex gap-2 items-center text-xs sm:text-sm"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
           <span>Create New Tier</span>
         </Button>
       </div>
@@ -291,10 +283,10 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                                  className="h-7 sm:h-9 px-1.5 sm:px-3 gap-1 sm:gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold shrink-0"
                                 >
-                                  <span className="text-xs font-bold">Actions</span>
-                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                  <span className="text-[10px] sm:text-xs font-bold">Actions</span>
+                                  <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-50 shrink-0" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-[160px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
@@ -321,7 +313,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem 
-                                  onClick={() => onDeletePackage(pkgId)}
+                                  onClick={() => setPackageToDelete(pkg)}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                                 >
                                   <TrashIcon className="h-4 w-4" />
@@ -340,20 +332,23 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
           </div>
 
           {/* Pagination Footer */}
-          <div className="p-4 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-            <div className="text-sm font-bold text-slate-500">
-              Showing <span className="text-slate-900">{packages.length}</span> of <span className="text-slate-900">{totalItems}</span> tiers
+          <div className="p-3 sm:p-4 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
+            <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
+              <span className="hidden xs:inline sm:inline">Showing </span>
+              <span className="text-slate-900">{packages.length}</span> of <span className="text-slate-900">{totalItems}</span>
+              <span className="hidden xs:inline sm:inline"> tiers</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <Select
                   value={String(pagination.limit)}
                   onValueChange={(val) => onLimitChange?.(parseInt(val))}
                 >
-                  <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                  <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
                     <div className="flex items-center">
-                      <span>{pagination.limit} / page</span>
+                      <span className="sm:hidden">{pagination.limit}/p</span>
+                      <span className="hidden sm:inline">{pagination.limit} / page</span>
                     </div>
                   </SelectTrigger>
                   <SelectContent>
@@ -365,15 +360,15 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onPageChange?.(pagination.page - 1)}
                   disabled={pagination.page <= 1}
-                  className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
                 
                 {getPageNumbers().map(pageNum => (
@@ -381,7 +376,7 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                     key={pageNum}
                     variant={pagination.page === pageNum ? "default" : "ghost"}
                     onClick={() => onPageChange?.(pageNum)}
-                    className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
+                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${
                       pagination.page === pageNum 
                         ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
                         : "text-slate-500 hover:bg-slate-50"
@@ -396,9 +391,9 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
                   size="icon"
                   onClick={() => onPageChange?.(pagination.page + 1)}
                   disabled={pagination.page >= totalPages}
-                  className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                  className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
             </div>
@@ -411,6 +406,21 @@ export const PackageTierSection: React.FC<PackageTierSectionProps> = ({
         onClose={() => setIsViewModalOpen(false)}
         pkg={viewingPackage}
         language={currentLang}
+      />
+
+      {/* Individual Package Tier Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal 
+        isOpen={!!packageToDelete}
+        onClose={() => setPackageToDelete(null)}
+        onConfirm={() => {
+          if (packageToDelete && onDeletePackage) {
+            onDeletePackage(packageToDelete.id || packageToDelete.package_id);
+          }
+          setPackageToDelete(null);
+        }}
+        title="Delete Package Tier"
+        description={`Are you sure you want to permanently delete the package tier "${packageToDelete?.name || ''}"? This will affect any rooms associated with this tier.`}
+        itemCount={1}
       />
     </div>
   );

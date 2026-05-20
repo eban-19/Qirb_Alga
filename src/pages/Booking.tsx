@@ -582,7 +582,7 @@ const Booking = () => {
               {currentStep === 1 && (
                 <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-heading font-bold flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <Calendar className="w-6 h-6 text-primary" />
                       </div>
@@ -627,7 +627,7 @@ const Booking = () => {
               {currentStep === 2 && (
                 <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-heading font-bold flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <Package className="w-6 h-6 text-primary" />
                       </div>
@@ -731,7 +731,7 @@ const Booking = () => {
                   <div className="pt-8">
                     <Button 
                       type="button" 
-                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" 
+                      className="w-full h-auto py-4 sm:h-14 rounded-2xl text-sm sm:text-lg font-bold shadow-lg shadow-primary/20 flex items-center justify-center flex-wrap gap-2 px-4" 
                       onClick={handleNextStep}
                       disabled={!selectedPackage || (() => {
                         const avail = packageAvailability.find(p => p.packageId === selectedPackage?.id || p.packageName === selectedPackage?.name);
@@ -739,7 +739,7 @@ const Booking = () => {
                       })()}
                     >
                       {isAuthenticated ? "Continue to Guest Details" : "Sign In to Complete Booking"}
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                      <ArrowRight className="w-5 h-5 shrink-0" />
                     </Button>
                   </div>
                 </section>
@@ -749,7 +749,7 @@ const Booking = () => {
               {currentStep === 3 && (
                 <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-heading font-bold flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <User className="w-6 h-6 text-primary" />
                       </div>
@@ -815,7 +815,7 @@ const Booking = () => {
               {currentStep === 4 && (
                 <section className="bg-card p-6 md:p-10 rounded-[2.5rem] border border-border shadow-sm space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-heading font-bold flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
                       <div className="p-2 bg-primary/10 rounded-xl">
                         <CreditCard className="w-6 h-6 text-primary" />
                       </div>
