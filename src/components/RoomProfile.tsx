@@ -109,7 +109,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   };
 
   return (
-    <div className="w-full bg-background pt-20 pb-16 min-h-screen">
+    <div className="w-full bg-background pt-20 pb-16 min-h-screen overflow-x-hidden">
       <div className="container mx-auto px-4 lg:px-8">
         
         {/* Header & Back Button */}
@@ -118,10 +118,10 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             <Button variant="ghost" size="sm" className="mt-4 mb-2 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
-            <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground">{tr(room.name_ml || room.name)}</h1>
-            <div className="flex items-center gap-2 mt-3 text-muted-foreground">
-              <MapPin className="w-5 h-5 text-primary" />
-              <a href={mapsUrl} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors underline-offset-4 hover:underline text-lg">
+            <h1 className="font-heading text-2xl md:text-5xl font-bold text-foreground">{tr(room.name_ml || room.name)}</h1>
+            <div className="flex items-center gap-2 mt-3 text-muted-foreground mr-4 sm:mr-0">
+              <MapPin className="w-5 h-5 text-primary shrink-0" />
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors underline-offset-4 hover:underline text-lg pr-4 sm:pr-0 truncate">
                 {room.locationName}
               </a>
             </div>
@@ -139,7 +139,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
           {/* Packages Tabs */}
           <section className="space-y-6" style={{ scrollBehavior: 'auto' }}>
             <div className="space-y-4 text-center md:text-left">
-              <h2 className="text-3xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
+              <h2 className="text-2xl font-heading font-bold text-foreground">{t.rooms.packagesTitle || "Available Packages"}</h2>
               <p className="text-muted-foreground text-lg">Choose a package that fits your needs.</p>
             </div>
 
@@ -152,15 +152,15 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                     {/* Background glowing blob */}
                     <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
                     
-                    <div className="flex items-center gap-4 mb-6 relative z-10">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 mb-6 relative z-10">
                       <div className="bg-primary/10 p-3 rounded-2xl shrink-0">
                         <Gift className="w-8 h-8 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-2xl md:text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-1">
+                        <h3 className="text-lg sm:text-2xl md:text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-1">
                           Special Offers Available!
                         </h3>
-                        <p className="text-muted-foreground font-medium">
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium">
                           Discounts are automatically applied at checkout when requirements are met.
                         </p>
                       </div>
@@ -220,13 +220,13 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                       
                       {/* Package Details */}
                       <div className="flex flex-col justify-center order-2 lg:order-1">
-                        <div className="flex items-start justify-between mb-4 gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-4">
                           <h3 className="text-3xl font-bold font-heading flex items-center gap-3 text-foreground">
                             <PackageOpen className={`w-8 h-8 ${isPopular ? 'text-primary' : 'text-muted-foreground'}`} />
                             {tr(pkg.name_ml || pkg.name)}
                           </h3>
                           {isPopular && (
-                            <span className="shrink-0 text-xs font-bold px-4 py-1.5 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
+                            <span className="shrink-0 w-fit text-xs font-bold px-4 py-1.5 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
                               {t.rooms.mostPopular || "Most Popular"}
                             </span>
                           )}

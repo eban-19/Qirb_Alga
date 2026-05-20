@@ -96,13 +96,11 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-4xl max-h-[95vh] overflow-hidden bg-white ring-1 ring-slate-200 animate-in slide-in-from-bottom-4 duration-300 rounded-[2rem]">
-        {/* Header with gradient */}
-        <div className={`h-2 w-full bg-gradient-to-r ${theme.gradient}`}></div>
-        <CardHeader className="pb-4 px-4 sm:px-6">
+      <Card className="w-full max-w-4xl max-h-[95vh] overflow-hidden bg-white ring-1 ring-slate-200 shadow-none animate-in slide-in-from-bottom-4 duration-300 rounded-[2rem]">
+        <CardHeader className="pb-4 px-4 sm:px-6 mt-2">
           <CardTitle className="flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`p-2 sm:p-3 rounded-xl ${theme.iconBg} shadow-lg`}>
+              <div className="p-2 sm:p-3 rounded-xl bg-slate-50 text-slate-600 border border-slate-200">
                 <Icon className="h-4 w-4 sm:h-6 sm:w-6" />
               </div>
               <div>

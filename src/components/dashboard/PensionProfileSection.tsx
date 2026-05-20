@@ -90,18 +90,59 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
             </div>
+
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-purple-600" /> Location
+                <BedDouble className="h-4 w-4 text-purple-600" /> Total Capacity (Rooms)
               </Label>
               <Input
-                value={propertySettings.address}
-                onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
-                placeholder="e.g., Bole, Addis Ababa"
+                type="number"
+                value={propertySettings.capacity}
+                onChange={(e) => setPropertySettings({ ...propertySettings, capacity: e.target.value })}
+                placeholder="e.g., 20"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Phone className="h-4 w-4 text-purple-600" /> Contact Phone
+              </Label>
+              <Input
+                value={propertySettings.phone}
+                onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
+                placeholder="+251 ..."
+                className="h-11 border-slate-200 bg-slate-50/30"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Mail className="h-4 w-4 text-purple-600" /> Contact Email
+              </Label>
+              <Input
+                value={propertySettings.email}
+                onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
+                placeholder="info@pension.com"
+                className="h-11 border-slate-200 bg-slate-50/30"
+              />
+            </div>
+
+            {/* Address & Map Picker */}
+            <div className="space-y-2 flex flex-col justify-between h-full">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-purple-600" /> Location Address
+                </Label>
+                <Input
+                  value={propertySettings.address}
+                  onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
+                  placeholder="e.g., Bole, Addis Ababa"
+                  className="h-11 border-slate-200 bg-slate-50/30"
+                />
+              </div>
               
-              <div className="mt-4 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+              <div className="mt-4 flex-1 rounded-xl overflow-hidden border border-slate-100 shadow-sm min-h-[180px]">
                 <LocationPicker 
                   onLocationSelect={(loc) => {
                     setPropertySettings({
@@ -117,75 +158,51 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <Phone className="h-4 w-4 text-purple-600" /> Contact Phone
-              </Label>
-              <Input
-                value={propertySettings.phone}
-                onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
-                placeholder="+251 ..."
-                className="h-11 border-slate-200 bg-slate-50/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-purple-600" /> Contact Email
-              </Label>
-              <Input
-                value={propertySettings.email}
-                onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
-                placeholder="info@pension.com"
-                className="h-11 border-slate-200 bg-slate-50/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <BedDouble className="h-4 w-4 text-purple-600" /> Total Capacity (Rooms)
-              </Label>
-              <Input
-                type="number"
-                value={propertySettings.capacity}
-                onChange={(e) => setPropertySettings({ ...propertySettings, capacity: e.target.value })}
-                placeholder="e.g., 20"
-                className="h-11 border-slate-200 bg-slate-50/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-purple-600" /> Pension Image
-              </Label>
-              
-              {displayUrl && (
-                <div className="relative w-full h-40 rounded-xl overflow-hidden mb-2 border border-slate-100 group">
-                  <img 
-                    src={displayUrl} 
-                    alt="Pension Preview" 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <p className="text-white text-xs font-bold">Current Image</p>
-                  </div>
-                </div>
-              )}
 
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setPensionProfileImageFile(file);
-                    // Create local preview
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setPreviewUrl(reader.result as string);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-                className="cursor-pointer border-slate-200 bg-slate-50/30 h-11 py-1.5"
-              />
+            {/* Pension Image */}
+            <div className="space-y-2 flex flex-col justify-between h-full">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-purple-600" /> Pension Image
+                </Label>
+              </div>
+              
+              <div className="flex-1 flex flex-col justify-end">
+                {displayUrl ? (
+                  <div className="relative w-full h-[180px] rounded-xl overflow-hidden mb-4 border border-slate-100 group">
+                    <img 
+                      src={displayUrl} 
+                      alt="Pension Preview" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <p className="text-white text-xs font-bold">Current Image</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-[180px] bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-xs font-medium mb-4">
+                    No image uploaded yet
+                  </div>
+                )}
+
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPensionProfileImageFile(file);
+                      // Create local preview
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setPreviewUrl(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="cursor-pointer border-slate-200 bg-slate-50/30 h-11 py-1.5"
+                />
+              </div>
             </div>
           </div>
 

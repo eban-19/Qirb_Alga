@@ -11,7 +11,10 @@ import {
   Activity,
   Plus,
   MapPin,
-  LayoutDashboard
+  LayoutDashboard,
+  UserPlus,
+  FolderPlus,
+  Zap
 } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import { TranslationText } from '@/components/TranslationText';
@@ -27,6 +30,11 @@ interface OverviewSectionProps {
   recentTransactions: any[];
   guestsCount: number;
   onCreatePension?: () => void;
+  onNavigateTab?: (tab: string) => void;
+  onAddStaff?: () => void;
+  onAddRoom?: () => void;
+  onAddPackage?: () => void;
+  onBookWalkIn?: () => void;
 }
 
 export const OverviewSection: React.FC<OverviewSectionProps> = ({
@@ -34,7 +42,12 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   propertySettings,
   recentTransactions = [],
   guestsCount,
-  onCreatePension
+  onCreatePension,
+  onNavigateTab,
+  onAddStaff,
+  onAddRoom,
+  onAddPackage,
+  onBookWalkIn
 }) => {
   const { language } = useLanguage();
 
@@ -53,29 +66,35 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
 
       {/* Main Stats Grid */}
       <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Staff */}
-        <Card className="border shadow-sm bg-gradient-to-br from-blue-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
+        {/* Total Guests */}
+        <Card 
+          onClick={() => onNavigateTab?.('guests')}
+          className="border shadow-sm bg-gradient-to-br from-blue-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-blue-200"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                <TranslationText text="Total Staff" language={language} />
+                <TranslationText text="Total Guests" language={language} />
               </span>
               <div className="p-3 rounded-xl bg-blue-100 text-blue-600 shadow-inner group-hover:scale-110 transition-transform">
                 <Users className="h-5 w-5" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-4xl font-black text-slate-900">{stats.staffCount}</h3>
+              <h3 className="text-4xl font-black text-slate-900">{guestsCount}</h3>
               <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
                 <TrendingUp className="h-3 w-3" />
-                <span>+2 from last month</span>
+                <span>+12 from last week</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Available Rooms */}
-        <Card className="border shadow-sm bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
+        <Card 
+          onClick={() => onNavigateTab?.('rooms')}
+          className="border shadow-sm bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-emerald-200"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
@@ -96,7 +115,10 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Active Bookings */}
-        <Card className="border shadow-sm bg-gradient-to-br from-purple-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
+        <Card 
+          onClick={() => onNavigateTab?.('bookings')}
+          className="border shadow-sm bg-gradient-to-br from-purple-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-purple-200"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
@@ -117,7 +139,10 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Total Revenue */}
-        <Card className="border shadow-sm bg-gradient-to-br from-amber-50 to-white relative overflow-hidden group transition-all duration-300 cursor-default">
+        <Card 
+          onClick={() => onNavigateTab?.('transactions')}
+          className="border shadow-sm bg-gradient-to-br from-amber-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-amber-200"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
@@ -142,10 +167,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         {/* Property Information Card */}
         <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100 hover:shadow-2xl transition-all duration-500">
           <CardContent className="p-0">
-            <div className="p-6 bg-slate-50/50 border-b flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-purple-100 text-purple-600 shadow-sm">
-                <Activity className="h-6 w-6" />
-              </div>
+            <div className="p-6 bg-slate-50/50 border-b">
               <div>
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Property Information</h3>
                 <p className="text-2xl font-black text-slate-900 mt-1">{propertySettings.name || 'Pension'}</p>
@@ -206,12 +228,14 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
           <CardContent className="p-0">
             <div className="p-6 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-100 text-blue-600">
-                  <Activity className="h-5 w-5" />
-                </div>
                 <h3 className="font-bold text-lg text-slate-800">Recent Activity</h3>
               </div>
-              <Button variant="ghost" size="sm" className="text-xs font-bold text-slate-500 hover:text-blue-600">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs font-bold text-slate-500 hover:text-blue-600"
+                onClick={() => onNavigateTab?.('transactions')}
+              >
                 View All
               </Button>
             </div>
@@ -241,36 +265,56 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
           </CardContent>
         </Card>
 
-        {/* Quick Stats Card */}
+        {/* Quick Actions Card */}
         <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100 hover:shadow-2xl transition-all duration-500">
           <CardContent className="p-0">
             <div className="p-6 border-b flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600">
-                <LayoutDashboard className="h-5 w-5" />
-              </div>
-              <h3 className="font-bold text-lg text-slate-800">Quick Stats</h3>
+              <h3 className="font-bold text-lg text-slate-800">Quick Actions</h3>
             </div>
             <div className="p-8 grid grid-cols-2 gap-4">
-              <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 transition-transform duration-300">
-                <Users className="h-6 w-6 text-blue-500" />
-                <span className="text-xl font-black text-blue-700">{stats.staffCount}</span>
-                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Total Staff</span>
-              </div>
-              <div className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 transition-transform duration-300">
-                <Bed className="h-6 w-6 text-emerald-500" />
-                <span className="text-xl font-black text-emerald-700">{stats.availableRooms}</span>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">Available Rooms</span>
-              </div>
-              <div className="p-6 rounded-3xl bg-purple-50/50 border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 transition-transform duration-300">
-                <Calendar className="h-6 w-6 text-purple-500" />
-                <span className="text-xl font-black text-purple-700">{stats.activeBookings}</span>
-                <span className="text-[10px] font-bold text-purple-400 uppercase tracking-tighter">Active Bookings</span>
-              </div>
-              <div className="p-6 rounded-3xl bg-amber-50/50 border border-amber-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 transition-transform duration-300">
-                <Users className="h-6 w-6 text-amber-500" />
-                <span className="text-xl font-black text-amber-700">{guestsCount}</span>
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-tighter">Total Guests</span>
-              </div>
+              <button 
+                onClick={onBookWalkIn}
+                className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-emerald-100/40 hover:border-emerald-300 transition-all duration-300 cursor-pointer shadow-sm group"
+              >
+                <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Book Walk-in</span>
+                <span className="text-[9px] text-slate-400 font-medium">New check-in</span>
+              </button>
+              
+              <button 
+                onClick={onAddStaff}
+                className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-blue-100/40 hover:border-blue-300 transition-all duration-300 cursor-pointer shadow-sm group"
+              >
+                <div className="p-3 rounded-2xl bg-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Add Staff</span>
+                <span className="text-[9px] text-slate-400 font-medium">Register employee</span>
+              </button>
+
+              <button 
+                onClick={onAddRoom}
+                className="p-6 rounded-3xl bg-purple-50/50 border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-purple-100/40 hover:border-purple-300 transition-all duration-300 cursor-pointer shadow-sm group"
+              >
+                <div className="p-3 rounded-2xl bg-purple-100 text-purple-600 group-hover:scale-110 transition-transform">
+                  <Bed className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Add Room</span>
+                <span className="text-[9px] text-slate-400 font-medium">Create room unit</span>
+              </button>
+
+              <button 
+                onClick={onAddPackage}
+                className="p-6 rounded-3xl bg-amber-50/50 border border-amber-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-amber-100/40 hover:border-amber-300 transition-all duration-300 cursor-pointer shadow-sm group"
+              >
+                <div className="p-3 rounded-2xl bg-amber-100 text-amber-600 group-hover:scale-110 transition-transform">
+                  <FolderPlus className="h-5 w-5" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Add Package</span>
+                <span className="text-[9px] text-slate-400 font-medium">Create pricing tier</span>
+              </button>
             </div>
           </CardContent>
         </Card>

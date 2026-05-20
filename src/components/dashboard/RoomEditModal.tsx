@@ -60,11 +60,10 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-        <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600"></div>
-        <DialogHeader className="p-8 pb-4">
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-none rounded-[2rem] shadow-none">
+        <DialogHeader className="p-8 pb-4 mt-2">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
+            <div className="p-3 rounded-2xl bg-slate-50 text-slate-600 border border-slate-200">
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
@@ -212,7 +211,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
             <Button type="button" variant="outline" onClick={onClose} className="h-12 px-8 rounded-xl font-bold border-2">
               <TranslationText text="Cancel" language={language} />
             </Button>
-            <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 rounded-xl font-bold text-lg active:scale-95 transition-all">
+            <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg active:scale-95 transition-all">
               <TranslationText text="Update Room" language={language} />
             </Button>
           </div>

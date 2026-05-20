@@ -65,6 +65,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   language
 }) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
   // Ensure staff is always an array
   const safeStaff = Array.isArray(staff) ? staff : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
@@ -274,7 +275,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                         <DropdownMenuSeparator className="bg-slate-100" />
                         
                         <DropdownMenuItem 
-                          onClick={() => onDeleteStaff(member.id)}
+                          onClick={() => setStaffToDelete(member)}
                           className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -357,14 +358,14 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                          <div className="flex justify-end">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
-                                >
-                                  <span className="text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
-                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                                </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   className="h-7 sm:h-9 px-1.5 sm:px-3 gap-1 sm:gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold shrink-0"
+                                 >
+                                   <span className="text-[10px] sm:text-xs font-bold"><TranslationText text="Actions" language={language} /></span>
+                                   <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 opacity-50 shrink-0" />
+                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
                                 <DropdownMenuItem 
@@ -382,7 +383,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem 
-                                  onClick={() => onDeleteStaff(member.id)}
+                                  onClick={() => setStaffToDelete(member)}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -400,20 +401,23 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             </div>
 
             {/* Unified Pagination Footer */}
-            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="text-sm font-bold text-slate-500">
-                Showing <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span> employees
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
+              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
+                <span className="hidden xs:inline sm:inline">Showing </span>
+                <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span>
+                <span className="hidden xs:inline sm:inline"> employees</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Select
                     value={String(pagination.limit)}
                     onValueChange={(val) => onLimitChange?.(parseInt(val))}
                   >
-                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
+                    <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
                       <div className="flex items-center">
-                        <span>{pagination.limit} / page</span>
+                        <span className="sm:hidden">{pagination.limit}/p</span>
+                        <span className="hidden sm:inline">{pagination.limit} / page</span>
                       </div>
                     </SelectTrigger>
                     <SelectContent>
@@ -425,15 +429,15 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page - 1)}
                     disabled={pagination.page <= 1}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                   
                   {getPageNumbers().map(pageNum => (
@@ -441,7 +445,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                       key={pageNum}
                       variant={pagination.page === pageNum ? "default" : "ghost"}
                       onClick={() => onPageChange?.(pageNum)}
-                      className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
+                      className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${
                         pagination.page === pageNum 
                           ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
                           : "text-slate-500 hover:bg-slate-50"
@@ -456,9 +460,9 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page + 1)}
                     disabled={pagination.page >= totalPages}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>
@@ -466,6 +470,21 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Individual Staff Custom Delete Confirmation Modal */}
+      <ConfirmDeleteModal 
+        isOpen={!!staffToDelete}
+        onClose={() => setStaffToDelete(null)}
+        onConfirm={() => {
+          if (staffToDelete && onDeleteStaff) {
+            onDeleteStaff(staffToDelete.id);
+          }
+          setStaffToDelete(null);
+        }}
+        title="Delete Staff Member"
+        description={`Are you sure you want to permanently delete staff member "${staffToDelete?.full_name || ''}"? This action cannot be undone.`}
+        itemCount={1}
+      />
     </div>
   );
 };

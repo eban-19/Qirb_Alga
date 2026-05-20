@@ -197,10 +197,11 @@ export const PromotionsSection: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <p className="text-muted-foreground">Manage dynamic discounts and special offers for your properties.</p>
-        <Button onClick={handleAddNew} className="gap-2 bg-orange-600 hover:bg-orange-700 shadow-lg h-11 px-6 rounded-xl font-bold">
-          <Plus className="w-5 h-5" /> Add Promotion
+      <div className="flex flex-row items-center justify-between gap-4 mb-6 mr-3 sm:mr-0">
+        <p className="text-muted-foreground hidden sm:block">Manage dynamic discounts and special offers for your properties.</p>
+        <div className="flex-1 sm:flex-none" />
+        <Button onClick={handleAddNew} className="w-full sm:w-auto gap-1.5 sm:gap-2 bg-orange-600 hover:bg-orange-700 shadow-lg h-10 sm:h-11 px-4 sm:px-6 rounded-xl font-bold text-xs sm:text-sm shrink-0 items-center justify-center">
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Add Promotion
         </Button>
       </div>
 
@@ -220,9 +221,6 @@ export const PromotionsSection: React.FC = () => {
             <div key={promo.promo_id} className={`p-6 rounded-3xl border-2 transition-all shadow-sm ${promo.is_active ? 'bg-white border-orange-200' : 'bg-slate-50 border-slate-200 opacity-70'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-2xl ${promo.is_active ? 'bg-orange-100 text-orange-600' : 'bg-slate-200 text-slate-500'}`}>
-                    <Gift className="w-6 h-6" />
-                  </div>
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">{promo.name}</h3>
                     <p className="text-sm font-medium text-slate-500">{promo.pension?.name}</p>
@@ -241,20 +239,27 @@ export const PromotionsSection: React.FC = () => {
               <div className="flex flex-wrap gap-2 mb-3">
                 <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold uppercase">{promo.type.replace(/_/g, ' ')}</span>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">{promo.discount_percent}% OFF</span>
-                {promo.min_days && <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">Min: {promo.min_days} {promo.type === 'LONG_STAY' ? 'nights' : 'days'}</span>}
                 {promo.max_days && <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">Max: {promo.max_days} days</span>}
               </div>
 
-              {/* Package scope badge */}
-              <div className="flex items-center gap-2 mb-3">
-                <Package className="w-3.5 h-3.5 text-slate-400" />
-                {promo.package ? (
-                  <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-full">
-                    {promo.package.name} only
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                    All packages
+              {/* Package scope and min stay badge on the same line */}
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  {promo.package ? (
+                    <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-full">
+                      {promo.package.name} only
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                      All packages
+                    </span>
+                  )}
+                </div>
+
+                {promo.min_days && (
+                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-semibold">
+                    Min: {promo.min_days} {promo.type === 'LONG_STAY' ? 'nights' : 'days'}
                   </span>
                 )}
               </div>

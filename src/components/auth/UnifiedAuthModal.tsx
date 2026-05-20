@@ -27,10 +27,62 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
   const [otpSent, setOtpSent] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleNext = async () => {
+    setError(null);
     if (!identifier) {
-      toast.error('Please enter your email or phone number');
+      setError('Please enter your email or phone number');
       return;
+    }
+
+    if (method === 'phone') {
+      const cleanPhone = identifier.trim();
+      const digitsOnly = cleanPhone.replace('+', '');
+      if (!/^\d+$/.test(digitsOnly)) {
+        setError("Phone must contain only numeric digits");
+        return;
+      }
+
+      if (cleanPhone.startsWith('+')) {
+        if (!cleanPhone.startsWith('+251')) {
+          setError("Must start with country code +251");
+          return;
+        }
+        const afterCountry = cleanPhone.slice(4);
+        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
+          setError("Must start with +2519 or +2517");
+          return;
+        }
+        if (cleanPhone.length !== 13) {
+          setError("Must be exactly 13 characters");
+          return;
+        }
+      } else if (cleanPhone.startsWith('251')) {
+        const afterCountry = cleanPhone.slice(3);
+        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
+          setError("Must start with 2519 or 2517");
+          return;
+        }
+        if (cleanPhone.length !== 12) {
+          setError("Must be exactly 12 digits");
+          return;
+        }
+      } else {
+        const startsWithZero = cleanPhone.startsWith('0');
+        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
+        
+        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
+          setError("Must start with 09 or 07");
+          return;
+        }
+        
+        const expectedLength = startsWithZero ? 10 : 9;
+        if (cleanPhone.length !== expectedLength) {
+          setError(`Must be exactly ${expectedLength} digits`);
+          return;
+        }
+      }
     }
 
     setIsLoading(true);
@@ -61,11 +113,11 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           setStep('otp');
           toast.success('OTP sent to your phone');
         } else {
-          toast.error(data.message || 'Failed to send OTP');
+          setError(data.message || 'Failed to send OTP');
         }
       }
-    } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+    } catch (err) {
+      setError('Connection error. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +125,62 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (method === 'email' && isNewUser) {
+      if (!phoneNumber) {
+        setError("Phone number is required for registration");
+        return;
+      }
+      
+      const cleanPhone = phoneNumber.trim();
+      const digitsOnly = cleanPhone.replace('+', '');
+      if (!/^\d+$/.test(digitsOnly)) {
+        setError("Phone must contain only numeric digits");
+        return;
+      }
+
+      if (cleanPhone.startsWith('+')) {
+        if (!cleanPhone.startsWith('+251')) {
+          setError("Must start with country code +251");
+          return;
+        }
+        const afterCountry = cleanPhone.slice(4);
+        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
+          setError("Must start with +2519 or +2517");
+          return;
+        }
+        if (cleanPhone.length !== 13) {
+          setError("Must be exactly 13 characters");
+          return;
+        }
+      } else if (cleanPhone.startsWith('251')) {
+        const afterCountry = cleanPhone.slice(3);
+        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
+          setError("Must start with 2519 or 2517");
+          return;
+        }
+        if (cleanPhone.length !== 12) {
+          setError("Must be exactly 12 digits");
+          return;
+        }
+      } else {
+        const startsWithZero = cleanPhone.startsWith('0');
+        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
+        
+        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
+          setError("Must start with 09 or 07");
+          return;
+        }
+        
+        const expectedLength = startsWithZero ? 10 : 9;
+        if (cleanPhone.length !== expectedLength) {
+          setError(`Must be exactly ${expectedLength} digits`);
+          return;
+        }
+      }
+    }
+
     setIsLoading(true);
     try {
       if (method === 'email') {
@@ -92,12 +200,16 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           const regData = await regRes.json();
           if (regData.success) {
             // After register, perform login
-            await login(identifier, password);
-            toast.success('Account created successfully!');
-            onSuccess();
-            onClose();
+            const res = await login(identifier, password);
+            if (res.success) {
+              toast.success('Account created successfully!');
+              onSuccess();
+              onClose();
+            } else {
+              setError(res.message || 'Login failed after registration');
+            }
           } else {
-            toast.error(regData.message || 'Registration failed');
+            setError(regData.message || 'Registration failed');
           }
         } else {
           const res = await login(identifier, password);
@@ -112,6 +224,8 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               onSuccess();
               onClose();
             }
+          } else {
+            setError(res.message || 'Invalid email or password');
           }
         }
       } else {
@@ -127,10 +241,12 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             onSuccess();
             onClose();
           }
+        } else {
+          setError(res.message || 'Verification failed. Please check the code.');
         }
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -156,12 +272,25 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
         </DialogHeader>
 
         <form onSubmit={handleAuth} className="space-y-6 pt-4">
+          {error && (
+            <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+              <span>{error}</span>
+              <button 
+                type="button" 
+                onClick={() => setError(null)}
+                className="text-rose-400 hover:text-rose-600 font-bold ml-2 shrink-0 text-sm"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {step === 'input' && (
             <div className="space-y-4">
               <div className="flex bg-muted/50 p-1 rounded-2xl mb-4">
                 <button
                   type="button"
-                  onClick={() => { setMethod('phone'); setIdentifier(''); }}
+                  onClick={() => { setMethod('phone'); setIdentifier(''); setError(null); }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
                     method === 'phone' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
@@ -170,7 +299,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMethod('email'); setIdentifier(''); }}
+                  onClick={() => { setMethod('email'); setIdentifier(''); setError(null); }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
                     method === 'email' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
@@ -234,7 +363,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               <button 
                 type="button" 
                 className="w-full text-sm text-primary font-medium hover:underline"
-                onClick={() => setStep('input')}
+                onClick={() => { setStep('input'); setError(null); }}
               >
                 Change Phone Number
               </button>
@@ -290,7 +419,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               <button 
                 type="button" 
                 className="w-full text-sm text-primary font-medium hover:underline"
-                onClick={() => setStep('input')}
+                onClick={() => { setStep('input'); setError(null); }}
               >
                 Use a different email/phone
               </button>

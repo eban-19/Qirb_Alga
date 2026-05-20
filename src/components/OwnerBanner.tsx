@@ -44,7 +44,7 @@ const OwnerBanner = () => {
         </div>
 
         <div className="text-center">
-          <Button onClick={() => navigate("/register-property")} variant="accent" size="lg" className="rounded-xl text-base px-8 shadow-lg hover:scale-105 transition-transform">
+          <Button onClick={() => navigate("/register-property")} variant="accent" size="lg" className="rounded-xl text-base px-4 sm:px-8 shadow-lg hover:scale-105 transition-transform mr-4 sm:mr-0 mx-4 sm:mx-0">
             {t.ownerBanner.cta}
           </Button>
         </div>

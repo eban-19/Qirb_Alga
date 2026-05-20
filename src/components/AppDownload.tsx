@@ -15,10 +15,10 @@ const AppDownload = () => {
               <Smartphone className="w-4 h-4" />
               {t.appDownload.badge}
             </div>
-            <h2 className="font-heading text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight tracking-tight">
+            <h2 className="font-heading text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight tracking-tight">
               {t.appDownload.title}
             </h2>
-            <p className="text-xl text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0">
               {t.appDownload.subtitle}
             </p>
 

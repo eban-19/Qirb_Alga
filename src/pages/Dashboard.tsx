@@ -74,11 +74,18 @@ const Dashboard: React.FC = () => {
   }, [status, ui.activeTab]);
   const handlers = useDashboardHandlers(data, ui, data.loadRealData);
 
+  const [transactionFilter, setTransactionFilter] = React.useState<'all' | 'income' | 'expense'>('all');
+
   // Derived State
   const expensesByCategory = data.expensesData.reduce((acc: Record<string, number>, exp: { category: string, amount: string | number }) => {
     acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
     return acc;
   }, {} as Record<string, number>);
+
+  const filteredTransactions = data.recentTransactions.filter((t: any) => {
+    if (transactionFilter === 'all') return true;
+    return t.type === transactionFilter;
+  });
 
   if (data.loading || subLoading) {
     return (
@@ -130,14 +137,14 @@ const Dashboard: React.FC = () => {
 
         <div className="p-4 lg:p-8 max-w-[2000px] ml-0 w-full">
           {/* Section Headers */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
+          <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-6 overflow-hidden">
+            <div className="min-w-0 flex-1">
               {ui.activeTab === "overview" ? (
-                <h2 className="text-3xl font-black text-slate-900">
+                <h2 className="text-lg xs:text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">
                   Dashboard Overview
                 </h2>
               ) : (
-                <h2 className="text-3xl font-bold text-slate-900">
+                <h2 className="text-lg xs:text-xl sm:text-3xl font-bold text-slate-900 tracking-tight truncate">
                   {ui.activeTab === "staff" ? "Staff & HR Management" : 
                    ui.activeTab === "bookings" ? "Bookings Management" :
                    ui.activeTab === "rooms" ? "Rooms Management" :
@@ -147,17 +154,18 @@ const Dashboard: React.FC = () => {
                    ui.activeTab === "reports" ? "Reports & Analytics" :
                    ui.activeTab.startsWith("settings-") ? "Settings" :
                    ui.activeTab === "subscription" ? "Subscription Plans" :
+                   ui.activeTab === "transactions" ? "Transactions" :
                    "Dashboard Section"}
                 </h2>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               {ui.activeTab === "bookings" && (
                 <Button 
                   onClick={() => ui.setShowWalkInModal(true)}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-11 px-6 rounded-xl font-bold"
+                  className="hidden sm:flex gap-1 sm:gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-8 sm:h-11 px-2.5 sm:px-6 rounded-lg sm:rounded-xl text-[10px] xs:text-xs sm:text-sm font-bold shrink-0 items-center justify-center"
                 >
-                  <Plus className="h-4 w-4" /> 
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" /> 
                   <span>New Booking</span>
                 </Button>
               )}
@@ -209,6 +217,11 @@ const Dashboard: React.FC = () => {
                 recentTransactions={data.recentTransactions}
                 guestsCount={data.guestsData.length}
                 onCreatePension={() => ui.setShowCreatePension(true)}
+                onNavigateTab={(tab) => ui.setActiveTab(tab)}
+                onAddStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
+                onAddRoom={() => ui.setShowAddRoomModal(true)}
+                onAddPackage={() => { ui.setEditingPackage(null); ui.setNewPackage({ name: '', description: '', price: '', pension_id: '', duration_days: 1, capacity: 1, bed_count: 1, status: 'active' }); ui.setShowAddPackageModal(true); }}
+                onBookWalkIn={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -254,6 +267,7 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
                 totalItems={data.dataTotals.bookings}
                 language={language}
+                onNewBooking={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -301,7 +315,7 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
-                transactions={data.recentTransactions.slice(
+                transactions={filteredTransactions.slice(
                   (ui.pagination.transactions.page - 1) * ui.pagination.transactions.limit,
                   ui.pagination.transactions.page * ui.pagination.transactions.limit
                 )}
@@ -311,8 +325,18 @@ const Dashboard: React.FC = () => {
                 selectedRows={ui.selectedRows.transactions}
                 onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
-                totalItems={data.dataTotals.transactions}
+                totalItems={filteredTransactions.length}
                 language={language}
+                onUpdateExpense={handlers.handleUpdateExpense}
+                onDeleteExpense={handlers.handleDeleteExpense}
+                transactionFilter={transactionFilter}
+                onTransactionFilterChange={(filter) => {
+                  setTransactionFilter(filter);
+                  ui.setPagination({
+                    ...ui.pagination,
+                    transactions: { ...ui.pagination.transactions, page: 1 }
+                  });
+                }}
               />
             )}
 
