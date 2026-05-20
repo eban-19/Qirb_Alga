@@ -81,7 +81,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div className="flex flex-col">
                 <span className="font-bold text-lg leading-none">PensionHub</span>
                 {subscriptionStatus?.hasActiveSubscription && (
-                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Premium</span>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">{t.sidebar?.premium || "Premium"}</span>
                 )}
               </div>
             </div>
@@ -96,7 +96,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                   <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200 hover:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-xl px-4">
                     <div className="flex items-center gap-3 min-w-0">
                       <Building className="h-4 w-4 text-slate-500 shrink-0" />
-                      <SelectValue placeholder="Select Pension" className="truncate font-bold text-slate-900" />
+                      <SelectValue placeholder={t.sidebar?.selectPension || "Select Pension"} className="truncate font-bold text-slate-900" />
                     </div>
                   </SelectTrigger>
                   <SelectContent className="w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-xl p-1 shadow-2xl border-slate-200">
@@ -197,7 +197,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               }}
             >
               <Home className="h-4 w-4" />
-              Back to Home
+              {t.sidebar?.backToHome || "Back to Home"}
             </Button>
             <Button
               variant="ghost"
@@ -205,7 +205,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              {t.sidebar?.logout || "Logout"}
             </Button>
           </div>
         </div>

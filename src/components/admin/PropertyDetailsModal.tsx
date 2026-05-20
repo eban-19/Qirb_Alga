@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Package, Users, XCircle, RefreshCw } from 'lucide-react';
 import { Room } from '@/lib/rooms';
+import { useLanguage } from "@/hooks/use-language";
 
 interface PropertyDetailsModalProps {
   property?: Room | null;
@@ -17,14 +18,15 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   isOpen, 
   onClose 
 }) => {
+  const { t } = useLanguage();
   const getRoomStatusBadge = (status: string) => {
     switch (status) {
       case 'available':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Available</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">{t.adminDetails?.available || "Available"}</Badge>;
       case 'occupied':
-        return <Badge variant="destructive" className="bg-red-100 text-red-800">Occupied</Badge>;
+        return <Badge variant="destructive" className="bg-red-100 text-red-800">{t.adminDetails?.occupied || "Occupied"}</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>;
+        return <Badge variant="outline">{t.adminDetails?.unknown || "Unknown"}</Badge>;
     }
   };
 
@@ -33,10 +35,10 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">
-            {property?.name || 'Property Details'}
+            {property?.name || t.adminDetails?.propertyDetails || 'Property Details'}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
-            {property?.locationName || property?.city || 'Location information'}
+            {property?.locationName || property?.city || t.adminDetails?.locationInfo || 'Location information'}
           </DialogDescription>
         </DialogHeader>
 
@@ -45,30 +47,30 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
             {/* Property Overview */}
             <Card>
               <CardHeader>
-                <CardTitle>Property Overview</CardTitle>
+                <CardTitle>{t.adminDetails?.propertyOverview || "Property Overview"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Location</p>
+                    <p className="text-sm text-gray-500">{t.adminDetails?.location || "Location"}</p>
                     <p className="font-medium">{property.locationName || property.city || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Available Rooms</p>
+                    <p className="text-sm text-gray-500">{t.adminDetails?.availableRooms || "Available Rooms"}</p>
                     <p className="font-medium">{property.availableRooms || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Total Rooms</p>
+                    <p className="text-sm text-gray-500">{t.adminDetails?.totalRooms || "Total Rooms"}</p>
                     <p className="font-medium">{property.totalRooms || property.rooms?.length || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Packages</p>
+                    <p className="text-sm text-gray-500">{t.adminDetails?.packages || "Packages"}</p>
                     <p className="font-medium">{property.packages?.length || 0}</p>
                   </div>
                 </div>
                 {property.description && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-500">Description</p>
+                    <p className="text-sm text-gray-500">{t.adminDetails?.description || "Description"}</p>
                     <p className="text-gray-700">{property.description}</p>
                   </div>
                 )}
@@ -80,14 +82,14 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Available Rooms
+                  {t.adminDetails?.availableRooms || "Available Rooms"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {property.rooms?.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">
-                      No rooms found for this property
+                      {t.adminDetails?.noRoomsFound || "No rooms found for this property"}
                     </div>
                   ) : (
                     property.rooms?.map((room) => (
@@ -99,14 +101,14 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                           <div>
                             <div className="font-medium">{room.name}</div>
                             <div className="text-sm text-gray-500">
-                              {room.type || 'Standard Room'} · {room.capacity || 2} guests
+                              {room.type || 'Standard Room'} · {room.capacity || 2} {t.adminDetails?.guests || "guests"}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <div className="font-bold text-green-600">ETB {room.price || 0}</div>
-                            <div className="text-sm text-gray-500">per night</div>
+                            <div className="text-sm text-gray-500">{t.adminDetails?.perNight || "per night"}</div>
                           </div>
                           {getRoomStatusBadge(room.status || 'available')}
                         </div>
@@ -122,14 +124,14 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Available Packages
+                  {t.adminDetails?.availablePackages || "Available Packages"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {property.packages?.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">
-                      No packages found for this property
+                      {t.adminDetails?.noPackagesFound || "No packages found for this property"}
                     </div>
                   ) : (
                     property.packages?.map((pkg) => (
@@ -155,7 +157,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                               ETB {(pkg.price || 0).toLocaleString()}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {pkg.duration || 'per night'}
+                              {pkg.duration || t.adminDetails?.perNight || 'per night'}
                             </div>
                           </div>
                         </div>
@@ -168,7 +170,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500">No property data available</p>
+            <p className="text-gray-500">{t.adminDetails?.noPropertyData || "No property data available"}</p>
           </div>
         )}
       </DialogContent>

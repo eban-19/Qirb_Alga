@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Eye, Search, Clock, User, Building, Calendar, MessageSquare } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface SystemAlert {
   id: string;
@@ -24,6 +25,7 @@ interface AlertDetailModalProps {
 }
 
 export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: AlertDetailModalProps) {
+  const { t } = useLanguage();
   if (!alert) return null;
 
   const getSeverityColor = (severity: string) => {
@@ -89,7 +91,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
 
           {/* Alert Message */}
           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Alert Details</h3>
+            <h3 className="font-semibold text-slate-900 mb-2">{t.adminDetails?.alertDetails || "Alert Details"}</h3>
             <p className="text-slate-700 leading-relaxed">{alert.message}</p>
           </div>
 
@@ -98,7 +100,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
             <div className="bg-white rounded-lg p-4 border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-4 h-4 text-slate-500" />
-                <h4 className="font-semibold text-slate-900">Timestamp</h4>
+                <h4 className="font-semibold text-slate-900">{t.adminDetails?.timestamp || "Timestamp"}</h4>
               </div>
               <p className="text-slate-700">{alert.createdAt}</p>
             </div>
@@ -107,11 +109,11 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
               <div className="bg-white rounded-lg p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Building className="w-4 h-4 text-slate-500" />
-                  <h4 className="font-semibold text-slate-900">Related Entity</h4>
+                  <h4 className="font-semibold text-slate-900">{t.adminDetails?.relatedEntity || "Related Entity"}</h4>
                 </div>
                 <p className="text-slate-700">{alert.relatedEntity}</p>
                 {alert.entityType && (
-                  <p className="text-sm text-slate-500 mt-1">Type: {alert.entityType}</p>
+                  <p className="text-sm text-slate-500 mt-1">{t.adminDetails?.type || "Type"}: {alert.entityType}</p>
                 )}
               </div>
             )}
@@ -120,7 +122,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <div className="text-sm text-slate-500">
-              Alert ID: {alert.id}
+              {t.adminDetails?.alertId || "Alert ID"}: {alert.id}
             </div>
             <div className="flex items-center gap-3">
               <Button 
@@ -128,7 +130,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
                 onClick={onClose}
                 className="hover:bg-slate-100 hover:border-slate-400 hover:text-slate-900 transition-colors duration-200 border-2 border-slate-300"
               >
-                Close
+                {t.adminDetails?.close || "Close"}
               </Button>
               
               {alert.status === 'open' && (
@@ -140,7 +142,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onInvestigate }: Aler
                   className="bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <Search className="w-4 h-4 mr-2" />
-                  Start Investigation
+                  {t.adminDetails?.resolveAlert || "Start Investigation"}
                 </Button>
               )}
             </div>

@@ -17,6 +17,7 @@ import {
 import { Package } from '../../types/dashboard';
 import { Badge } from '../ui/badge';
 import { getFullImageUrl } from '../../lib/rooms';
+import { useLanguage } from '../../hooks/use-language';
 
 interface ViewPackageModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
   pkg,
   language
 }) => {
+  const { t } = useLanguage();
   if (!isOpen || !pkg) return null;
 
   const getName = () => {
@@ -47,7 +49,7 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
     else if (language === 'am') desc = pkg.description_am || "";
     else if (language === 'om') desc = pkg.description_om || "";
     
-    return desc || pkg.description || "No description provided for this package tier.";
+    return desc || pkg.description || (t.dashboard?.noDescriptionProvided || "No description provided for this package tier.");
   };
 
   // Combine images array and single image field for fallback
@@ -65,9 +67,9 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
                 <PackageIcon className="h-7 w-7" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Package Details</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.packageDetails || "Package Details"}</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-slate-500 font-medium">Viewing details for</span>
+                  <span className="text-sm text-slate-500 font-medium">{t.dashboard?.viewingDetailsFor || "Viewing details for"}</span>
                   <Badge variant="outline" className="bg-blue-50/50 text-blue-700 border-blue-200 font-bold">{getName()}</Badge>
                 </div>
               </div>
@@ -86,10 +88,10 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-50 pb-4">
                 <div className="flex items-center gap-3">
                   <ImageIcon className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Media Gallery</h3>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.mediaGallery || "Media Gallery"}</h3>
                 </div>
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">
-                  {allImages.length} Images
+                  {allImages.length} {t.dashboard?.images || "Images"}
                 </span>
               </div>
               
@@ -109,7 +111,7 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
               ) : (
                 <div className="aspect-video bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
                   <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
-                  <p className="text-sm font-bold">No images uploaded</p>
+                  <p className="text-sm font-bold">{t.dashboard?.noImagesUploaded || "No images uploaded"}</p>
                 </div>
               )}
             </div>
@@ -119,10 +121,10 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-50 pb-4">
                 <div className="flex items-center gap-3">
                   <RotateCw className="h-5 w-5 text-orange-500" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">VR Tour Files</h3>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.vrTourFiles || "VR Tour Files"}</h3>
                 </div>
                 <span className={`text-xs font-bold uppercase tracking-widest ${pkg.virtual_tour_url ? 'text-green-500' : 'text-slate-300'}`}>
-                  {pkg.virtual_tour_url ? 'Available' : 'Not Available'}
+                  {pkg.virtual_tour_url ? (t.dashboard?.available || 'Available') : (t.dashboard?.notAvailable || 'Not Available')}
                 </span>
               </div>
 
@@ -133,20 +135,20 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
                       <Box className="h-8 w-8" />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-slate-800">3D Interactive Experience</h4>
-                      <p className="text-xs text-slate-400 font-medium max-w-[200px] mx-auto">Explore this package tier in full immersive 3D</p>
+                      <h4 className="font-bold text-slate-800">{t.dashboard?.vrTourExperience || "3D Interactive Experience"}</h4>
+                      <p className="text-xs text-slate-400 font-medium max-w-[200px] mx-auto">{t.dashboard?.vrTourDesc || "Explore this package tier in full immersive 3D"}</p>
                     </div>
                     <Button variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-blue-600 hover:text-white rounded-xl font-bold transition-all h-11 px-8" asChild>
                       <a href={pkg.virtual_tour_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                         <ExternalLink className="h-4 w-4" />
-                        Launch VR Tour
+                        {t.dashboard?.launchVrTour || "Launch VR Tour"}
                       </a>
                     </Button>
                   </div>
                 ) : (
                   <div className="text-center space-y-4 opacity-40">
                     <RotateCw className="h-12 w-12 text-slate-300 mx-auto" />
-                    <p className="text-sm font-black text-slate-400 uppercase tracking-tighter">No VR tour available</p>
+                    <p className="text-sm font-black text-slate-400 uppercase tracking-tighter">{t.dashboard?.noVrTourAvailable || "No VR tour available"}</p>
                   </div>
                 )}
               </div>
@@ -161,15 +163,15 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
                 {pkg.isMostPopular && (
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500 text-white rounded-full shadow-sm w-fit">
                     <Sparkles className="h-3 w-3 fill-white" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Most Popular</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">{t.dashboard?.mostPopular || "Most Popular"}</span>
                   </div>
                 )}
                 
                 <div className="space-y-1">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current Pricing</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{t.dashboard?.currentPricing || "Current Pricing"}</h3>
                   <div className="flex items-baseline gap-3">
                     <span className="text-4xl md:text-5xl font-black text-blue-600 tracking-tighter">ETB {Number(pkg.price).toLocaleString()}</span>
-                    <span className="text-slate-400 font-bold text-sm md:text-lg">/ night</span>
+                    <span className="text-slate-400 font-bold text-sm md:text-lg">/ {t.dashboard?.perNight || "night"}</span>
                   </div>
                 </div>
               </div>
@@ -182,10 +184,10 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
                   <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Included Amenities</h3>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.includedAmenities || "Included Amenities"}</h3>
                 </div>
                 <Badge className="bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-50">
-                  {pkg.services?.length || 0} Items
+                  {pkg.services?.length || 0} {t.dashboard?.items || "Items"}
                 </Badge>
               </div>
 
@@ -202,7 +204,7 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
                 ) : (
                   <div className="col-span-2 p-12 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-100">
                     <Info className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-400 font-bold">No specific amenities listed</p>
+                    <p className="text-sm text-slate-400 font-bold">{t.dashboard?.noAmenitiesListed || "No specific amenities listed"}</p>
                   </div>
                 )}
               </div>
@@ -213,7 +215,7 @@ export const ViewPackageModal: React.FC<ViewPackageModalProps> = ({
           <div className="pt-4 border-t border-slate-100 space-y-4">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-blue-500" />
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Detailed Description</h3>
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{t.dashboard?.detailedDescription || "Detailed Description"}</h3>
             </div>
             <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100">
               <p className="text-slate-600 font-medium leading-relaxed">

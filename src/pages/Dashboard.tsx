@@ -74,18 +74,11 @@ const Dashboard: React.FC = () => {
   }, [status, ui.activeTab]);
   const handlers = useDashboardHandlers(data, ui, data.loadRealData);
 
-  const [transactionFilter, setTransactionFilter] = React.useState<'all' | 'income' | 'expense'>('all');
-
   // Derived State
   const expensesByCategory = data.expensesData.reduce((acc: Record<string, number>, exp: { category: string, amount: string | number }) => {
     acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
     return acc;
   }, {} as Record<string, number>);
-
-  const filteredTransactions = data.recentTransactions.filter((t: any) => {
-    if (transactionFilter === 'all') return true;
-    return t.type === transactionFilter;
-  });
 
   if (data.loading || subLoading) {
     return (
@@ -137,36 +130,38 @@ const Dashboard: React.FC = () => {
 
         <div className="p-4 lg:p-8 max-w-[2000px] ml-0 w-full">
           {/* Section Headers */}
-          <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-6 overflow-hidden">
-            <div className="min-w-0 flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
               {ui.activeTab === "overview" ? (
-                <h2 className="text-lg xs:text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">
-                  Dashboard Overview
+                <h2 className="text-3xl font-black text-slate-900">
+                  {t.dashboard?.header_overview || "Dashboard Overview"}
                 </h2>
               ) : (
-                <h2 className="text-lg xs:text-xl sm:text-3xl font-bold text-slate-900 tracking-tight truncate">
-                  {ui.activeTab === "staff" ? "Staff & HR Management" : 
-                   ui.activeTab === "bookings" ? "Bookings Management" :
-                   ui.activeTab === "rooms" ? "Rooms Management" :
-                   ui.activeTab === "pension-profile" ? "Pension Profile" :
-                   ui.activeTab === "packages" ? "Package Tiers" :
-                   ui.activeTab === "promotions" ? "Promotions & Offers" :
-                   ui.activeTab === "reports" ? "Reports & Analytics" :
-                   ui.activeTab.startsWith("settings-") ? "Settings" :
-                   ui.activeTab === "subscription" ? "Subscription Plans" :
-                   ui.activeTab === "transactions" ? "Transactions" :
-                   "Dashboard Section"}
+                <h2 className="text-3xl font-bold text-slate-900">
+                  {t.dashboard?.[`header_${ui.activeTab.replace('-', '_')}`] ||
+                   (ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") : 
+                   ui.activeTab === "bookings" ? (t.dashboard?.header_bookings || "Bookings Management") :
+                   ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
+                   ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
+                   ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                   ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
+                   ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
+                   ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                   ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
+                   ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                   ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
+                   "Dashboard Section")}
                 </h2>
               )}
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2">
               {ui.activeTab === "bookings" && (
                 <Button 
                   onClick={() => ui.setShowWalkInModal(true)}
-                  className="hidden sm:flex gap-1 sm:gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-8 sm:h-11 px-2.5 sm:px-6 rounded-lg sm:rounded-xl text-[10px] xs:text-xs sm:text-sm font-bold shrink-0 items-center justify-center"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-11 px-6 rounded-xl font-bold"
                 >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" /> 
-                  <span>New Booking</span>
+                  <Plus className="h-4 w-4" /> 
+                  <span>{t.dashboard?.newBooking || "New Booking"}</span>
                 </Button>
               )}
             </div>
@@ -217,11 +212,6 @@ const Dashboard: React.FC = () => {
                 recentTransactions={data.recentTransactions}
                 guestsCount={data.guestsData.length}
                 onCreatePension={() => ui.setShowCreatePension(true)}
-                onNavigateTab={(tab) => ui.setActiveTab(tab)}
-                onAddStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
-                onAddRoom={() => ui.setShowAddRoomModal(true)}
-                onAddPackage={() => { ui.setEditingPackage(null); ui.setNewPackage({ name: '', description: '', price: '', pension_id: '', duration_days: 1, capacity: 1, bed_count: 1, status: 'active' }); ui.setShowAddPackageModal(true); }}
-                onBookWalkIn={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -267,7 +257,6 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
                 totalItems={data.dataTotals.bookings}
                 language={language}
-                onNewBooking={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -315,7 +304,7 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
-                transactions={filteredTransactions.slice(
+                transactions={data.recentTransactions.slice(
                   (ui.pagination.transactions.page - 1) * ui.pagination.transactions.limit,
                   ui.pagination.transactions.page * ui.pagination.transactions.limit
                 )}
@@ -325,18 +314,8 @@ const Dashboard: React.FC = () => {
                 selectedRows={ui.selectedRows.transactions}
                 onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
-                totalItems={filteredTransactions.length}
+                totalItems={data.dataTotals.transactions}
                 language={language}
-                onUpdateExpense={handlers.handleUpdateExpense}
-                onDeleteExpense={handlers.handleDeleteExpense}
-                transactionFilter={transactionFilter}
-                onTransactionFilterChange={(filter) => {
-                  setTransactionFilter(filter);
-                  ui.setPagination({
-                    ...ui.pagination,
-                    transactions: { ...ui.pagination.transactions, page: 1 }
-                  });
-                }}
               />
             )}
 
@@ -413,10 +392,13 @@ const Dashboard: React.FC = () => {
                 activeTab={ui.activeTab}
                 businessProfile={ui.businessProfile}
                 setBusinessProfile={ui.setBusinessProfile}
+                bankSettings={ui.bankSettings}
+                setBankSettings={ui.setBankSettings}
                 securitySettings={ui.securitySettings}
                 setSecuritySettings={ui.setSecuritySettings}
                 approvalStatus="Approved"
                 isUpdating={ui.isUpdating}
+                setIsUpdating={ui.setIsUpdating}
                 onSaveBusinessProfile={() => {}}
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => {}}

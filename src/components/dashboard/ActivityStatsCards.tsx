@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Transaction } from '../../data/types/dashboardTypes';
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 
 interface ActivityStatsCardsProps {
   recentTransactions: Transaction[];
@@ -29,7 +28,7 @@ const ActivityStatsCards: React.FC<ActivityStatsCardsProps> = ({
   activeBookings,
   guestsCount
 }) => {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Recent Activity Card */}
@@ -41,11 +40,11 @@ const ActivityStatsCards: React.FC<ActivityStatsCardsProps> = ({
               <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg group-hover:shadow-blue-500/25 group-hover:scale-110 transition-all duration-300">
                 <Activity className="h-5 w-5" />
               </div>
-              <span className="text-lg font-bold text-slate-800"><TranslationText text="Recent Activity" language={language} /></span>
+              <span className="text-lg font-bold text-slate-800">{t.dashboard?.recentActivity || "Recent Activity"}</span>
             </div>
             <Button variant="outline" size="sm" className="gap-2 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300">
               <Eye className="h-4 w-4" />
-              <TranslationText text="View All" language={language} />
+              {t.dashboard?.viewAll || "View All"}
             </Button>
           </CardTitle>
         </CardHeader>
@@ -89,7 +88,7 @@ const ActivityStatsCards: React.FC<ActivityStatsCardsProps> = ({
             <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg group-hover:shadow-purple-500/25 group-hover:scale-110 transition-all duration-300">
               <BarChart3 className="h-5 w-5" />
             </div>
-            <span className="text-lg font-bold text-slate-800"><TranslationText text="Quick Stats" language={language} /></span>
+            <span className="text-lg font-bold text-slate-800">{t.dashboard?.quickStats || "Quick Stats"}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
@@ -99,28 +98,28 @@ const ActivityStatsCards: React.FC<ActivityStatsCardsProps> = ({
                 <Users className="h-6 w-6 text-blue-600 group-hover/stat:scale-110 transition-transform duration-300" />
               </div>
               <p className="text-2xl font-bold text-blue-700">{staffCount}</p>
-              <p className="text-sm text-blue-600 font-medium"><TranslationText text="Total Staff" language={language} /></p>
+              <p className="text-sm text-blue-600 font-medium">{t.dashboard?.totalStaff || "Total Staff"}</p>
             </div>
             <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 transition-all duration-300 cursor-pointer hover:scale-105">
               <div className="flex items-center justify-center mb-2">
                 <BedDouble className="h-6 w-6 text-emerald-600 group-hover/stat:scale-110 transition-transform duration-300" />
               </div>
               <p className="text-2xl font-bold text-emerald-700">{availableRooms}</p>
-              <p className="text-sm text-emerald-600 font-medium"><TranslationText text="Available Rooms" language={language} /></p>
+              <p className="text-sm text-emerald-600 font-medium">{t.dashboard?.availableRooms || "Available Rooms"}</p>
             </div>
             <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 transition-all duration-300 cursor-pointer hover:scale-105">
               <div className="flex items-center justify-center mb-2">
                 <CalendarCheck className="h-6 w-6 text-purple-600 group-hover/stat:scale-110 transition-transform duration-300" />
               </div>
               <p className="text-2xl font-bold text-purple-700">{activeBookings}</p>
-              <p className="text-sm text-purple-600 font-medium"><TranslationText text="Active Bookings" language={language} /></p>
+              <p className="text-sm text-purple-600 font-medium">{t.dashboard?.activeBookings || "Active Bookings"}</p>
             </div>
             <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 transition-all duration-300 cursor-pointer hover:scale-105">
               <div className="flex items-center justify-center mb-2">
                 <Users className="h-6 w-6 text-amber-600 group-hover/stat:scale-110 transition-transform duration-300" />
               </div>
               <p className="text-2xl font-bold text-amber-700">{guestsCount}</p>
-              <p className="text-sm text-amber-600 font-medium"><TranslationText text="Total Guests" language={language} /></p>
+              <p className="text-sm text-amber-600 font-medium">{t.dashboard?.totalGuests || "Total Guests"}</p>
             </div>
           </div>
         </CardContent>

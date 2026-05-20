@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { getRoomById, getRooms } from "@/lib/rooms";
 import apiService from "@/services/api";
 import { useLanguage } from "@/hooks/use-language";
@@ -8,6 +8,7 @@ export function useRooms() {
   
   return useQuery({
     queryKey: ["rooms", language],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       try {
         // Try to get real data from backend with language parameter
@@ -119,6 +120,7 @@ export function useRoomById(id: string) {
   
   return useQuery({
     queryKey: ["rooms", id, language],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       try {
         // Get real data from backend with language parameter

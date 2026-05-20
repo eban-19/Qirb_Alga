@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { CheckCircle, XCircle, Clock, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/hooks/use-language';
 
 interface Pension {
   pension_id: number;
@@ -29,6 +30,7 @@ interface Pension {
 }
 
 const PensionApprovalInline: React.FC = () => {
+  const { t } = useLanguage();
   const [pensions, setPensions] = useState<Pension[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'inactive'>('all');
@@ -240,11 +242,11 @@ const PensionApprovalInline: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200"><Clock className="w-3 h-3 mr-1" />{t.adminTabs?.common?.pending || "Pending"}</Badge>;
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 border border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border border-green-200"><CheckCircle className="w-3 h-3 mr-1" />{t.adminDetails?.active || "Active"}</Badge>;
       case 'inactive':
-        return <Badge className="bg-red-100 text-red-800 border border-red-200"><XCircle className="w-3 h-3 mr-1" />Inactive / Suspended</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border border-red-200"><XCircle className="w-3 h-3 mr-1" />{t.adminDetails?.inactiveSuspended || "Inactive / Suspended"}</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -313,30 +315,30 @@ const PensionApprovalInline: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Pension Approval Management</CardTitle>
+          <CardTitle>{t.adminDetails?.pensionApprovals || "Pension Approval Management"}</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Filters */}
           <div className="flex gap-4 mb-6">
             <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t.adminDetails?.filterByStatus || "Filter by status"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Pensions</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">{t.adminDetails?.allPensions || "All Pensions"}</SelectItem>
+                <SelectItem value="pending">{t.adminTabs?.common?.pending || "Pending"}</SelectItem>
+                <SelectItem value="active">{t.adminDetails?.active || "Active"}</SelectItem>
+                <SelectItem value="inactive">{t.adminDetails?.inactive || "Inactive"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Pension List */}
           {loading ? (
-            <div className="text-center py-8">Loading pensions...</div>
+            <div className="text-center py-8">{t.adminDetails?.loadingPensions || "Loading pensions..."}</div>
           ) : filteredPensions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No pensions found</p>
+              <p className="text-gray-500">{t.adminDetails?.noPensionsFound || "No pensions found"}</p>
             </div>
           ) : (
             <>
@@ -345,7 +347,7 @@ const PensionApprovalInline: React.FC = () => {
                 <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center gap-4">
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700 px-3 py-1">
-                      {selectedPensionIds.size} selected
+                      {selectedPensionIds.size} {t.adminTabs?.common?.selected || "selected"}
                     </Badge>
                     <div className="flex items-center gap-2">
                       <Button 
@@ -355,7 +357,7 @@ const PensionApprovalInline: React.FC = () => {
                         onClick={() => handleBulkAction('approve')}
                         disabled={actionLoading !== null}
                       >
-                        {actionLoading === 'bulk-approve' ? 'Approving...' : 'Approve Selected'}
+                        {actionLoading === 'bulk-approve' ? (t.adminDetails?.approving || 'Approving...') : (t.adminDetails?.approveSelected || 'Approve Selected')}
                       </Button>
                       
                       {/* For bulk reject, we ideally need a reason modal, but for simplicity we will use prompt or alert if missing */}
@@ -373,7 +375,7 @@ const PensionApprovalInline: React.FC = () => {
                         }}
                         disabled={actionLoading !== null}
                       >
-                        {actionLoading === 'bulk-reject' ? 'Rejecting...' : 'Reject Selected'}
+                        {actionLoading === 'bulk-reject' ? (t.adminDetails?.rejecting || 'Rejecting...') : (t.adminDetails?.rejectSelected || 'Reject Selected')}
                       </Button>
                     </div>
                   </div>
@@ -383,7 +385,7 @@ const PensionApprovalInline: React.FC = () => {
                     onClick={() => setSelectedPensionIds(new Set())}
                     className="text-slate-500 hover:text-slate-700"
                   >
-                    Clear Selection
+                    {t.adminTabs?.common?.clear || "Clear Selection"}
                   </Button>
                 </div>
               )}
@@ -399,11 +401,11 @@ const PensionApprovalInline: React.FC = () => {
                       className="rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-600"
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t.adminTabs?.common?.name || "Name"}</TableHead>
+                  <TableHead>{t.adminTabs?.common?.owner || "Owner"}</TableHead>
+                  <TableHead>{t.adminTabs?.common?.status || "Status"}</TableHead>
+                  <TableHead>{t.adminTabs?.common?.date || "Created"}</TableHead>
+                  <TableHead>{t.adminTabs?.common?.actions || "Actions"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -429,7 +431,7 @@ const PensionApprovalInline: React.FC = () => {
                           onClick={() => setSelectedPension(pension)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
-                          Review
+                          {t.adminDetails?.review || "Review"}
                         </Button>
                         {pension.status === 'pending' && (
                           <>
@@ -439,7 +441,7 @@ const PensionApprovalInline: React.FC = () => {
                               disabled={actionLoading === `approve-${pension.pension_id || pension.id}`}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              {actionLoading === `approve-${pension.pension_id || pension.id}` ? 'Approving...' : 'Approve'}
+                              {actionLoading === `approve-${pension.pension_id || pension.id}` ? (t.adminDetails?.approving || 'Approving...') : (t.adminTabs?.common?.approve || 'Approve')}
                             </Button>
                             <Button
                               variant="destructive"
@@ -447,7 +449,7 @@ const PensionApprovalInline: React.FC = () => {
                               onClick={() => setSelectedPension(pension)}
                               disabled={actionLoading === `reject-${pension.pension_id || pension.id}`}
                             >
-                              {actionLoading === `reject-${pension.pension_id || pension.id}` ? 'Rejecting...' : 'Reject'}
+                              {actionLoading === `reject-${pension.pension_id || pension.id}` ? (t.adminDetails?.rejecting || 'Rejecting...') : (t.adminTabs?.common?.reject || 'Reject')}
                             </Button>
                           </>
                         )}
@@ -459,7 +461,7 @@ const PensionApprovalInline: React.FC = () => {
                             disabled={actionLoading === `suspend-${pension.pension_id || pension.id}`}
                             className="text-orange-600 border-orange-200 hover:bg-orange-50"
                           >
-                            {actionLoading === `suspend-${pension.pension_id || pension.id}` ? 'Suspending...' : 'Suspend'}
+                            {actionLoading === `suspend-${pension.pension_id || pension.id}` ? (t.adminDetails?.suspending || 'Suspending...') : (t.adminTabs?.common?.suspend || 'Suspend')}
                           </Button>
                         )}
                       </div>
@@ -476,7 +478,11 @@ const PensionApprovalInline: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-slate-600">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredPensions.length)} of {filteredPensions.length} pensions
+                  {t.adminDetails?.showingRange
+                    ?.replace('{start}', (startIndex + 1).toString())
+                    ?.replace('{end}', Math.min(endIndex, filteredPensions.length).toString())
+                    ?.replace('{total}', filteredPensions.length.toString()) || 
+                    `Showing ${startIndex + 1} to ${Math.min(endIndex, filteredPensions.length)} of ${filteredPensions.length} pensions`}
                 </span>
                 <Select value={itemsPerPage.toString()} onValueChange={(value: any) => {
                   setItemsPerPage(parseInt(value));
@@ -486,10 +492,10 @@ const PensionApprovalInline: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="5">5 per page</SelectItem>
-                    <SelectItem value="10">10 per page</SelectItem>
-                    <SelectItem value="20">20 per page</SelectItem>
-                    <SelectItem value="50">50 per page</SelectItem>
+                    <SelectItem value="5">5 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                    <SelectItem value="10">10 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                    <SelectItem value="20">20 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
+                    <SelectItem value="50">50 {t.adminTabs?.common?.perPage || "per page"}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -540,7 +546,7 @@ const PensionApprovalInline: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedPension.name}</h2>
-                  <p className="text-blue-100">Pension Review</p>
+                  <p className="text-blue-100">{t.adminDetails?.pensionReview || "Pension Review"}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -557,37 +563,37 @@ const PensionApprovalInline: React.FC = () => {
             <div className="p-6 space-y-6 pb-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Pension Details</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.adminDetails?.pensionDetails || "Pension Details"}</h3>
                   <div className="space-y-3">
                     <div>
-                      <p className="font-medium">Description:</p>
-                      <p className="text-gray-600">{selectedPension.description || 'No description provided'}</p>
+                      <p className="font-medium">{t.adminDetails?.description || "Description"}:</p>
+                      <p className="text-gray-600">{selectedPension.description || (t.adminDetails?.noDescription || 'No description provided')}</p>
                     </div>
                     <div>
-                      <p className="font-medium">Address:</p>
-                      <p className="text-gray-600">{selectedPension.address || 'No address provided'}</p>
+                      <p className="font-medium">{t.adminDetails?.address || "Address"}:</p>
+                      <p className="text-gray-600">{selectedPension.address || (t.adminDetails?.noAddress || 'No address provided')}</p>
                     </div>
                     <div>
-                      <p className="font-medium">Capacity:</p>
-                      <p className="text-gray-600">{selectedPension.capacity ? `${selectedPension.capacity} guests` : 'Capacity not specified'}</p>
+                      <p className="font-medium">{t.adminDetails?.capacity || "Capacity"}:</p>
+                      <p className="text-gray-600">{selectedPension.capacity ? `${selectedPension.capacity} ${t.adminDetails?.guests || 'guests'}` : (t.adminDetails?.capacityNotSpecified || 'Capacity not specified')}</p>
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Owner Information</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.adminDetails?.ownerInfo || "Owner Information"}</h3>
                   <div className="space-y-3">
                     <div>
-                      <p className="font-medium">Name:</p>
-                      <p className="text-gray-600">{selectedPension.owner_name || 'Not available'}</p>
+                      <p className="font-medium">{t.adminTabs?.common?.name || "Name"}:</p>
+                      <p className="text-gray-600">{selectedPension.owner_name || (t.adminDetails?.notAvailable || 'Not available')}</p>
                     </div>
                     <div>
-                      <p className="font-medium">Email:</p>
-                      <p className="text-gray-600">{selectedPension.owner_email || 'Not available'}</p>
+                      <p className="font-medium">{t.adminTabs?.common?.email || "Email"}:</p>
+                      <p className="text-gray-600">{selectedPension.owner_email || (t.adminDetails?.notAvailable || 'Not available')}</p>
                     </div>
                     <div>
-                      <p className="font-medium">Phone:</p>
-                      <p className="text-gray-600">{selectedPension.phone || 'Not available'}</p>
+                      <p className="font-medium">{t.adminTabs?.common?.phone || "Phone"}:</p>
+                      <p className="text-gray-600">{selectedPension.phone || (t.adminDetails?.notAvailable || 'Not available')}</p>
                     </div>
                   </div>
                 </div>
@@ -595,21 +601,21 @@ const PensionApprovalInline: React.FC = () => {
 
               {/* Status */}
               <div>
-                <p className="font-medium mb-2">Current Status:</p>
+                <p className="font-medium mb-2">{t.adminDetails?.currentStatus || "Current Status"}:</p>
                 {getStatusBadge(selectedPension.status)}
               </div>
 
               {/* Pending Actions: Approve / Reject */}
               {selectedPension.status === 'pending' && (
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Review Actions</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.adminDetails?.reviewActions || "Review Actions"}</h3>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Rejection Reason (if rejecting):</label>
+                    <label className="block text-sm font-medium mb-2">{t.adminDetails?.rejectionReasonLabel || "Rejection Reason (if rejecting):"}</label>
                     <Textarea
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      placeholder="Enter reason for rejection..."
+                      placeholder={t.adminDetails?.rejectionReasonPlaceholder || "Enter reason for rejection..."}
                       className="min-h-[100px]"
                     />
                   </div>
@@ -621,7 +627,7 @@ const PensionApprovalInline: React.FC = () => {
                       disabled={actionLoading === `approve-${selectedPension.pension_id || selectedPension.id}`}
                       className="bg-green-600 hover:bg-green-700"
                     >
-                      {actionLoading === `approve-${selectedPension.pension_id || selectedPension.id}` ? 'Approving...' : '✅ Approve Pension'}
+                      {actionLoading === `approve-${selectedPension.pension_id || selectedPension.id}` ? (t.adminDetails?.approving || 'Approving...') : `✅ ${t.adminDetails?.approvePension || 'Approve Pension'}`}
                     </Button>
 
                     <Button
@@ -630,7 +636,7 @@ const PensionApprovalInline: React.FC = () => {
                       onClick={() => handleReject(selectedPension.pension_id || selectedPension.id, rejectionReason)}
                       disabled={actionLoading === `reject-${selectedPension.pension_id || selectedPension.id}`}
                     >
-                      {actionLoading === `reject-${selectedPension.pension_id}` ? 'Rejecting...' : '❌ Reject Pension'}
+                      {actionLoading === `reject-${selectedPension.pension_id}` ? (t.adminDetails?.rejecting || 'Rejecting...') : `❌ ${t.adminDetails?.rejectPension || 'Reject Pension'}`}
                     </Button>
                   </div>
                 </div>
@@ -639,7 +645,7 @@ const PensionApprovalInline: React.FC = () => {
               {/* Suspend Action (for active pensions) */}
               {selectedPension.status === 'active' && (
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Admin Actions</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.adminDetails?.adminActions || "Admin Actions"}</h3>
                   <Button
                     size="lg"
                     variant="outline"
@@ -647,7 +653,7 @@ const PensionApprovalInline: React.FC = () => {
                     disabled={actionLoading === `suspend-${selectedPension.pension_id || selectedPension.id}`}
                     className="text-orange-600 border-orange-300 hover:bg-orange-50"
                   >
-                    {actionLoading === `suspend-${selectedPension.pension_id || selectedPension.id}` ? 'Suspending...' : '⏸ Suspend Pension'}
+                    {actionLoading === `suspend-${selectedPension.pension_id || selectedPension.id}` ? (t.adminDetails?.suspending || 'Suspending...') : `⏸ ${t.adminDetails?.suspendPension || 'Suspend Pension'}`}
                   </Button>
                 </div>
               )}

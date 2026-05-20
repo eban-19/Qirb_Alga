@@ -49,7 +49,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   onAddPackage,
   onBookWalkIn
 }) => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -279,8 +279,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
                   <Calendar className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-bold text-slate-800">Book Walk-in</span>
-                <span className="text-[9px] text-slate-400 font-medium">New check-in</span>
+                <span className="text-sm font-bold text-slate-800">{t.dashboard?.bookWalkIn || "Book Walk-in"}</span>
+                <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.newCheckIn || "New check-in"}</span>
               </button>
               
               <button 
@@ -290,8 +290,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <div className="p-3 rounded-2xl bg-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
                   <UserPlus className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-bold text-slate-800">Add Staff</span>
-                <span className="text-[9px] text-slate-400 font-medium">Register employee</span>
+                <span className="text-sm font-bold text-slate-800">{t.dashboard?.addStaffMember || "Add Staff"}</span>
+                <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.registerEmployee || "Register employee"}</span>
               </button>
 
               <button 
@@ -301,8 +301,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <div className="p-3 rounded-2xl bg-purple-100 text-purple-600 group-hover:scale-110 transition-transform">
                   <Bed className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-bold text-slate-800">Add Room</span>
-                <span className="text-[9px] text-slate-400 font-medium">Create room unit</span>
+                <span className="text-sm font-bold text-slate-800">{t.dashboard?.addNewRoom || "Add Room"}</span>
+                <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.createRoomUnit || "Create room unit"}</span>
               </button>
 
               <button 
@@ -312,8 +312,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <div className="p-3 rounded-2xl bg-amber-100 text-amber-600 group-hover:scale-110 transition-transform">
                   <FolderPlus className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-bold text-slate-800">Add Package</span>
-                <span className="text-[9px] text-slate-400 font-medium">Create pricing tier</span>
+                <span className="text-sm font-bold text-slate-800">{t.dashboard?.createNewPackageTier || "Add Package"}</span>
+                <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.createPricingTier || "Create pricing tier"}</span>
               </button>
             </div>
           </CardContent>

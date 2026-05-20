@@ -1,5 +1,6 @@
 import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
+import { useLanguage } from "@/hooks/use-language";
 
 // Import admin components
 import { OverviewTab } from "@/components/admin/OverviewTab";
@@ -12,6 +13,7 @@ import { OwnerDetailsModal } from "@/components/admin/OwnerDetailsModal";
 import PropertyDetailsModal from "@/components/admin/PropertyDetailsModal";
 
 export default function AdminDashboard() {
+  const { t } = useLanguage();
   const {
     activeTab,
     searchTerm,
@@ -78,12 +80,12 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 capitalize">
-              {activeTab === 'overview' ? 'Dashboard Overview' : 
-               activeTab === 'owners' ? 'Pension Owners' :
-               activeTab === 'properties' ? 'Properties' :
-               activeTab === 'approvals' ? 'Pension Approvals' :
-               activeTab === 'bookings' ? 'Bookings' :
-               activeTab === 'alerts' ? 'System Alerts' : 'Admin Dashboard'}
+              {activeTab === 'overview' ? (t.adminDetails?.dashboardOverview || 'Dashboard Overview') : 
+               activeTab === 'owners' ? (t.adminTabs?.owners?.title || 'Pension Owners') :
+               activeTab === 'properties' ? (t.sidebar?.properties || 'Properties') :
+               activeTab === 'approvals' ? (t.adminDetails?.pensionApprovals || 'Pension Approvals') :
+               activeTab === 'bookings' ? (t.sidebar?.bookings || 'Bookings') :
+               activeTab === 'alerts' ? (t.adminTabs?.alerts?.title || 'System Alerts') : (t.sidebar?.adminPanel || 'Admin Dashboard')}
             </h1>
           </div>
         </div>

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import apiService from "@/services/api";
+import { useLanguage } from "@/hooks/use-language";
 
 interface Staff {
   id: string;
@@ -48,6 +49,7 @@ const ADMIN_ROLES = [
 ];
 
 export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,8 +105,8 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Admin Staff</h2>
-            <p className="text-slate-600">Manage internal administrative accounts</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t.adminTabs?.staff?.title || "Admin Staff"}</h2>
+            <p className="text-slate-600">{t.adminTabs?.staff?.subtitle || "Manage internal administrative accounts"}</p>
           </div>
         </div>
 
@@ -112,7 +114,7 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md sm:mr-4">
               <Plus className="w-4 h-4 mr-2" />
-              Add Staff
+              {t.adminTabs?.staff?.addStaff || "Add Staff"}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -198,7 +200,7 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
         <Card className="border border-slate-200 shadow-sm">
           <CardContent className="p-4">
             <div className="text-2xl font-black text-slate-700 mb-0.5">{staffs.length}</div>
-            <div className="text-xs text-slate-500 font-medium">Total Staff Members</div>
+            <div className="text-xs text-slate-500 font-medium">{t.adminTabs?.common?.totalResults || "Total Staff Members"}</div>
           </CardContent>
         </Card>
         <Card className="border border-slate-200 shadow-sm">
@@ -225,7 +227,7 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
-              placeholder="Search by name, email or role..."
+              placeholder={t.adminTabs?.staff?.searchPlaceholder || "Search by name, email or role..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 border-slate-200"
@@ -243,11 +245,11 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-indigo-50 border-b-2 border-slate-200">
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Staff Member</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6">Contact</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">Role</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">Status</TableHead>
-                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">Joined</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.name || "Staff Member"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6">{t.adminTabs?.common?.contact || "Contact"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">{t.adminTabs?.common?.role || "Role"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-center">{t.adminTabs?.common?.status || "Status"}</TableHead>
+                    <TableHead className="font-bold text-slate-900 py-4 px-6 text-right">{t.adminTabs?.common?.date || "Joined"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -255,8 +257,8 @@ export function StaffsTab({ staffs = [], onRefresh }: StaffsTabProps) {
                     <TableRow>
                       <TableCell colSpan={5} className="py-12 text-center">
                         <ShieldCheck className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                        <div className="text-slate-500 text-lg font-medium">No staff found</div>
-                        <div className="text-slate-400 text-sm mt-1">Try adjusting your search filters.</div>
+                        <div className="text-slate-500 text-lg font-medium">{t.adminTabs?.common?.noResultsFound || "No staff found"}</div>
+                        <div className="text-slate-400 text-sm mt-1">{t.adminTabs?.common?.adjustSearch || "Try adjusting your search filters."}</div>
                       </TableCell>
                     </TableRow>
                   ) : (

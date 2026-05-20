@@ -9,16 +9,11 @@ import {
   FileText, 
   Shield, 
   ShieldCheck, 
-  CalendarCheck, 
   RefreshCcw, 
-  Download, 
   CheckCircle, 
-  Eye, 
   CreditCard, 
   DollarSign, 
   Target, 
-  TrendingUp, 
-  BarChart3, 
   Building, 
   MapPin, 
   Phone, 
@@ -27,12 +22,9 @@ import {
   Star, 
   Edit2, 
   TrashIcon, 
-  Plus,
-  Users,
-  BedDouble
+  Plus
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { TranslationText } from "@/components/TranslationText";
 
 interface SettingsTabsProps {
   activeTab: string;
@@ -81,18 +73,18 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
   setEditingPackage,
   setNewPackage
 }) => {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-            {activeTab === "settings-billing" ? <TranslationText text="Billing Settings" language={language} /> :
-             activeTab === "settings-pension" ? <TranslationText text="Pension Profile" language={language} /> :
-             <TranslationText text="Security Settings" language={language} />}
+            {activeTab === "settings-billing" ? (t.dashboard?.billingSettings || "Billing Settings") :
+             activeTab === "settings-pension" ? (t.dashboard?.pensionProfile || "Pension Profile") :
+             (t.dashboard?.securitySettings || "Security Settings")}
           </h2>
-          <p className="text-slate-500 text-sm"><TranslationText text="Configure your property and account preferences." language={language} /></p>
+          <p className="text-slate-500 text-sm">{t.dashboard?.settingsDescription || "Configure your property and account preferences."}</p>
         </div>
         <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
 
@@ -102,7 +94,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-billing' ? 'bg-blue-600 text-white hover:bg-blue-600 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-billing')}
           >
-            <TranslationText text="Billing" language={language} />
+            {t.dashboard?.billing || "Billing"}
           </Button>
           <Button
             variant="ghost"
@@ -110,7 +102,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-pension' ? 'bg-purple-600 text-white hover:bg-purple-600 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-pension')}
           >
-            <TranslationText text="Pension Profile" language={language} />
+            {t.dashboard?.pensionProfile || "Pension Profile"}
           </Button>
           <Button
             variant="ghost"
@@ -118,7 +110,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
             className={`h-8 rounded-lg text-xs font-bold ${activeTab === 'settings-security' ? 'bg-slate-900 text-white hover:bg-slate-900 shadow-sm' : 'text-slate-500'}`}
             onClick={() => setActiveTab('settings-security')}
           >
-            <TranslationText text="Security" language={language} />
+            {t.dashboard?.security || "Security"}
           </Button>
         </div>
       </div>
@@ -129,13 +121,11 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
           <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
             <CheckCircle className="h-5 w-5" />
           </div>
-          <span className="font-semibold text-sm relative">Settings saved successfully! Your changes are now live.</span>
+          <span className="font-semibold text-sm relative">{t.dashboard?.settingsSavedSuccess || "Settings saved successfully!"}</span>
         </div>
       )}
 
       <Tabs value={activeTab} className="w-full">
-
-
         <TabsContent value="settings-billing" className="mt-0">
           <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
             <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400" />
@@ -144,7 +134,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 shadow-lg hover:shadow-blue-500/25">
                   <CreditCard className="h-6 w-6" />
                 </div>
-                <span>Billing & Payments</span>
+                <span>{t.dashboard?.billingPayments || "Billing & Payments"}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
@@ -157,7 +147,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                         <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                           <DollarSign className="h-6 w-6 text-blue-600" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-500 uppercase">Current Plan</p>
+                        <p className="text-sm font-semibold text-slate-500 uppercase">{t.dashboard?.currentPlan || "Current Plan"}</p>
                       </div>
                       <Badge className="bg-blue-500 text-[10px]">Premium</Badge>
                     </div>
@@ -165,7 +155,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                     <div className="pt-2">
                       <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/25 transition-all duration-300">
                         <Target className="h-4 w-4 mr-2" />
-                        Upgrade Plan
+                        {t.dashboard?.upgradePlan || "Upgrade Plan"}
                       </Button>
                     </div>
                   </CardContent>
@@ -179,15 +169,15 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                         <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
                           <CreditCard className="h-6 w-6 text-emerald-600" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-500 uppercase">Payment Method</p>
+                        <p className="text-sm font-semibold text-slate-500 uppercase">{t.dashboard?.paymentMethod || "Payment Method"}</p>
                       </div>
-                      <Badge className="bg-emerald-500 text-[10px]">Active</Badge>
+                      <Badge className="bg-emerald-500 text-[10px]">{t.dashboard?.active || "Active"}</Badge>
                     </div>
                     <h4 className="text-lg font-bold text-slate-900">••••• •••• •••• •••• ••••</h4>
                     <div className="pt-2">
                       <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300">
                         <Edit2 className="h-4 w-4 mr-2" />
-                        Update Payment Method
+                        {t.dashboard?.updatePaymentMethod || "Update Payment Method"}
                       </Button>
                     </div>
                   </CardContent>
@@ -206,16 +196,16 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 shadow-lg group-hover:shadow-purple-500/25">
                   <Building className="h-6 w-6 text-purple-600 group-hover:rotate-12 transition-transform duration-500" />
                 </div>
-                <span className="group-hover:text-purple-600 transition-colors duration-300">Public Pension Profile</span>
+                <span className="group-hover:text-purple-600 transition-colors duration-300">{t.dashboard?.publicPensionProfile || "Public Pension Profile"}</span>
               </CardTitle>
-              <p className="text-slate-600">Manage how your pension appears to customers on the public site</p>
+              <p className="text-slate-600">{t.dashboard?.publicPensionProfileDescription || "Manage how your pension appears to customers on the public site"}</p>
             </CardHeader>
             <CardContent className="space-y-6 pt-4 relative">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <Building className="h-4 w-4 text-purple-600" />
-                    Pension Name
+                    {t.dashboard?.pensionName || "Pension Name"}
                   </Label>
                   <Input
                     value={propertySettings.name}
@@ -227,7 +217,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-purple-600" />
-                    Location
+                    {t.dashboard?.location || "Location"}
                   </Label>
                   <Input
                     value={propertySettings.address}
@@ -239,7 +229,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <Phone className="h-4 w-4 text-purple-600" />
-                    Contact Phone
+                    {t.dashboard?.contactPhone || "Contact Phone"}
                   </Label>
                   <Input
                     value={propertySettings.phone}
@@ -251,7 +241,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <Mail className="h-4 w-4 text-purple-600" />
-                    Contact Email
+                    {t.dashboard?.contactEmail || "Contact Email"}
                   </Label>
                   <Input
                     value={propertySettings.email}
@@ -265,12 +255,12 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-purple-600" />
-                  About Description
+                  {t.dashboard?.aboutDescription || "About Description"}
                 </Label>
                 <textarea
                   value={propertySettings.description}
                   onChange={(e) => setPropertySettings({ ...propertySettings, description: e.target.value })}
-                  placeholder="Describe your pension for customers..."
+                  placeholder={t.dashboard?.describePensionPlaceholder || "Describe your pension for customers..."}
                   rows={4}
                   className="w-full border-slate-200 bg-slate-50/30 focus:bg-white focus:ring-2 focus:ring-purple-500/20 hover:border-purple-500/50 rounded-lg px-3 py-2 transition-all duration-300 resize-none"
                 />
@@ -279,7 +269,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <Package className="h-4 w-4 text-purple-600" />
-                  Package Tiers
+                  {t.dashboard?.packageTiers || "Package Tiers"}
                 </Label>
                 <div className="space-y-4">
                   {packages.map((pkg) => (
@@ -288,12 +278,12 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                         <div className="flex items-center gap-3 mb-2">
                           <h4 className="font-bold text-purple-700">{pkg.name_ml?.en || pkg.name}</h4>
                           {pkg.isMostPopular && (
-                            <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">Most Popular</span>
+                            <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full">{t.dashboard?.mostPopular || "Most Popular"}</span>
                           )}
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{pkg.description_ml?.en || pkg.description}</p>
                         <div className="flex items-center justify-between">
-                          <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/night</p>
+                          <p className="text-lg font-bold text-purple-600">ETB {pkg.price.toLocaleString()}/{t.dashboard?.perNight || "night"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -323,14 +313,14 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                     className="w-full p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center gap-2"
                   >
                     <Plus className="h-5 w-5" />
-                    <span className="font-semibold">Add New Package</span>
+                    <span className="font-semibold">{t.dashboard?.addNewPackage || "Add New Package"}</span>
                   </button>
                 </div>
               </div>
 
               <div className="flex items-center justify-end pt-6 border-t">
                 <Button className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white shadow-xl hover:shadow-purple-500/25 rounded-xl font-bold transition-all duration-300 hover:scale-105" onClick={handleSavePropertySettings} disabled={isUpdating}>
-                  {isUpdating ? 'Updating...' : 'Update Public Profile'}
+                  {isUpdating ? (t.dashboard?.updating || 'Updating...') : (t.dashboard?.updatePublicProfile || 'Update Public Profile')}
                 </Button>
               </div>
             </CardContent>
@@ -345,13 +335,13 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-600 shadow-lg">
                   <Shield className="h-6 w-6" />
                 </div>
-                <span>Security Settings</span>
+                <span>{t.dashboard?.securitySettings || "Security Settings"}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">Current Password</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.currentPassword || "Current Password"}</Label>
                   <Input
                     type="password"
                     value={securitySettings.currentPassword}
@@ -360,7 +350,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-slate-700">New Password</Label>
+                  <Label className="text-sm font-bold text-slate-700">{t.dashboard?.newPassword || "New Password"}</Label>
                   <Input
                     type="password"
                     value={securitySettings.newPassword}
@@ -372,7 +362,7 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
               <div className="flex items-center justify-end pt-6 border-t">
                 <Button className="h-11 px-8 bg-slate-900 hover:bg-slate-800 text-white shadow-xl rounded-xl font-bold" onClick={handleSaveSecuritySettings}>
                   <ShieldCheck className="h-4 w-4 mr-2" />
-                  Update Security Settings
+                  {t.dashboard?.updateSecuritySettings || "Update Security Settings"}
                 </Button>
               </div>
             </CardContent>
