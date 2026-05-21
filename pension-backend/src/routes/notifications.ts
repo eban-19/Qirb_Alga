@@ -4,6 +4,10 @@ import { authenticateToken } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { Role, PensionStatus } from '@prisma/client';
 
+// Helper: check if a user is admin by role string
+const isAdminRole = (role: string): boolean =>
+  role === 'admin' || role === Role.Admin;
+
 const router = express.Router();
 
 // Get user notifications
@@ -85,13 +89,28 @@ router.get('/', authenticateToken as any, async (req: any, res: express.Response
   }
 });
 
-// Get unread notification count
+// Get unread notification count (role-based)
 router.get('/unread-count', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
-    
-    const unreadCount = await notificationService.getUnreadCount(userId);
-    
+    const userRole = req.user.role;
+    let unreadCount = 0;
+
+    if (isAdminRole(userRole)) {
+      // Admin unread count = total pending owners + pending pensions
+      const [pendingOwners, pendingPensions] = await Promise.all([
+        prisma.user.count({
+          where: { role: Role.Owner, approved: { not: 1 } }
+        }),
+        prisma.pension.count({
+          where: { status: PensionStatus.pending }
+        })
+      ]);
+      unreadCount = pendingOwners + pendingPensions;
+    } else {
+      unreadCount = await notificationService.getUnreadCount(userId);
+    }
+
     res.json({
       success: true,
       data: { unreadCount }
@@ -105,14 +124,31 @@ router.get('/unread-count', authenticateToken as any, async (req: any, res: expr
   }
 });
 
-// Mark notification as read
+// Mark notification as read (role-based)
+// Admin notifications use string IDs (e.g. 'owner_5', 'pension_12') and are
+// tracked client-side; this endpoint is a no-op for those but still returns success.
 router.put('/:notificationId/read', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role;
     const { notificationId } = req.params;
-    
-    await notificationService.markAsRead(parseInt(notificationId), userId);
-    
+
+    if (isAdminRole(userRole)) {
+      // Admin notification IDs are strings (e.g. 'owner_5') — tracked on client.
+      // Nothing to update in DB. Return success so the UI can proceed.
+      return res.json({
+        success: true,
+        message: 'Admin notification acknowledged'
+      });
+    }
+
+    const numericId = parseInt(notificationId);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification ID' });
+    }
+
+    await notificationService.markAsRead(numericId, userId);
+
     res.json({
       success: true,
       message: 'Notification marked as read'
@@ -126,13 +162,24 @@ router.put('/:notificationId/read', authenticateToken as any, async (req: any, r
   }
 });
 
-// Mark all notifications as read
+// Mark all notifications as read (role-based)
+// Admin notifications are dynamic (not in DB), so we return success immediately
+// and let the client persist read state in localStorage.
 router.put('/mark-all-read', authenticateToken as any, async (req: any, res: express.Response) => {
   try {
     const userId = req.user.userId || req.user.id;
-    
+    const userRole = req.user.role;
+
+    if (isAdminRole(userRole)) {
+      // Admin notifications are not persisted in DB — client handles read state.
+      return res.json({
+        success: true,
+        message: 'All admin notifications acknowledged'
+      });
+    }
+
     await notificationService.markAllAsRead(userId);
-    
+
     res.json({
       success: true,
       message: 'All notifications marked as read'
