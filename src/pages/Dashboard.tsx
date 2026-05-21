@@ -35,15 +35,15 @@ import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 
 // UI & Data
 import { Button } from '../components/ui/button';
-import { 
-  Calendar, 
-  AlertCircle, 
-  Zap, 
-  Bed, 
-  Building, 
-  Download, 
-  BarChart3, 
-  Save, 
+import {
+  Calendar,
+  AlertCircle,
+  Zap,
+  Bed,
+  Building,
+  Download,
+  BarChart3,
+  Save,
   Plus,
   ChevronDown,
   UserPlus,
@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
 
   React.useEffect(() => {
     if (status?.isRestricted && ui.activeTab !== "subscription") {
-      ui.setActiveTab("subscription");
+      navigate("/dashboard/subscription");
     }
   }, [status, ui.activeTab]);
   const handlers = useDashboardHandlers(data, ui, data.loadRealData);
@@ -132,38 +132,24 @@ const Dashboard: React.FC = () => {
           {/* Section Headers */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              {ui.activeTab === "overview" ? (
-                <h2 className="text-3xl font-black text-slate-900">
-                  {t.dashboard?.header_overview || "Dashboard Overview"}
-                </h2>
-              ) : (
-                <h2 className="text-3xl font-bold text-slate-900">
-                  {t.dashboard?.[`header_${ui.activeTab.replace('-', '_')}`] ||
-                   (ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") : 
-                   ui.activeTab === "bookings" ? (t.dashboard?.header_bookings || "Bookings Management") :
-                   ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
-                   ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
-                   ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
-                   ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
-                   ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
-                   ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
-                   ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
-                   ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
-                   ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
-                   "Dashboard Section")}
-                </h2>
-              )}
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                {ui.activeTab === "overview" ? (t.dashboard?.header_overview || "Dashboard Overview") :
+                  ui.activeTab === "bookings" ? (t.dashboard?.header_bookings || "Bookings Management") :
+                    ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
+                      ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
+                        ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
+                          ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
+                            ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
+                              ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                                ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                                  ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
+                                    ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
+                                      ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                                        "Dashboard Section"}
+              </h2>
             </div>
             <div className="flex gap-2">
-              {ui.activeTab === "bookings" && (
-                <Button 
-                  onClick={() => ui.setShowWalkInModal(true)}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all h-11 px-6 rounded-xl font-bold"
-                >
-                  <Plus className="h-4 w-4" /> 
-                  <span>{t.dashboard?.newBooking || "New Booking"}</span>
-                </Button>
-              )}
+              {/* Top actions removed when they are integrated into specific sections */}
             </div>
           </div>
 
@@ -180,7 +166,7 @@ const Dashboard: React.FC = () => {
                     <p className="text-sm text-red-700 opacity-80">Access to dashboard features is currently restricted.</p>
                   </div>
                 </div>
-                <Button variant="destructive" className="rounded-xl px-8 h-12 font-bold" onClick={() => ui.setActiveTab("subscription")}>
+                <Button variant="destructive" className="rounded-xl px-8 h-12 font-bold" onClick={() => navigate("/dashboard/subscription")}>
                   Renew Now
                 </Button>
               </div>
@@ -194,7 +180,7 @@ const Dashboard: React.FC = () => {
                     <span className="font-bold">Free Trial:</span> You have <span className="text-primary font-bold">{status.trial.daysLeft} days</span> left on your trial.
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10" onClick={() => ui.setActiveTab("subscription")}>
+                <Button variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/10" onClick={() => navigate("/dashboard/subscription")}>
                   Upgrade Now
                 </Button>
               </div>
@@ -212,6 +198,20 @@ const Dashboard: React.FC = () => {
                 recentTransactions={data.recentTransactions}
                 guestsCount={data.guestsData.length}
                 onCreatePension={() => ui.setShowCreatePension(true)}
+                onNavigateTab={(tab) => navigate(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`)}
+                onAddStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
+                onAddRoom={() => ui.setShowAddRoomModal(true)}
+                onAddPackage={() => {
+                  ui.setEditingPackage(null);
+                  ui.setNewPackage({
+                    name: '', name_en: '', name_am: '', name_om: '', price: '',
+                    description: '', description_en: '', description_am: '', description_om: '',
+                    services: ['WiFi', 'Clean Room', 'Basic Amenities'],
+                    isMostPopular: false, image: '', customService: '', imageType: 'Normal'
+                  });
+                  ui.setShowAddPackageModal(true);
+                }}
+                onBookWalkIn={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
                 onDeleteStaff={handlers.handleDeleteStaff}
                 onAddNewStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
                 onBulkUpload={() => ui.setShowStaffBulkUploadModal(true)}
-                downloadTemplate={() => {}}
+                downloadTemplate={() => { }}
                 pagination={ui.pagination.staff}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, staff: { ...ui.pagination.staff, page } })}
                 onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, staff: { ...ui.pagination.staff, limit, page: 1 } })}
@@ -256,7 +256,7 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('bookings', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
                 totalItems={data.dataTotals.bookings}
-                language={language}
+                onAddNewBooking={() => ui.setShowWalkInModal(true)}
               />
             )}
 
@@ -270,7 +270,6 @@ const Dashboard: React.FC = () => {
                 onToggleView={() => ui.toggleViewMode('rooms')}
                 onDeleteRoom={handlers.handleDeleteRoom}
                 onAddNewRoom={() => ui.setShowAddRoomModal(true)}
-                onBulkUpload={() => ui.setShowRoomsBulkUploadModal(true)}
                 pagination={ui.pagination.rooms}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, rooms: { ...ui.pagination.rooms, page } })}
                 onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, rooms: { ...ui.pagination.rooms, limit, page: 1 } })}
@@ -279,7 +278,6 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, rooms: ids })}
                 onUpdateStatus={handlers.handleUpdateRoomStatus}
                 totalItems={data.dataTotals.rooms}
-                language={language}
               />
             )}
 
@@ -298,7 +296,6 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('guests', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, guests: ids })}
                 totalItems={data.dataTotals.guests}
-                language={language}
               />
             )}
 
@@ -315,7 +312,9 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('transactions', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, transactions: ids })}
                 totalItems={data.dataTotals.transactions}
-                language={language}
+                onExport={handlers.handleExportTransactions}
+                selectedCategory={ui.transactionCategory}
+                onCategoryChange={ui.setTransactionCategory}
               />
             )}
 
@@ -339,17 +338,17 @@ const Dashboard: React.FC = () => {
                 )}
                 rooms={data.roomsData}
                 onToggleMostPopular={handlers.handleToggleMostPopular}
-                onEditPackage={(pkg) => { ui.setEditingPackage(pkg); ui.setNewPackage({...pkg} as unknown as typeof ui.newPackage); ui.setShowAddPackageModal(true); }}
+                onEditPackage={(pkg) => { ui.setEditingPackage(pkg); ui.setNewPackage({ ...pkg } as unknown as typeof ui.newPackage); ui.setShowAddPackageModal(true); }}
                 onDeletePackage={handlers.handleDeletePackage}
-                onAddNewPackage={() => { 
-                  ui.setEditingPackage(null); 
+                onAddNewPackage={() => {
+                  ui.setEditingPackage(null);
                   ui.setNewPackage({
                     name: '', name_en: '', name_am: '', name_om: '', price: '',
                     description: '', description_en: '', description_am: '', description_om: '',
                     services: ['WiFi', 'Clean Room', 'Basic Amenities'],
                     isMostPopular: false, image: '', customService: '', imageType: 'Normal'
                   });
-                  ui.setShowAddPackageModal(true); 
+                  ui.setShowAddPackageModal(true);
                 }}
                 pagination={ui.pagination.packages}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, packages: { ...ui.pagination.packages, page } })}
@@ -375,8 +374,8 @@ const Dashboard: React.FC = () => {
                 expensesByCategory={expensesByCategory}
                 onAddExpense={handlers.handleAddExpense}
                 occupancyMetrics={{
-                  currentOccupancy: data.roomsData.length > 0 
-                    ? Math.round(((data.roomsData.length - data.actualRoomStats.availableRooms) / data.roomsData.length) * 100) 
+                  currentOccupancy: data.roomsData.length > 0
+                    ? Math.round(((data.roomsData.length - data.actualRoomStats.availableRooms) / data.roomsData.length) * 100)
                     : 0,
                   totalRooms: data.roomsData.length,
                   availableRooms: data.actualRoomStats.availableRooms
@@ -399,12 +398,12 @@ const Dashboard: React.FC = () => {
                 approvalStatus="Approved"
                 isUpdating={ui.isUpdating}
                 setIsUpdating={ui.setIsUpdating}
-                onSaveBusinessProfile={() => {}}
+                onSaveBusinessProfile={() => { }}
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
-                onToggleTwoFactor={() => {}}
+                onToggleTwoFactor={() => { }}
                 showSaveSuccess={ui.showSaveSuccess}
                 subscriptionStatus={status}
-                onUpgradeClick={() => ui.setActiveTab("subscription")}
+                onUpgradeClick={() => navigate("/dashboard/subscription")}
               />
             )}
           </div>
@@ -464,26 +463,7 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Rooms Bulk Upload */}
-      <BulkUploadModal
-        isOpen={ui.showRoomsBulkUploadModal}
-        onClose={() => { ui.setShowRoomsBulkUploadModal(false); ui.setErrorMessage(''); }}
-        title="Bulk Upload Rooms"
-        description="Upload multiple rooms at once using a CSV file."
-        uploadData={ui.roomsBulkUpload}
-        onFileUpload={handlers.handleRoomFileUpload}
-        onConfirm={handlers.handleConfirmRoomBulkUpload}
-        onDownloadTemplate={handlers.handleDownloadRoomTemplate}
-        errorMessage={ui.errorMessage}
-        columns={[
-          { key: 'room_number', label: 'Room Number' },
-          { key: 'room_type', label: 'Room Type' },
-          { key: 'package_name', label: 'Package Name' },
-          { key: 'capacity', label: 'Capacity' },
-          { key: 'number_of_beds', label: 'Beds' },
-          { key: 'price', label: 'Price' },
-          { key: 'status', label: 'Status' }
-        ]}
-      />
+
 
       {/* Staff Bulk Upload */}
       <BulkUploadModal

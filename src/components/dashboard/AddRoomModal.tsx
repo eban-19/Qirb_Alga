@@ -21,7 +21,7 @@ interface AddRoomModalProps {
   errorMessage?: string;
 }
 
-type TabType = 'manual' | 'generate' | 'upload';
+type TabType = 'manual' | 'generate';
 
 export const AddRoomModal: React.FC<AddRoomModalProps> = ({
   isOpen,
@@ -45,9 +45,6 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
   const [seqStart, setSeqStart] = useState('101');
   const [seqCount, setSeqCount] = useState('5');
   const [seqSuffix, setSeqSuffix] = useState('');
-
-  // Drag and drop states
-  const [isDragOver, setIsDragOver] = useState(false);
 
   // Helper to parse room numbers into an array
   const getRoomsArray = (): string[] => {
@@ -139,54 +136,6 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
 
     // Switch to manual view for review
     setActiveTab('manual');
-  };
-
-  // File Upload Handlers
-  const processUploadedFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-
-      // Parse CSV or Text: split by comma, newline, tab
-      const parsedNumbers = content
-        .split(/[\n\r\t,]+/)
-        .map(num => num.trim())
-        .filter(num => num.length > 0 && num.toLowerCase() !== 'room_number' && num.toLowerCase() !== 'number');
-
-      if (parsedNumbers.length > 0) {
-        const currentRooms = getRoomsArray();
-        updateRoomNumbers([...currentRooms, ...parsedNumbers]);
-        setActiveTab('manual');
-      } else {
-        alert('Could not detect any valid room numbers in the file.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processUploadedFile(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      processUploadedFile(file);
-    }
   };
 
   const roomList = getRoomsArray();
@@ -316,7 +265,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                 </div>
 
                 {/* Tabs for combined upload/generation experiences */}
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/50">
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/50">
                   <button
                     type="button"
                     onClick={() => setActiveTab('manual')}
@@ -336,16 +285,6 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                       }`}
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Auto-Seq
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('upload')}
-                    className={`flex items-center justify-center gap-1.5 py-2 text-xs font-black uppercase tracking-tight rounded-lg transition-all ${activeTab === 'upload'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                  >
-                    <Upload className="h-3.5 w-3.5" /> Upload File
                   </button>
                 </div>
 
@@ -458,37 +397,6 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                       </Button>
                     </div>
                   )}
-
-                  {activeTab === 'upload' && (
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      className={`relative border-2 border-dashed rounded-2rem p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5 ${isDragOver
-                        ? 'border-blue-500 bg-blue-50/50 text-blue-600'
-                        : 'border-slate-200 bg-white hover:bg-slate-50/80 text-slate-500 hover:border-blue-300'
-                        }`}
-                    >
-                      <input
-                        type="file"
-                        accept=".txt,.csv"
-                        onChange={handleFileChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <div className={`p-3 rounded-full shadow-sm transition-transform group-hover:scale-110 ${isDragOver ? 'bg-blue-100 text-blue-600' : 'bg-slate-50 text-slate-400'
-                        }`}>
-                        <Upload className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <span className="block text-sm font-black text-slate-800">Drag & Drop your file here</span>
-                        <span className="block text-xs text-slate-400 mt-1 font-medium">Supports single-column .txt or .csv files</span>
-                      </div>
-                      <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 px-3 py-1 bg-slate-100 rounded-full">
-                        Or click to browse
-                      </span>
-                    </div>
-                  )}
-
                 </div>
 
                 {/* Additional Room Meta Data */}

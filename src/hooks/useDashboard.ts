@@ -1,15 +1,40 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { User, Pension, Package, Room, Staff } from '../types/dashboard';
 
 export const useDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth() as { logout: () => Promise<void>, user: User };
 
+  const getActiveTabFromPath = () => {
+    const path = location.pathname;
+    if (path.includes('/dashboard/staff')) return 'staff';
+    if (path.includes('/dashboard/bookings')) return 'bookings';
+    if (path.includes('/dashboard/rooms')) return 'rooms';
+    if (path.includes('/dashboard/guests')) return 'guests';
+    if (path.includes('/dashboard/transactions')) return 'transactions';
+    if (path.includes('/dashboard/pension-profile')) return 'pension-profile';
+    if (path.includes('/dashboard/packages')) return 'packages';
+    if (path.includes('/dashboard/promotions')) return 'promotions';
+    if (path.includes('/dashboard/reports')) return 'reports';
+    if (path.includes('/dashboard/subscription')) return 'subscription';
+    if (path.includes('/dashboard/settings/business-profile')) return 'settings-business-profile';
+    if (path.includes('/dashboard/settings/security')) return 'settings-security';
+    if (path.includes('/dashboard/settings/bank-settings')) return 'settings-bank-settings';
+    if (path.includes('/dashboard/settings/compliance')) return 'settings-compliance';
+    if (path.includes('/dashboard/settings')) return 'settings-business-profile';
+    return 'overview';
+  };
+
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
+
+  useEffect(() => {
+    setActiveTab(getActiveTabFromPath());
+  }, [location.pathname]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [isSearchOpenMobile, setIsSearchOpenMobile] = useState(false);
@@ -51,7 +76,6 @@ export const useDashboard = () => {
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [showCreatePension, setShowCreatePension] = useState(false);
-  const [showRoomsBulkUploadModal, setShowRoomsBulkUploadModal] = useState(false);
   const [showStaffBulkUploadModal, setShowStaffBulkUploadModal] = useState(false);
 
   // --- FORM STATES ---
@@ -87,10 +111,10 @@ export const useDashboard = () => {
   });
 
   const [walkInForm, setWalkInForm] = useState({
-    guestName: '', 
-    phoneNumber: '', 
-    checkIn: new Date().toISOString().split('T')[0], 
-    checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+    guestName: '',
+    phoneNumber: '',
+    checkIn: new Date().toISOString().split('T')[0],
+    checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     packageId: ''
   });
 
@@ -115,6 +139,7 @@ export const useDashboard = () => {
   const [securitySettings, setSecuritySettings] = useState({
     currentPassword: '', newPassword: '', twoFactorEnabled: false
   });
+  const [transactionCategory, setTransactionCategory] = useState('all');
 
   // Image file states
   const [pensionImageFile, setPensionImageFile] = useState<File | null>(null);
@@ -153,6 +178,7 @@ export const useDashboard = () => {
     showSaveSuccess,
     isUpdating, setIsUpdating,
     viewModes, toggleViewMode,
+    transactionCategory, setTransactionCategory,
 
     // Modal States
     showAddRoomModal, setShowAddRoomModal,
@@ -160,7 +186,6 @@ export const useDashboard = () => {
     showAddStaffModal, setShowAddStaffModal,
     showWalkInModal, setShowWalkInModal,
     showCreatePension, setShowCreatePension,
-    showRoomsBulkUploadModal, setShowRoomsBulkUploadModal,
     showStaffBulkUploadModal, setShowStaffBulkUploadModal,
 
     // Form States
@@ -171,7 +196,6 @@ export const useDashboard = () => {
     newRoom, setNewRoom,
     newPension, setNewPension,
     walkInForm, setWalkInForm,
-    roomsBulkUpload, setRoomsBulkUpload,
     staffBulkUpload, setStaffBulkUpload,
     propertySettings, setPropertySettings,
     businessProfile, setBusinessProfile,

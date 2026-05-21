@@ -695,7 +695,12 @@
     "header_packages": "Packages Management",
     "header_staff": "Staff & HR Management",
     "header_settings": "Dashboard Settings",
-    "header_availability": "Availability Management"
+    "header_availability": "Availability Management",
+    "header_promotions": "Promotions",
+    "header_transactions": "Transactions",
+    "header_reports": "Reports",
+    "header_pensionProfile": "Pension Profile",
+    "header_subscription": "Subscription Plans"
   },
   "sidebar": {
     "overview": "Overview",
@@ -704,6 +709,7 @@
     "guests": "Guests",
     "pensionProfile": "Pension Profile",
     "packages": "Package Tiers",
+    "promotions": "Promotions",
     "staffHr": "Staff & HR",
     "staff": "Staff & HR",
     "transactions": "Transactions",

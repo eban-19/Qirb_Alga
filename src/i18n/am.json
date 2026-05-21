@@ -726,7 +726,9 @@
     "newBooking": "+ አዲስ ማስያዣ",
     "header_promotions": "የዋጋ ቅናሾች እና ስጦታዎች",
     "header_transactions": "የፋይናንስ እንቅስቃሴዎች",
-    "header_reports": "ሪፖርቶች እና ትንታኔዎች"
+    "header_reports": "ሪፖርቶች እና ትንታኔዎች",
+    "header_pensionProfile": "የፔንሲዮን ፕሮፋይል",
+    "header_subscription": "የደንበኝነት ምዝገባ ዕቅዶች"
   },
   "sidebar": {
     "overview": "አጠቃላይ እይታ",
@@ -735,6 +737,7 @@
     "guests": "እንግዶች",
     "pensionProfile": "የፔንሽን ፕሮፋይል",
     "packages": "የፓኬጅ አይነቶች",
+    "promotions": "ልዩ ቅናሾች",
     "staffHr": "ሰራተኞች እና HR",
     "staff": "ሰራተኞች እና HR",
     "transactions": "ግብይቶች",

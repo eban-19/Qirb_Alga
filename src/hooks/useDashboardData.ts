@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { 
-  User, Pension, Package, Room, Booking, Staff, Guest, Transaction, Expense 
+import {
+  User, Pension, Package, Room, Booking, Staff, Guest, Transaction, Expense
 } from '../types/dashboard';
 
 export const useDashboardData = (ui?: any) => {
@@ -26,7 +26,7 @@ export const useDashboardData = (ui?: any) => {
     staff: 0,
     packages: 0
   });
-  
+
   // Stats State
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -42,7 +42,7 @@ export const useDashboardData = (ui?: any) => {
     setError(null);
     try {
       console.log('🔄 Loading Dashboard Data for user:', user.id);
-      
+
       // 1. Fetch Pensions
       let pensionsResp;
       try {
@@ -55,17 +55,17 @@ export const useDashboardData = (ui?: any) => {
       if (pensionsResp.success) {
         const fetchedPensions = (Array.isArray(pensionsResp.data) ? pensionsResp.data : (pensionsResp.data as any)?.items || []) as Pension[];
         setPensions(fetchedPensions);
-        
+
         // Find the active pension: priority is override > already selected > user's first > first in list
         const effectiveId = pensionIdOverride || selectedPensionId;
-        
-        let activePension = fetchedPensions.find((p: Pension) => 
+
+        let activePension = fetchedPensions.find((p: Pension) =>
           String(p.pension_id || p.id) === String(effectiveId)
         );
 
         // If no match found for current ID, find user's first pension
         if (!activePension) {
-          activePension = fetchedPensions.find((p: Pension) => 
+          activePension = fetchedPensions.find((p: Pension) =>
             String(p.owner_id) === String(user.id)
           );
         }
@@ -74,15 +74,15 @@ export const useDashboardData = (ui?: any) => {
         if (!activePension && fetchedPensions.length > 0) {
           activePension = fetchedPensions[0];
         }
-        
+
         if (activePension) {
           const pensionId = Number(activePension.pension_id || activePension.id);
-          
+
           // Sync the selection state
           if (String(pensionId) !== String(selectedPensionId)) {
             setSelectedPensionId(String(pensionId));
           }
-          
+
           // 2. Fetch Pension-specific data - fetch all for frontend pagination to ensure total count is accurate
           const results = await Promise.allSettled([
             apiService.getPackages(pensionId),
@@ -115,7 +115,7 @@ export const useDashboardData = (ui?: any) => {
             const roomsDataRaw = roomsResp.data;
             const rooms = (Array.isArray(roomsDataRaw) ? roomsDataRaw : (roomsDataRaw as any)?.items || []) as Room[];
             const totalRooms = (roomsDataRaw as any)?.total || rooms.length;
-            
+
             // Map backend fields to UI expected fields
             const mappedRooms = rooms.map(r => ({
               ...r,
@@ -133,7 +133,7 @@ export const useDashboardData = (ui?: any) => {
 
           if (bookingsResp.success) {
             const fetchedBookingsRaw = (Array.isArray(bookingsResp.data) ? bookingsResp.data : (bookingsResp.data as any)?.items || []) as Booking[];
-            
+
             // Deduplicate bookings by ID
             const uniqueBookingsMap = new Map();
             fetchedBookingsRaw.forEach(b => {
@@ -142,30 +142,33 @@ export const useDashboardData = (ui?: any) => {
                 uniqueBookingsMap.set(id, b);
               }
             });
-            const fetchedBookings = Array.from(uniqueBookingsMap.values());
-            
+            const fetchedBookings = Array.from(uniqueBookingsMap.values()).map((b: any) => ({
+              ...b,
+              status: b.status?.toLowerCase() === 'pending' ? 'confirmed' : b.status
+            }));
+
             const totalBookings = (bookingsResp.data as any)?.total || fetchedBookings.length;
             setBookings(fetchedBookings);
             setDataTotals(prev => ({ ...prev, bookings: totalBookings }));
-            
+
             // Map Guests from Bookings if Guests endpoint is empty
             const uniqueGuestsMap = new Map();
             fetchedBookings.forEach((b: any) => {
               const customer = b.customer;
               const isWalkIn = b.is_walk_in || !customer;
-              
+
               // Extract guest details from either registered customer or walk-in info
               const guestName = customer?.full_name || b.walk_in_guest_name || b.user_name || 'Unknown Guest';
               const guestEmail = customer?.email || b.walk_in_guest_email || b.user_email || 'N/A';
               const guestPhone = customer?.phone || b.walk_in_guest_phone || b.user_phone || b.phone || 'N/A';
               const guestUserId = customer?.user_id || customer?.id;
-              
+
               // Unique ID for the guest (prioritize email/phone to merge records for same person)
               const guestId = guestEmail !== 'N/A' ? guestEmail : (guestPhone !== 'N/A' ? guestPhone : (guestUserId || b.booking_id || b.id));
-              
+
               const bookingStatus = b.status?.toLowerCase();
-              const guestStatus = bookingStatus === 'confirmed' ? 'Checked In' : 
-                                 (bookingStatus === 'completed' ? 'Checked Out' : 'Pending');
+              const guestStatus = bookingStatus === 'confirmed' ? 'Checked In' :
+                (bookingStatus === 'completed' ? 'Checked Out' : 'Active');
 
               if (!uniqueGuestsMap.has(guestId)) {
                 uniqueGuestsMap.set(guestId, {
@@ -185,12 +188,12 @@ export const useDashboardData = (ui?: any) => {
                 const existing = uniqueGuestsMap.get(guestId);
                 existing.totalBookings += 1;
                 existing.totalSpent += parseFloat(b.total_price || 0);
-                
+
                 // Update name if we have a better one
                 if (existing.name === 'Unknown Guest' && guestName !== 'Unknown Guest') {
                   existing.name = guestName;
                 }
-                
+
                 // Prioritize 'Checked In' status over others
                 if (guestStatus === 'Checked In' || (guestStatus === 'Checked Out' && existing.status === 'Pending')) {
                   existing.status = guestStatus;
@@ -201,7 +204,7 @@ export const useDashboardData = (ui?: any) => {
 
             // Get guests from API response
             const apiGuests = (Array.isArray(guestsResp.data) ? guestsResp.data : (guestsResp.data as any)?.items || []) as Guest[];
-            
+
             // Merge API guests into our unique map to avoid duplicates and combine info
             apiGuests.forEach((g: any) => {
               const guestId = g.email || g.phone || g.id;
@@ -234,14 +237,14 @@ export const useDashboardData = (ui?: any) => {
 
             const finalGuests = Array.from(uniqueGuestsMap.values());
             setGuestsData(finalGuests);
-            setDataTotals(prev => ({ 
-              ...prev, 
-              guests: (guestsResp.data as any)?.total || Math.max(finalGuests.length, (guestsResp.data as any)?.total || 0) 
+            setDataTotals(prev => ({
+              ...prev,
+              guests: (guestsResp.data as any)?.total || Math.max(finalGuests.length, (guestsResp.data as any)?.total || 0)
             }));
-            
+
             // Map Transactions from Bookings and Expenses if Transactions endpoint is empty or not available
             const apiTransactions = (Array.isArray(transactionsResp.data) ? transactionsResp.data : (transactionsResp.data as any)?.items || []) as Transaction[];
-            
+
             if (!transactionsResp.success || apiTransactions.length === 0) {
               const generatedIncome = fetchedBookings
                 .filter(b => b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'completed')
@@ -266,21 +269,21 @@ export const useDashboardData = (ui?: any) => {
                 method: 'Cash',
                 rawExpense: e
               }));
-              
-              const combinedTransactions = [...generatedIncome, ...generatedExpenses].sort((a, b) => 
+
+              const combinedTransactions = [...generatedIncome, ...generatedExpenses].sort((a, b) =>
                 new Date(b.date).getTime() - new Date(a.date).getTime()
               );
 
               setRecentTransactions(combinedTransactions);
               setDataTotals(prev => ({ ...prev, transactions: combinedTransactions.length }));
-              
+
               const total = generatedIncome.reduce((acc: number, t: any) => acc + t.amount, 0);
               setTotalRevenue(total);
             } else {
               setRecentTransactions(apiTransactions);
               setDataTotals(prev => ({ ...prev, transactions: (transactionsResp.data as any)?.total || apiTransactions.length }));
-              
-              const total = apiTransactions.reduce((acc: number, t: Transaction) => 
+
+              const total = apiTransactions.reduce((acc: number, t: Transaction) =>
                 t.status === 'Completed' && (t.type === 'income' || t.type === 'Revenue') ? acc + (Number(t.amount) || 0) : acc, 0);
               setTotalRevenue(total);
             }
@@ -297,7 +300,7 @@ export const useDashboardData = (ui?: any) => {
               setDataTotals(prev => ({ ...prev, transactions: (transactionsResp.data as any)?.total || transactions.length }));
             }
           }
-          
+
           if (staffResp.success) {
             const fetchedStaff = (Array.isArray(staffResp.data) ? staffResp.data : (staffResp.data as any)?.items || []) as Staff[];
             const totalStaff = (staffResp.data as any)?.total || fetchedStaff.length;

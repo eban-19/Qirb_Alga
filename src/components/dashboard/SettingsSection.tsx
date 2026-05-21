@@ -4,11 +4,11 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tabs, TabsContent } from '../ui/tabs';
-import { 
-  Building, 
-  Shield, 
-  ShieldCheck, 
-  AlertCircle, 
+import {
+  Building,
+  Shield,
+  ShieldCheck,
+  AlertCircle,
   Save,
   Zap
 } from 'lucide-react';
@@ -60,8 +60,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
-          {activeTab === "settings-business-profile" 
-            ? (t.dashboard?.businessProfileSettings || "Business Profile Settings") 
+          {activeTab === "settings-business-profile"
+            ? (t.dashboard?.businessProfileSettings || "Business Profile Settings")
             : (t.dashboard?.securitySettings || "Security Settings")}
         </h2>
         <p className="text-slate-500 text-sm">{t.dashboard?.settingsDescription || "Configure your property and account preferences."}</p>
@@ -77,7 +77,6 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
       <Tabs value={activeTab} className="w-full">
         <TabsContent value="settings-business-profile" className="mt-0">
           <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
-            <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400" />
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-2xl font-bold flex items-center gap-3">
@@ -86,9 +85,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   </div>
                   <span>{t.dashboard?.businessProfile || "Business Profile"}</span>
                 </CardTitle>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  approvalStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${approvalStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
                   {approvalStatus === 'Approved' ? (t.dashboard?.approved || '✓ Approved') : (t.dashboard?.pendingReview || '⏳ Pending Review')}
                 </span>
               </div>
@@ -133,7 +131,6 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           </Card>
 
           <Card className="mt-6 border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
-            <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-blue-500 to-purple-400" />
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-2xl font-bold flex items-center gap-3">
@@ -142,9 +139,9 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   </div>
                   <span>{t.dashboard?.subscriptionManagement || "Subscription Management"}</span>
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={onUpgradeClick}
                   className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 font-bold gap-2"
                 >
@@ -171,18 +168,17 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
         </TabsContent>
 
         <TabsContent value="settings-bank-settings" className="mt-0">
-          <BankSettingsSection 
+          <BankSettingsSection
             bankSettings={bankSettings}
             setBankSettings={setBankSettings}
             isUpdating={isUpdating}
             setIsUpdating={setIsUpdating}
-            showSuccess={() => {}}
+            showSuccess={() => { }}
           />
         </TabsContent>
 
         <TabsContent value="settings-security" className="mt-0">
           <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
-            <div className="h-2 w-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-400" />
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl font-bold flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-600">

@@ -6,13 +6,13 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import NotificationBell from '../NotificationBell';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import { LogOut } from 'lucide-react';
 
@@ -66,7 +66,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               placeholder={t.dashboard?.searchPlaceholder || "Search bookings, rooms, guests..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border-slate-100 pl-10 h-10 rounded-full focus-visible:ring-primary focus-visible:bg-white transition-all shadow-none"
+              className="w-full bg-slate-50 border-slate-100 pl-10 h-10 rounded-full focus-visible:ring-primary focus-visible:bg-white transition-colors duration-200 shadow-none"
             />
           </div>
         </div>
@@ -82,13 +82,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               >
                 {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-              <h1 className="text-lg font-bold lg:text-xl capitalize text-slate-900 truncate">
-                {t.dashboard?.[`header_${activeTab}`] || 
-                 (activeTab === "staff" ? "Staff & HR Management" : 
-                  activeTab === "overview" ? "Dashboard Overview" : 
-                  activeTab === "availability" ? "Availability Management" :
-                  activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace("-", " "))}
-              </h1>
+
             </div>
           </div>
 
@@ -117,7 +111,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[220px] mt-2 rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+              <DropdownMenuContent align="end" className="min-w-[220px] mt-2 rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                 {options.map((option) => (
                   <DropdownMenuItem
                     key={option.value}
@@ -149,7 +143,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   </Avatar>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+              <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300">
                 <DropdownMenuLabel className="font-normal p-4">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
@@ -164,7 +158,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={onLogout}
                   className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
                 >

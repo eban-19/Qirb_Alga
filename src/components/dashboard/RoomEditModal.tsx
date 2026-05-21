@@ -35,13 +35,13 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const room_type_ml = {
       en: formData.room_type_en || formData.room_type,
       am: formData.room_type_am,
       om: formData.room_type_om
     };
-    
+
     onUpdate({
       ...formData,
       room_type: formData.room_type_en || formData.room_type,
@@ -59,7 +59,6 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-        <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600"></div>
         <DialogHeader className="p-8 pb-4">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50">
@@ -75,14 +74,14 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
             </div>
           </div>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="p-8 pt-0 space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* Left Column: Naming & Locality */}
             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Multilingual Naming</h3>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeEn || "Room Type (English)"}</Label>
                   <Input
@@ -93,7 +92,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeAm || "Room Type (Amharic)"}</Label>
                   <Input
@@ -103,7 +102,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                     className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 font-medium"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.roomTypeOm || "Room Type (Afaan Oromo)"}</Label>
                   <Input
@@ -120,7 +119,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Inventory & Pricing</h3>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="floor" className="text-sm font-bold text-slate-700">{t.dashboard?.floor || "Floor"}</Label>
@@ -133,7 +132,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="price_per_night" className="text-sm font-bold text-slate-700">{t.dashboard?.pricePerNightEtb || "Price per Night (ETB)"}</Label>
                     <Input
@@ -160,7 +159,7 @@ export const RoomEditModal: React.FC<RoomEditModalProps> = ({
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">{t.dashboard?.capacity || "Capacity"}</Label>
                     <Input

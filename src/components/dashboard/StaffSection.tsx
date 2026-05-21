@@ -74,58 +74,58 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
     for (let i = 1; i <= totalPages; i++) pages.push(i);
     return pages;
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Bulk Actions Bar */}
       {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex flex-col xs:flex-row items-center justify-between gap-3 mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3 w-full xs:w-auto">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold shrink-0">
               {selectedRows.length} {t.dashboard?.selected || "selected"}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">
-              {selectedRows.length === 1 
-                ? (t.dashboard?.oneStaffMemberSelected || '1 staff member selected') 
+            <p className="text-sm font-medium text-slate-600 hidden sm:block truncate">
+              {selectedRows.length === 1
+                ? (t.dashboard?.oneStaffMemberSelected || '1 staff member selected')
                 : (t.dashboard?.multipleStaffMembersSelected ? t.dashboard.multipleStaffMembersSelected.replace('{count}', selectedRows.length.toString()) : `${selectedRows.length} staff members selected`)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full xs:w-auto">
             {selectedRows.length === 1 && (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
-                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100 shadow-sm"
+                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-Staff-100 shadow-sm flex-1 xs:flex-none h-10"
                 onClick={() => {
                   const member = staff.find(s => String(s.id) === String(selectedRows[0]));
                   if (member) onEditStaff(member);
                 }}
               >
                 <Edit className="h-4 w-4 mr-1.5" />
-                {t.dashboard?.editProfile || "Edit Profile"}
+                <span>{t.dashboard?.editProfile || "Edit Profile"}</span>
               </Button>
             )}
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
-              className="font-bold text-slate-600 border-slate-200"
+              className="font-bold text-slate-600 border-slate-200 flex-1 xs:flex-none h-10"
               onClick={() => onSelectAll?.([])}
             >
-              {t.dashboard?.clear || "Clear"}
+              <span>{t.dashboard?.clear || "Clear"}</span>
             </Button>
-            <Button 
-              size="sm" 
-              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
+            <Button
+              size="sm"
+              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm flex-1 xs:flex-none h-10"
               onClick={() => setShowConfirmDelete(true)}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
-              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
+              <span>{selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}</span>
             </Button>
           </div>
         </div>
       )}
 
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={() => {
@@ -133,7 +133,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           onSelectAll?.([]);
         }}
         title={selectedRows.length === 1 ? (t.dashboard?.deleteStaffMember || "Delete Staff Member") : (t.dashboard?.deleteStaffMembers || "Delete Staff Members")}
-        description={selectedRows.length === 1 
+        description={selectedRows.length === 1
           ? (t.dashboard?.confirmDeleteStaffSingleDescription || "Are you sure you want to permanently delete this staff member? This will remove all their records from the system.")
           : (t.dashboard?.confirmDeleteStaffMultipleDescription ? t.dashboard.confirmDeleteStaffMultipleDescription.replace('{count}', selectedRows.length.toString()) : `Are you sure you want to permanently delete these ${selectedRows.length} staff members? This will remove all their records from the system.`)}
         itemCount={selectedRows.length}
@@ -141,28 +141,26 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
-          <Button 
+          <Button
             variant={viewMode === "card" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "card" 
-                ? "bg-primary text-white shadow-lg shadow-primary/25" 
-                : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
+              ? "bg-primary text-white shadow-lg shadow-primary/25"
+              : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <LayoutDashboard className="h-4 w-4" />
             {t.dashboard?.cards || "Cards"}
           </Button>
-          <Button 
+          <Button
             variant={viewMode === "table" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "table" 
-                ? "bg-primary text-white shadow-lg shadow-primary/25" 
-                : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
+              ? "bg-primary text-white shadow-lg shadow-primary/25"
+              : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <BarChart3 className="h-4 w-4" />
             {t.dashboard?.table || "Table"}
@@ -171,15 +169,15 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onBulkUpload}
             className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
           >
             <LayoutDashboard className="h-4 w-4 rotate-180" />
             {t.dashboard?.bulkUpload || "Bulk Upload"}
           </Button>
-          <Button 
+          <Button
             onClick={onAddNewStaff}
             className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
           >
@@ -199,7 +197,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardContent className="p-6 relative">
                 <div className="absolute top-4 right-4">
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedRows.includes(member.id)}
                     onCheckedChange={() => onToggleSelection?.(member.id)}
                   />
@@ -211,10 +209,9 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                     </Avatar>
                     <div className="space-y-1">
                       <h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{member.full_name || (t.dashboard?.unknown || 'Unknown')}</h3>
-                      <Badge className={`${
-                        member.status === 'Active' ? 'bg-emerald-500 shadow-emerald-500/25' :
+                      <Badge className={`${member.status === 'Active' ? 'bg-emerald-500 shadow-emerald-500/25' :
                         member.status === 'On Leave' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-slate-500 shadow-slate-500/25'
-                      } text-white text-xs shadow-sm`}>
+                        } text-white text-xs shadow-sm`}>
                         {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
                       </Badge>
                     </div>
@@ -246,47 +243,47 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   </div>
                 </div>
 
-                 <div className="pt-2 border-t border-slate-100 mt-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
-                        >
-                          <span className="flex items-center gap-2 font-bold">
-                            {t.dashboard?.actions || "Actions"}
-                          </span>
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
-                        <DropdownMenuItem 
-                          onClick={() => onEditStaff(member)}
-                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                          {t.dashboard?.editProfile || "Edit Profile"}
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuItem 
-                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
-                        >
-                          <Mail className="h-4 w-4" />
-                          {t.dashboard?.sendMessage || "Send Message"}
-                        </DropdownMenuItem>
- 
-                        <DropdownMenuSeparator className="bg-slate-100" />
-                        
-                        <DropdownMenuItem 
-                          onClick={() => onDeleteStaff(member.id)}
-                          className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {t.dashboard?.deleteStaff || "Delete Staff"}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                 </div>
+                <div className="pt-2 border-t border-slate-100 mt-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          {t.dashboard?.actions || "Actions"}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300 p-1">
+                      <DropdownMenuItem
+                        onClick={() => onEditStaff(member)}
+                        className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                        {t.dashboard?.editProfile || "Edit Profile"}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                      >
+                        <Mail className="h-4 w-4" />
+                        {t.dashboard?.sendMessage || "Send Message"}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator className="bg-slate-100" />
+
+                      <DropdownMenuItem
+                        onClick={() => onDeleteStaff(member.id)}
+                        className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {t.dashboard?.deleteStaff || "Delete Staff"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
               </CardContent>
             </Card>
@@ -300,7 +297,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
-                      <Checkbox 
+                      <Checkbox
                         checked={safeStaff.length > 0 && selectedRows.length === safeStaff.length}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -324,7 +321,7 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   {safeStaff.map((member) => (
                     <TableRow key={member.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(member.id) ? 'bg-blue-50/30' : ''}`}>
                       <TableCell className="px-4">
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedRows.includes(member.id)}
                           onCheckedChange={() => onToggleSelection?.(member.id)}
                         />
@@ -350,52 +347,51 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
 
                       <TableCell className="text-sm">ETB {member.salary.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge className={`${
-                          member.status === 'Active' ? 'bg-emerald-500' :
+                        <Badge className={`${member.status === 'Active' ? 'bg-emerald-500' :
                           member.status === 'On Leave' ? 'bg-amber-500' : 'bg-slate-400'
-                        } text-white text-[10px]`}>
+                          } text-white text-[10px]`}>
                           {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
                         </Badge>
                       </TableCell>
-                       <TableCell className="text-right pr-4">
-                         <div className="flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
-                                >
-                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
-                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
-                                <DropdownMenuItem 
-                                  onClick={() => onEditStaff(member)}
-                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  {t.dashboard?.edit || "Edit"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
-                                >
-                                  <Mail className="h-4 w-4" />
-                                  {t.dashboard?.contact || "Contact"}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-slate-100" />
-                                <DropdownMenuItem 
-                                  onClick={() => onDeleteStaff(member.id)}
-                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  {t.dashboard?.delete || "Delete"}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                         </div>
-                       </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                              >
+                                <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
+                                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                              <DropdownMenuItem
+                                onClick={() => onEditStaff(member)}
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                                {t.dashboard?.edit || "Edit"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
+                              >
+                                <Mail className="h-4 w-4" />
+                                {t.dashboard?.contact || "Contact"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-slate-100" />
+                              <DropdownMenuItem
+                                onClick={() => onDeleteStaff(member.id)}
+                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {t.dashboard?.delete || "Delete"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
 
                     </TableRow>
                   ))}
@@ -404,65 +400,70 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             </div>
 
             {/* Unified Pagination Footer */}
-            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="text-sm font-bold text-slate-500">
-                {t.dashboard?.showingEmployees ? t.dashboard.showingEmployees.replace('{count}', safeStaff.length.toString()).replace('{total}', totalItems.toString()) : `Showing ${safeStaff.length} of ${totalItems} employees`}
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30 gap-2 overflow-hidden">
+              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
+                <span className="hidden sm:inline">
+                  {t.dashboard?.showingEmployees ? t.dashboard.showingEmployees.replace('{count}', safeStaff.length.toString()).replace('{total}', totalItems.toString()) : (
+                    <>Showing <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                  )}
+                </span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{safeStaff.length}/{totalItems}</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={String(pagination.limit)}
-                    onValueChange={(val) => onLimitChange?.(parseInt(val))}
-                  >
-                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                      <div className="flex items-center">
-                        <span>{pagination.limit} {t.dashboard?.perPage || "/ page"}</span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 {t.dashboard?.perPage || "/ page"}</SelectItem>
-                      <SelectItem value="10">10 {t.dashboard?.perPage || "/ page"}</SelectItem>
-                      <SelectItem value="20">20 {t.dashboard?.perPage || "/ page"}</SelectItem>
-                      <SelectItem value="50">50 {t.dashboard?.perPage || "/ page"}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <Select
+                  value={String(pagination.limit)}
+                  onValueChange={(val) => onLimitChange?.(parseInt(val))}
+                >
+                  <SelectTrigger className="w-[65px] sm:w-[130px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                    <div className="flex items-center justify-center w-full">
+                      <span className="sm:hidden">{pagination.limit}/p</span>
+                      <span className="hidden sm:inline">{pagination.limit} {t.dashboard?.perPage || "/ page"}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page - 1)}
                     disabled={pagination.page <= 1}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
-                  
-                  {getPageNumbers().map(pageNum => (
-                    <Button
-                      key={pageNum}
-                      variant={pagination.page === pageNum ? "default" : "ghost"}
-                      onClick={() => onPageChange?.(pageNum)}
-                      className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
-                        pagination.page === pageNum 
-                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map(pageNum => (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "ghost"}
+                        onClick={() => onPageChange?.(pageNum)}
+                        className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum
+                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200"
                           : "text-slate-500 hover:bg-slate-50"
-                      }`}
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
+                          }`}
+                      >
+                        {pageNum}
+                      </Button>
+                    ))}
+                  </div>
 
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page + 1)}
                     disabled={pagination.page >= totalPages}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>

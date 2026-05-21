@@ -3,12 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { 
-  DollarSign, 
-  CreditCard, 
-  Target, 
-  BarChart3, 
-  TrendingUp, 
+import {
+  DollarSign,
+  CreditCard,
+  Target,
+  BarChart3,
+  TrendingUp,
   ArrowDownRight,
   FileText,
   Plus
@@ -47,14 +47,12 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
   const { t } = useLanguage();
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
-  
+
   const confirmedRevenue = bookings
     .filter(b => b.status?.toLowerCase() === 'confirmed')
     .reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
-    
-  const pendingRevenue = bookings
-    .filter(b => b.status?.toLowerCase() === 'pending')
-    .reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
+
+
 
   const getLocalizedCategoryName = (cat: string) => {
     switch (cat.toLowerCase()) {
@@ -153,13 +151,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
                 </div>
                 <p className="text-xl font-bold text-emerald-700">ETB {confirmedRevenue.toLocaleString()}</p>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50">
-                <div>
-                  <p className="font-bold text-amber-700">{t.dashboard?.pendingBookings || "Pending Bookings"}</p>
-                  <p className="text-xs text-amber-600">{bookings.filter(b => b.status?.toLowerCase() === 'pending').length} {t.dashboard?.bookings || "bookings"}</p>
-                </div>
-                <p className="text-xl font-bold text-amber-700">ETB {pendingRevenue.toLocaleString()}</p>
-              </div>
+
             </div>
           </CardContent>
         </Card>

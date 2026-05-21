@@ -148,7 +148,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                             <button
                               key={sub.id}
                               onClick={() => {
-                                setActiveTab(`settings-${sub.id}`);
+                                navigate(`/dashboard/settings/${sub.id}`);
                                 setMobileSidebarOpen(false);
                               }}
                               className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-[13px] font-bold transition-all duration-200 ${isSubActive
@@ -171,7 +171,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 <button
                   key={link.id}
                   onClick={() => {
-                    setActiveTab(link.id);
+                    const path = link.id === 'overview' ? '/dashboard' : `/dashboard/${link.id}`;
+                    navigate(path);
                     setSettingsExpanded(false);
                     setMobileSidebarOpen(false);
                   }}

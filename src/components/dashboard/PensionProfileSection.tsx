@@ -4,14 +4,14 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { LocationPicker } from '../ui/LocationPicker';
-import { 
-  Building, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Image as ImageIcon, 
-  FileText, 
-  Users, 
+import {
+  Building,
+  MapPin,
+  Phone,
+  Mail,
+  Image as ImageIcon,
+  FileText,
+  Users,
   BedDouble,
   CheckCircle
 } from 'lucide-react';
@@ -43,18 +43,18 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
     if (!imagePath) return '';
     if (typeof imagePath !== 'string') return '';
     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
-    
+
     // Normalize path
     let normalizedPath = imagePath;
     if (!normalizedPath.startsWith('/')) {
       normalizedPath = '/' + normalizedPath;
     }
-    
+
     // If it doesn't already contain 'uploads', assume it belongs in uploads
     if (!normalizedPath.toLowerCase().includes('uploads')) {
       normalizedPath = '/uploads' + normalizedPath;
     }
-    
+
     return `http://localhost:3006${normalizedPath}`;
   };
 
@@ -70,7 +70,6 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
       )}
 
       <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
-        <div className="h-2 w-full bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"></div>
         <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
@@ -102,9 +101,9 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 placeholder="e.g., Bole, Addis Ababa"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
-              
+
               <div className="mt-4 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                <LocationPicker 
+                <LocationPicker
                   onLocationSelect={(loc) => {
                     setPropertySettings({
                       ...propertySettings,
@@ -157,13 +156,13 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-purple-600" /> {t.dashboard?.pensionImage || "Pension Image"}
               </Label>
-              
+
               {displayUrl && (
                 <div className="relative w-full h-40 rounded-xl overflow-hidden mb-2 border border-slate-100 group">
-                  <img 
-                    src={displayUrl} 
-                    alt="Pension Preview" 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  <img
+                    src={displayUrl}
+                    alt="Pension Preview"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <p className="text-white text-xs font-bold">{t.dashboard?.currentImage || "Current Image"}</p>

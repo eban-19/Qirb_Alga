@@ -715,6 +715,8 @@
     "header_promotions": "Piroomooshinii fi Kennaawwan",
     "header_transactions": "Darbaawwan Faayinaansii",
     "header_reports": "Gabaasa fi Qaaccessa",
+    "header_pensionProfile": "Fuula Pansiynii",
+    "header_subscription": "Karoora Kaffaltii",
     "confirmDeletePackageMultipleDescription": "Sadarkaawwan paakeejii kana guutummaatti haquu akka barbaaddu mirkaneeffatteettaa? Kun kutaalee sadarkaawwan kanaan walqabatan hundas ni miidha.",
     "showingTiers": "Sadarkaawwan {total} keessaa {count} agarsiisaa jira"
   },
@@ -725,6 +727,7 @@
     "guests": "Keessummoota",
     "pensionProfile": "Profaayilii Pensiinii",
     "packages": "Paakeejota",
+    "promotions": "Piroomooshiniiwwan",
     "staffHr": "Tajaajila & HR",
     "staff": "Hojjettoota & HR",
     "transactions": "Tajaajiloota",

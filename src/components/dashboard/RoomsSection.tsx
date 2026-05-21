@@ -3,17 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  LayoutDashboard, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  BarChart3,
   TrashIcon,
-  ChevronLeft, 
-  ChevronRight, 
-  Edit2, 
-  RotateCcw, 
-  CheckCircle2, 
-  XCircle, 
-  ChevronDown 
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  ChevronDown
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +38,6 @@ interface RoomsSectionProps {
   onToggleView: () => void;
   onDeleteRoom?: (roomId: string | number) => void;
   onAddNewRoom?: () => void;
-  onBulkUpload?: () => void;
   pagination?: { page: number; limit: number };
   onPageChange?: (page: number) => void;
   onLimitChange?: (limit: number) => void;
@@ -56,7 +55,6 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onToggleView,
   onDeleteRoom,
   onAddNewRoom,
-  onBulkUpload,
   pagination = { page: 1, limit: 10 },
   onPageChange,
   onLimitChange,
@@ -64,7 +62,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onToggleSelection,
   onSelectAll,
   totalItems = 0,
-  onEditRoom
+  onEditRoom,
+  onUpdateStatus
 }) => {
   const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -78,54 +77,54 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
     }
     return pages;
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Bulk Actions Bar */}
       {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex flex-col xs:flex-row items-center justify-between gap-3 mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3 w-full xs:w-auto">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold shrink-0">
               {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsRooms || 'Perform actions on all selected rooms'}</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block truncate">{t.dashboard?.performActionsRooms || 'Perform actions on all selected rooms'}</p>
           </div>
-          <div className="flex items-center gap-2">
-            {selectedRows.length === 1 && (
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="font-bold text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100 shadow-sm"
-                onClick={() => {
-                  const room = rooms.find(r => String(r.id || r.room_id) === String(selectedRows[0]));
-                  if (room) onEditRoom?.(room);
-                }}
-              >
-                <Edit2 className="h-4 w-4 mr-1.5" />
-                {t.dashboard?.editRoom || 'Edit Room'}
-              </Button>
-            )}
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+          <div className="flex items-center gap-2 w-full xs:w-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 xs:flex-none text-slate-600 border-slate-200 font-bold hover:bg-slate-50 h-10"
               onClick={() => onSelectAll?.([])}
             >
-              {t.dashboard?.clearSelection || 'Clear Selection'}
+              <span>{t.dashboard?.clearSelection || 'Clear Selection'}</span>
             </Button>
-            <Button 
-              size="sm" 
-              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
-              onClick={() => setShowConfirmDelete(true)}
+            <Button
+              size="sm"
+              className={`flex-1 xs:flex-none bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm transition-all duration-300 h-10 ${selectedRows.some(id => {
+                const room = rooms.find(r => String(r.id || r.room_id) === String(id));
+                return room?.status === 'Occupied';
+              }) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              onClick={() => {
+                const hasOccupied = selectedRows.some(id => {
+                  const room = rooms.find(r => String(r.id || r.room_id) === String(id));
+                  return room?.status === 'Occupied';
+                });
+                if (hasOccupied) {
+                  alert(t.dashboard?.roomDeleteOccupiedError || 'Cannot delete occupied rooms. Please check out the guest first.');
+                  return;
+                }
+                setShowConfirmDelete(true);
+              }}
             >
               <TrashIcon className="h-4 w-4 mr-2" />
-              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
+              <span>{selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}</span>
             </Button>
           </div>
         </div>
       )}
 
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={() => {
@@ -133,13 +132,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
           onSelectAll?.([]);
         }}
         title={selectedRows.length === 1 ? (t.dashboard?.deleteRoom || "Delete Room") : (t.dashboard?.deleteRooms || "Delete Rooms")}
-        description={selectedRows.length === 1 
+        description={selectedRows.length === 1
           ? (t.dashboard?.confirmDeleteRoomSingleDescription || "Are you sure you want to permanently delete this room? This action cannot be reversed.")
           : (t.dashboard?.confirmDeleteRoomsMultipleDescription || `Are you sure you want to permanently delete these ${selectedRows.length} rooms? This action cannot be reversed.`)
         }
         itemCount={selectedRows.length}
       />
-      
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* View Toggle */}
         <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
@@ -147,11 +146,10 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             variant={viewMode === "card" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "card" 
-                ? "bg-primary text-white shadow-lg shadow-primary/25" 
-                : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
+              ? "bg-primary text-white shadow-lg shadow-primary/25"
+              : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <LayoutDashboard className="h-4 w-4" />
             {t.dashboard?.cards || "Cards"}
@@ -160,11 +158,10 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             variant={viewMode === "table" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "table" 
-                ? "bg-primary text-white shadow-lg shadow-primary/25" 
-                : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
+              ? "bg-primary text-white shadow-lg shadow-primary/25"
+              : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <BarChart3 className="h-4 w-4" />
             {t.dashboard?.table || "Table"}
@@ -173,15 +170,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            onClick={onBulkUpload}
-            className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
-          >
-            <LayoutDashboard className="h-4 w-4 rotate-180" />
-            {t.dashboard?.bulkUpload || "Bulk Upload"}
-          </Button>
-          <Button 
+          <Button
             onClick={onAddNewRoom}
             className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
           >
@@ -209,13 +198,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
           ) : (
             <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {safeRooms.map((room) => (
-                <Card key={room.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white hover:scale-[1.02] ${selectedRows.includes(room.id) ? 'ring-2 ring-primary' : ''}`}>
+                <Card key={room.id} className={`group border-none shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white ${selectedRows.includes(room.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className={`h-3 w-full ${room.status === "Available" ? "bg-emerald-500" :
                     room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                     }`} />
                   <CardContent className="p-8 relative">
                     <div className="absolute top-4 right-4">
-                      <Checkbox 
+                      <Checkbox
                         checked={selectedRows.includes(room.id)}
                         onCheckedChange={() => onToggleSelection?.(room.id)}
                       />
@@ -234,13 +223,12 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                           </p>
                         </div>
                       </div>
-                      <Badge className={`${
-                        room.status === "Available" ? "bg-emerald-500" :
+                      <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
                         room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
-                      } text-white text-xs px-3 py-1 shadow-sm`}>
-                        {room.status === "Available" ? (t.dashboard?.active || 'Available') :
-                         room.status === "Occupied" ? (t.dashboard?.lockedOccupied || 'Occupied') :
-                         (room.status || 'N/A')}
+                        } text-white text-xs px-3 py-1 shadow-sm`}>
+                        {room.status === "Available" ? (t.dashboard?.available || 'Available') :
+                          room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
+                            (room.status || 'N/A')}
                       </Badge>
                     </div>
 
@@ -251,48 +239,48 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       </span>
                     </div>
 
-                     <div className="flex gap-2">
-                       <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-                           <Button 
-                             variant="outline" 
-                             className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
-                           >
-                             <span className="flex items-center gap-2 font-bold">
-                               {t.dashboard?.actions || "Actions"}
-                             </span>
-                             <ChevronDown className="h-4 w-4 opacity-50" />
-                           </Button>
-                         </DropdownMenuTrigger>
-                         <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
-                           <DropdownMenuItem 
-                             onClick={() => onUpdateStatus?.(room.id, room.status)}
-                             disabled={room.status === 'Occupied'}
-                             className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
-                           >
-                             <RotateCcw className="h-4 w-4" />
-                             <div className="flex flex-col text-left">
-                               <span className="font-bold text-sm">{t.dashboard?.toggleStatus || "Toggle Status"}</span>
-                               <span className="text-[10px] text-slate-500">
-                                 {room.status === 'Occupied' ? (t.dashboard?.activeBooking || 'Active booking') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark as Occupied') : (t.dashboard?.markAsAvailable || 'Mark as Available'))}
-                               </span>
-                             </div>
-                           </DropdownMenuItem>
-                           <div className="h-px bg-slate-100 my-1" />
-                           <DropdownMenuItem 
-                             onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
-                             disabled={room.status === 'Occupied'}
-                             className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 transition-colors text-red-500"
-                           >
-                             <TrashIcon className="h-4 w-4" />
-                             <div className="flex flex-col text-left">
-                               <span className="font-bold text-sm">{t.dashboard?.deleteRoom || "Delete Room"}</span>
-                               <span className="text-[10px] text-slate-500">{t.dashboard?.cannotBeUndone || "This action cannot be undone"}</span>
-                             </div>
-                           </DropdownMenuItem>
-                         </DropdownMenuContent>
-                       </DropdownMenu>
-                     </div>
+                    <div className="flex gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-all duration-300 rounded-xl h-11"
+                          >
+                            <span className="flex items-center gap-2 font-bold">
+                              {t.dashboard?.actions || "Actions"}
+                            </span>
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300 p-1">
+                          <DropdownMenuItem
+                            onClick={() => onUpdateStatus?.(room.id, room.status)}
+                            disabled={room.status === 'Occupied'}
+                            className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            <div className="flex flex-col text-left">
+                              <span className="font-bold text-sm">{t.dashboard?.toggleStatus || "Toggle Status"}</span>
+                              <span className="text-[10px] text-slate-500">
+                                {room.status === 'Occupied' ? (t.dashboard?.activeBooking || 'Active booking') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark as Occupied') : (t.dashboard?.markAsAvailable || 'Mark as Available'))}
+                              </span>
+                            </div>
+                          </DropdownMenuItem>
+                          <div className="h-px bg-slate-100 my-1" />
+                          <DropdownMenuItem
+                            onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
+                            disabled={room.status === 'Occupied'}
+                            className="flex items-center gap-3 p-3 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 transition-colors text-red-500"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            <div className="flex flex-col text-left">
+                              <span className="font-bold text-sm">{t.dashboard?.deleteRoom || "Delete Room"}</span>
+                              <span className="text-[10px] text-slate-500">{t.dashboard?.cannotBeUndone || "This action cannot be undone"}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
                   </CardContent>
                 </Card>
@@ -311,7 +299,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
-                      <Checkbox 
+                      <Checkbox
                         checked={safeRooms.length > 0 && selectedRows.length === safeRooms.length}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -358,7 +346,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                     safeRooms.map((room) => (
                       <TableRow key={room.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(room.id) ? 'bg-blue-50/30' : ''}`}>
                         <TableCell className="px-4">
-                          <Checkbox 
+                          <Checkbox
                             checked={selectedRows.includes(room.id)}
                             onCheckedChange={() => onToggleSelection?.(room.id)}
                           />
@@ -367,13 +355,12 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         <TableCell className="font-medium">{room.type}</TableCell>
                         <TableCell className="font-bold text-emerald-600">ETB {room.price}</TableCell>
                         <TableCell>
-                          <Badge className={`${
-                            room.status === "Available" ? "bg-emerald-500" :
+                          <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
                             room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
-                          } text-white text-xs shadow-sm`}>
-                            {room.status === "Available" ? (t.dashboard?.active || 'Available') :
-                             room.status === "Occupied" ? (t.dashboard?.lockedOccupied || 'Occupied') :
-                             (room.status || 'N/A')}
+                            } text-white text-xs shadow-sm`}>
+                            {room.status === "Available" ? (t.dashboard?.available || 'Available') :
+                              room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
+                                (room.status || 'N/A')}
                           </Badge>
                         </TableCell>
                         <TableCell>{room.capacity}</TableCell>
@@ -381,27 +368,27 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                           <div className="flex justify-end pr-4">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
-                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors duration-200 rounded-lg"
                                 >
                                   <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
                                   <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
-                                <DropdownMenuItem 
+                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300 p-1">
+                                <DropdownMenuItem
                                   onClick={() => onUpdateStatus?.(room.id, room.status)}
                                   disabled={room.status === 'Occupied'}
                                   className={`flex items-center gap-2 p-2.5 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
                                 >
                                   {room.status === 'Available' ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                   <span className="font-medium text-sm">
-                                    {room.status === 'Occupied' ? (t.dashboard?.lockedOccupied || 'Locked (Occupied)') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark Occupied') : (t.dashboard?.markAsAvailable || 'Mark Available'))}
+                                    {room.status === 'Occupied' ? (t.dashboard?.occupied || 'Occupied') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark Occupied') : (t.dashboard?.markAsAvailable || 'Mark Available'))}
                                   </span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => onDeleteRoom && onDeleteRoom(room.id)}
                                   disabled={room.status === 'Occupied'}
                                   className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
@@ -421,69 +408,72 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
             </div>
 
             {/* Unified Pagination Footer */}
-            <div className="p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="text-sm font-bold text-slate-500">
-                {t.dashboard?.showingRooms ? (
-                  t.dashboard.showingRooms.replace('{count}', String(safeRooms.length)).replace('{total}', String(totalItems))
-                ) : (
-                  `Showing ${safeRooms.length} of ${totalItems} rooms`
-                )}
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30 gap-2 overflow-hidden">
+              <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
+                <span className="hidden sm:inline">
+                  {t.dashboard?.showingRooms ? (
+                    t.dashboard.showingRooms.replace('{count}', String(safeRooms.length)).replace('{total}', String(totalItems))
+                  ) : (
+                    <>Showing <span className="text-slate-900">{safeRooms.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                  )}
+                </span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{safeRooms.length}/{totalItems}</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={String(pagination.limit)}
-                    onValueChange={(val) => onLimitChange?.(parseInt(val))}
-                  >
-                    <SelectTrigger className="w-[130px] h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white">
-                      <div className="flex items-center">
-                        <span>{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <Select
+                  value={String(pagination.limit)}
+                  onValueChange={(val) => onLimitChange?.(parseInt(val))}
+                >
+                  <SelectTrigger className="w-[65px] sm:w-[130px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                    <div className="flex items-center justify-center w-full">
+                      <span className="sm:hidden">{pagination.limit}/p</span>
+                      <span className="hidden sm:inline">{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page - 1)}
                     disabled={pagination.page <= 1}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
-                  
-                  {getPageNumbers().map(pageNum => (
-                    <Button
-                      key={pageNum}
-                      variant={pagination.page === pageNum ? "default" : "ghost"}
-                      onClick={() => onPageChange?.(pageNum)}
-                      className={`h-10 w-10 rounded-xl font-bold text-sm transition-all duration-200 ${
-                        pagination.page === pageNum 
-                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" 
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map(pageNum => (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "ghost"}
+                        onClick={() => onPageChange?.(pageNum)}
+                        className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum
+                          ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200"
                           : "text-slate-500 hover:bg-slate-50"
-                      }`}
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
+                          }`}
+                      >
+                        {pageNum}
+                      </Button>
+                    ))}
+                  </div>
 
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onPageChange?.(pagination.page + 1)}
                     disabled={pagination.page >= totalPages}
-                    className="h-10 w-10 border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-400"
+                    className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>

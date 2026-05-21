@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Phone, 
-  Building, 
-  BedDouble, 
-  CalendarCheck, 
+import {
+  LayoutDashboard,
+  BarChart3,
+  Phone,
+  Building,
+  BedDouble,
+  CalendarCheck,
   DollarSign,
   Trash2,
   ChevronLeft,
@@ -63,7 +63,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
     for (let i = 1; i <= totalPages; i++) pages.push(i);
     return pages;
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -72,9 +72,8 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             variant={viewMode === "card" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <LayoutDashboard className="h-4 w-4" />
             {t.dashboard?.cards || "Cards"}
@@ -83,9 +82,8 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             variant={viewMode === "table" ? "default" : "ghost"}
             size="sm"
             onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${
-              viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
-            }`}
+            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table" ? "bg-primary text-white shadow-lg shadow-primary/25" : "hover:bg-white hover:text-primary hover:shadow-md"
+              }`}
           >
             <BarChart3 className="h-4 w-4" />
             {t.dashboard?.table || "Table"}
@@ -95,35 +93,35 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
 
       {/* Bulk Actions Bar */}
       {selectedRows.length > 0 && (
-        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex items-center justify-between mb-4 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold">
+        <div className="sticky top-0 z-20 bg-white border border-slate-200 p-3 rounded-xl shadow-md flex flex-col xs:flex-row items-center justify-between gap-3 mb-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3 w-full xs:w-auto">
+            <Badge className="bg-slate-900 text-white border-none px-3 py-1 font-bold shrink-0">
               {selectedRows.length} {t.dashboard?.selected || 'selected'}
             </Badge>
-            <p className="text-sm font-medium text-slate-600 hidden sm:block">{t.dashboard?.performActionsGuests || 'Perform actions on all selected guests'}</p>
+            <p className="text-sm font-medium text-slate-600 hidden sm:block truncate">{t.dashboard?.performActionsGuests || 'Perform actions on all selected guests'}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="text-slate-600 border-slate-200 font-bold hover:bg-slate-50"
+          <div className="flex items-center gap-2 w-full xs:w-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 xs:flex-none text-slate-600 border-slate-200 font-bold hover:bg-slate-50 h-10"
               onClick={() => onSelectAll?.([])}
             >
-              {t.dashboard?.clearSelection || 'Clear Selection'}
+              <span>{t.dashboard?.clearSelection || 'Clear Selection'}</span>
             </Button>
-            <Button 
-              size="sm" 
-              className="bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm"
+            <Button
+              size="sm"
+              className="flex-1 xs:flex-none bg-red-500 hover:bg-red-600 text-white font-bold shadow-sm h-10"
               onClick={() => setShowConfirmDelete(true)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}
+              <span>{selectedRows.length === 1 ? (t.dashboard?.delete || 'Delete') : `${t.dashboard?.delete || 'Delete'} ${selectedRows.length}`}</span>
             </Button>
           </div>
         </div>
       )}
 
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={() => {
@@ -131,7 +129,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
           onSelectAll?.([]);
         }}
         title={selectedRows.length === 1 ? (t.dashboard?.deleteGuestRecord || "Delete Guest Record") : (t.dashboard?.deleteGuestRecords || "Delete Guest Records")}
-        description={selectedRows.length === 1 
+        description={selectedRows.length === 1
           ? (t.dashboard?.confirmDeleteGuestSingleDescription || "Are you sure you want to permanently delete this guest record? This will remove all their history and personal details.")
           : (t.dashboard?.confirmDeleteGuestMultipleDescription || `Are you sure you want to permanently delete these ${selectedRows.length} guest records? This will remove all their history and personal details.`)
         }
@@ -158,13 +156,14 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       <p className="text-sm text-slate-600 flex items-center gap-1"><Phone className="h-3 w-3" />{guest.phone}</p>
                     </div>
                   </div>
-                  <Badge className={`${
-                    guest.status === 'Checked In' ? 'bg-emerald-500' :
-                    guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
-                  } text-white text-xs shadow-sm shadow-black/5`}>
+                  <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
+                    guest.status === 'Checked Out' ? 'bg-slate-500' :
+                      guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
+                    } text-white text-xs shadow-sm shadow-black/5`}>
                     {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
-                     guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
-                     (guest.status || 'N/A')}
+                      guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                        guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
+                          (guest.status || 'N/A')}
                   </Badge>
                 </div>
                 <div className="space-y-3">
@@ -200,7 +199,7 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                 <TableHeader className="bg-slate-50/50">
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
-                      <Checkbox 
+                      <Checkbox
                         checked={safeGuests.length > 0 && selectedRows.length === safeGuests.length}
                         onCheckedChange={(checked) => {
                           if (checked) onSelectAll?.(safeGuests.map(g => g.id));
@@ -228,12 +227,14 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                       <TableCell>{guest.nationality}</TableCell>
                       <TableCell className="font-bold text-purple-700">{guest.room_number || guest.roomId || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge className={`${
-                          guest.status === 'Checked In' ? 'bg-emerald-500' : guest.status === 'Checked Out' ? 'bg-slate-500' : 'bg-amber-500'
-                        } text-white text-xs shadow-sm`}>
+                        <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
+                          guest.status === 'Checked Out' ? 'bg-slate-500' :
+                            guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
+                          } text-white text-xs shadow-sm`}>
                           {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
-                           guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
-                           (guest.status || 'N/A')}
+                            guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                              guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
+                                (guest.status || 'N/A')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
@@ -245,46 +246,45 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
             </div>
 
             {/* Unified Pagination Footer */}
-            <div className="p-3 sm:p-8 border-t border-slate-50 flex flex-row items-center justify-between gap-1.5 sm:gap-4 bg-slate-50/30 overflow-hidden">
+            <div className="p-3 sm:p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30 gap-2 overflow-hidden">
               <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
-                {t.dashboard?.showingGuests ? (
-                  t.dashboard.showingGuests.replace('{count}', String(safeGuests.length)).replace('{total}', String(totalItems))
-                ) : (
-                  <>
-                    <span className="hidden xs:inline sm:inline">Showing </span>
-                    <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span>
-                    <span className="hidden xs:inline sm:inline"> guests</span>
-                  </>
-                )}
+                <span className="hidden sm:inline">
+                  {t.dashboard?.showingGuests ? (
+                    t.dashboard.showingGuests.replace('{count}', String(safeGuests.length)).replace('{total}', String(totalItems))
+                  ) : (
+                    <>Showing <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                  )}
+                </span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{safeGuests.length}/{totalItems}</span>
               </div>
 
-              <div className="flex flex-row items-center gap-1.5 sm:gap-3 shrink-0">
-                <div className="flex items-center gap-1 shrink-0">
-                  <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
-                    <SelectTrigger className="w-[70px] sm:w-[125px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
-                      <div className="flex items-center">
-                        <span className="sm:hidden">{pagination.limit}/p</span>
-                        <span className="hidden sm:inline">{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="10">10 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="20">20 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                      <SelectItem value="50">50 {t.dashboard?.perPage || '/ page'}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <Select value={String(pagination.limit)} onValueChange={(val) => onLimitChange?.(parseInt(val))}>
+                  <SelectTrigger className="w-[65px] sm:w-[130px] h-8 sm:h-10 border-slate-200 rounded-lg text-slate-600 font-medium bg-white px-1 sm:px-3 text-[10px] sm:text-sm">
+                    <div className="flex items-center justify-center w-full">
+                      <span className="sm:hidden">{pagination.limit}/p</span>
+                      <span className="hidden sm:inline">{pagination.limit} {t.dashboard?.perPage || '/ page'}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page - 1)} disabled={pagination.page <= 1} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
                     <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
-                  {getPageNumbers().map(pageNum => (
-                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
-                      {pageNum}
-                    </Button>
-                  ))}
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map(pageNum => (
+                      <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "ghost"} onClick={() => onPageChange?.(pageNum)} className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm transition-all duration-200 p-0 ${pagination.page === pageNum ? "bg-[#F29F1F] text-slate-900 hover:bg-[#F29F1F]/90 shadow-md shadow-orange-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                        {pageNum}
+                      </Button>
+                    ))}
+                  </div>
                   <Button variant="ghost" size="icon" onClick={() => onPageChange?.(pagination.page + 1)} disabled={pagination.page >= totalPages} className="h-8 w-8 sm:h-10 sm:w-10 border border-slate-100 rounded-lg sm:rounded-xl hover:bg-slate-50 text-slate-400 p-0">
                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>

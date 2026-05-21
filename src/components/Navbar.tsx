@@ -32,7 +32,7 @@ const Navbar = () => {
 
   const handleTrackBooking = async () => {
     if (!trackId.trim()) return;
-    
+
     setTrackLoading(true);
     setTrackError("");
     setTrackResult(null);
@@ -82,7 +82,7 @@ const Navbar = () => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[220px] rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+            <DropdownMenuContent align="end" className="min-w-[220px] rounded-2xl shadow-xl border-slate-100 p-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
               {options.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
@@ -106,9 +106,9 @@ const Navbar = () => {
 
 
 
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="hidden sm:inline-flex text-muted-foreground"
             onClick={() => {
               const howItWorksSection = document.getElementById("how-it-works");
@@ -119,24 +119,24 @@ const Navbar = () => {
           >
             {t.navbar.howItWorks}
           </Button>
-          
+
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-100 shadow-sm transition-all focus-visible:ring-0">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-100 shadow-sm transition-colors focus-visible:ring-0">
                   <span className="font-bold text-blue-600 text-lg">
                     {user?.full_name?.charAt(0).toUpperCase() || <User className="w-5 h-5 text-blue-600" />}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 rounded-2xl shadow-xl border-slate-100 p-2 animate-in fade-in zoom-in-95 duration-200 mt-2">
+              <DropdownMenuContent align="end" className="w-60 rounded-2xl shadow-xl border-slate-100 p-2 animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
                 <div className="px-3 py-2.5 mb-1.5 border-b border-slate-100 bg-slate-50/50 rounded-lg">
                   <p className="font-bold text-sm text-slate-800 truncate">{user?.full_name || 'Guest User'}</p>
                   <p className="text-xs font-medium text-slate-500 truncate mt-0.5">{user?.phone || user?.email}</p>
                 </div>
-                
+
                 {user?.role?.toLowerCase() === 'customer' ? (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => navigate("/profile")}
                     className="cursor-pointer font-semibold p-3 rounded-xl text-slate-700 hover:bg-blue-50 hover:text-blue-700 gap-3 transition-colors focus:bg-blue-50 focus:text-blue-700"
                   >
@@ -144,7 +144,7 @@ const Navbar = () => {
                     Profile
                   </DropdownMenuItem>
                 ) : (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => navigate(user?.role?.toLowerCase() === 'admin' ? "/dashboard/admin" : "/dashboard")}
                     className="cursor-pointer font-semibold p-3 rounded-xl text-slate-700 hover:bg-blue-50 hover:text-blue-700 gap-3 transition-colors focus:bg-blue-50 focus:text-blue-700"
                   >
@@ -152,8 +152,8 @@ const Navbar = () => {
                     Dashboard
                   </DropdownMenuItem>
                 )}
-                
-                <DropdownMenuItem 
+
+                <DropdownMenuItem
                   onClick={() => {
                     logout();
                     navigate("/");

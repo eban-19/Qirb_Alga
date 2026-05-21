@@ -78,7 +78,7 @@ export const useDashboardHandlers = (
       const content = e.target?.result as string;
       const lines = content.split('\n').filter(line => line.trim() !== '');
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      
+
       const parsedData = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.trim());
         const entry: any = {};
@@ -111,7 +111,7 @@ export const useDashboardHandlers = (
           salary: parseFloat(staff.salary) || 0
         });
       }
-      
+
       ui.setShowStaffBulkUploadModal(false);
       ui.setStaffBulkUpload({ file: null, data: [], preview: [] });
       await loadRealData();
@@ -138,22 +138,22 @@ export const useDashboardHandlers = (
       ui.setErrorMessage('');
       const roomNumbersList = ui.newRoom.roomNumbers
         ? ui.newRoom.roomNumbers
-            .split(',')
-            .map((num: string) => num.trim())
-            .filter((num: string) => num.length > 0)
+          .split(',')
+          .map((num: string) => num.trim())
+          .filter((num: string) => num.length > 0)
         : [];
-      
+
       const selectedPackage = data.packages.find((p: Package) => String(p.id || p.package_id) === String(ui.newRoom.package));
-      
+
       // If no room numbers provided, use quantity/numberOfRooms
-      const finalRoomNumbers = roomNumbersList.length > 0 
-        ? roomNumbersList 
+      const finalRoomNumbers = roomNumbersList.length > 0
+        ? roomNumbersList
         : Array.from({ length: parseInt(ui.newRoom.numberOfRooms) || 1 }, (_, i) => `${selectedPackage?.name || 'Room'} ${i + 1}`);
 
       // CLIENT-SIDE CHECK: Prevent duplicate room numbers within the same pension
       const existingRoomNumbers = data.roomsData.map((r: any) => String(r.room_number || r.number || r.id || ''));
       const duplicatesInNewList = finalRoomNumbers.filter((item: string, index: number) => finalRoomNumbers.indexOf(item) !== index);
-      
+
       if (duplicatesInNewList.length > 0) {
         ui.setErrorMessage(`Duplicate room numbers found: ${duplicatesInNewList.join(', ')}.`);
         return;
@@ -168,11 +168,11 @@ export const useDashboardHandlers = (
       // PACKAGE CONSISTENCY CHECK: Ensure capacity and beds match existing rooms in this package
       const packageId = ui.newRoom.package;
       const existingPackageRoom = data.roomsData.find((r: any) => String(r.package_id) === String(packageId));
-      
+
       if (existingPackageRoom) {
         const requiredCapacity = parseInt(existingPackageRoom.capacity);
         const requiredBeds = parseInt(existingPackageRoom.number_of_beds || existingPackageRoom.beds);
-        
+
         if (parseInt(ui.newRoom.capacity) !== requiredCapacity || parseInt(ui.newRoom.numberOfBeds) !== requiredBeds) {
           ui.setErrorMessage(`Consistency Error: All rooms in this package must have a capacity of ${requiredCapacity} and ${requiredBeds} bed(s).`);
           return;
@@ -217,108 +217,6 @@ export const useDashboardHandlers = (
     }
   };
 
-  const handleRoomFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const lines = content.split('\n').filter(line => line.trim() !== '');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      
-      const parsedData = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const entry: any = {};
-        headers.forEach((header, index) => {
-          entry[header] = values[index];
-        });
-        return entry;
-      });
-
-      ui.setRoomsBulkUpload({
-        file,
-        data: parsedData,
-        preview: parsedData.slice(0, 5)
-      });
-    };
-    reader.readAsText(file);
-  };
-
-  const handleConfirmRoomBulkUpload = async () => {
-    try {
-      ui.setErrorMessage('');
-      const roomsToUpload = ui.roomsBulkUpload.data;
-      const existingRoomNumbers = data.roomsData.map((r: any) => String(r.room_number || r.number || r.id || ''));
-      
-      // Check for duplicates within the upload itself
-      const uploadedNumbers = roomsToUpload.map((r: any) => String(r.room_number || ''));
-      const duplicatesInUpload = uploadedNumbers.filter((item, index) => uploadedNumbers.indexOf(item) !== index && item !== '');
-      
-      if (duplicatesInUpload.length > 0) {
-        ui.setErrorMessage(`Duplicate room numbers in upload: ${duplicatesInUpload.join(', ')}.`);
-        return;
-      }
-
-      // Check against existing rooms
-      const conflicts = uploadedNumbers.filter(num => num !== '' && existingRoomNumbers.includes(num));
-      if (conflicts.length > 0) {
-        ui.setErrorMessage(`Room numbers already exist: ${conflicts.join(', ')}.`);
-        return;
-      }
-      
-      for (const roomData of roomsToUpload) {
-        const selectedPackage = data.packages.find((p: Package) => 
-          p.name.toLowerCase() === (roomData.package_name || '').toLowerCase()
-        );
-        
-        const pkgId = selectedPackage?.id || selectedPackage?.package_id || null;
-
-        // CONSISTENCY CHECK: Ensure bulk upload rooms match existing rooms in the same package
-        if (pkgId) {
-          const existingRoom = data.roomsData.find((r: any) => String(r.package_id) === String(pkgId));
-          if (existingRoom) {
-            const reqCap = parseInt(existingRoom.capacity);
-            const reqBeds = parseInt(existingRoom.number_of_beds || existingRoom.beds);
-            
-            if (parseInt(roomData.capacity) !== reqCap || parseInt(roomData.number_of_beds) !== reqBeds) {
-              ui.setErrorMessage(`Consistency Error: Room ${roomData.room_number} in package "${selectedPackage.name}" must have capacity ${reqCap} and ${reqBeds} bed(s).`);
-              return;
-            }
-          }
-        }
-
-        await apiService.createRoom({
-          pension_id: data.selectedPensionId,
-          package_id: selectedPackage?.id || selectedPackage?.package_id || null,
-          room_number: roomData.room_number,
-          room_type: roomData.room_type || selectedPackage?.name || 'Standard',
-          capacity: parseInt(roomData.capacity) || 1,
-          price_per_night: parseFloat(roomData.price || selectedPackage?.price || '0'),
-          number_of_beds: parseInt(roomData.number_of_beds) || 1,
-          availability_status: roomData.status || 'Available'
-        });
-      }
-      
-      ui.setShowRoomsBulkUploadModal(false);
-      ui.setRoomsBulkUpload({ file: null, data: [], preview: [] });
-      await loadRealData();
-    } catch (error) {
-      console.error('Confirm room bulk upload error:', error);
-    }
-  };
-
-  const handleDownloadRoomTemplate = () => {
-    const headers = 'room_number,room_type,package_name,capacity,number_of_beds,price,status\n';
-    const sample = '101,Standard,Basic,2,1,500,Available\n';
-    const blob = new Blob([headers + sample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rooms_template.csv';
-    a.click();
-  };
-
   // --- PACKAGE HANDLERS ---
   const handlePackageImageUpload = async (file: File) => {
     try {
@@ -343,11 +241,11 @@ export const useDashboardHandlers = (
 
   const handleAddPackage = async () => {
     try {
-      let packageData = { 
+      let packageData = {
         ...ui.newPackage,
         price: parseFloat(ui.newPackage.price) || 0
       };
-      
+
       if (ui.editingPackage) {
         const pkgId = ui.editingPackage.id || ui.editingPackage.package_id;
         await apiService.updatePackage(data.selectedPensionId, pkgId, packageData);
@@ -366,7 +264,7 @@ export const useDashboardHandlers = (
     try {
       const pkg = data.packages.find((p: Package) => String(p.id || p.package_id) === String(packageId));
       if (!pkg) return;
-      
+
       await apiService.updatePackage(data.selectedPensionId, pkg.id || pkg.package_id, {
         isMostPopular: !pkg.isMostPopular
       });
@@ -400,7 +298,7 @@ export const useDashboardHandlers = (
   const handleWalkInSubmit = async () => {
     try {
       const selectedPackage = data.packages.find((p: Package) => String(p.id || p.package_id) === String(ui.walkInForm.packageId));
-      
+
       const payload = {
         pensionId: data.selectedPensionId,
         packageName: selectedPackage?.name,
@@ -411,14 +309,14 @@ export const useDashboardHandlers = (
       };
 
       const response = await apiService.createWalkInBooking(payload);
-      
+
       if (response.success) {
         ui.setShowWalkInModal(false);
         ui.setWalkInForm({
-          guestName: '', 
-          phoneNumber: '', 
-          checkIn: new Date().toISOString().split('T')[0], 
-          checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+          guestName: '',
+          phoneNumber: '',
+          checkIn: new Date().toISOString().split('T')[0],
+          checkOut: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           packageId: ''
         });
         await loadRealData();
@@ -485,7 +383,7 @@ export const useDashboardHandlers = (
         ui.securitySettings.currentPassword,
         ui.securitySettings.newPassword
       );
-      
+
       if (response.success) {
         ui.showSuccess();
         ui.setSecuritySettings({
@@ -575,11 +473,33 @@ export const useDashboardHandlers = (
     }
   };
 
+  const handleExportTransactions = () => {
+    const transactions = data.recentTransactions;
+    if (!transactions || transactions.length === 0) {
+      toast.error('No transactions to export.');
+      return;
+    }
+
+    const headers = 'Date,Description,Category,Amount,Status\n';
+    const rows = transactions.map((t: any) => {
+      const category = t.type === 'income' ? 'REVENUE' : 'EXPENSE';
+      return `${t.date},"${t.description}",${category},${t.amount},${t.status}`;
+    }).join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    toast.success('Transactions exported successfully!');
+  };
+
   return {
     handleCreatePension: async () => {
       try {
         let pensionData = { ...ui.newPension };
-        
+
         // Upload image if selected
         if (ui.pensionImageFile) {
           const uploadResp = await apiService.uploadImage(ui.pensionImageFile);
@@ -607,9 +527,6 @@ export const useDashboardHandlers = (
     handleDownloadStaffTemplate,
     handleAddRoom,
     handleDeleteRoom,
-    handleRoomFileUpload,
-    handleConfirmRoomBulkUpload,
-    handleDownloadRoomTemplate,
     handleUpdateRoomStatus,
     handleAddPackage,
     handlePackageImageUpload,
@@ -622,6 +539,7 @@ export const useDashboardHandlers = (
     handleSaveSecuritySettings,
     handleAddExpense,
     handleUpdateExpense,
-    handleDeleteExpense
+    handleDeleteExpense,
+    handleExportTransactions
   };
 };

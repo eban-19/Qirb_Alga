@@ -698,6 +698,8 @@
     "header_promotions": "ናይ ዋጋ ምንካይን ውህብቶታትን",
     "header_transactions": "ፋይናንሳዊ ምንቅስቓሳት",
     "header_reports": "ጸብጻባትን ትንታነታትን",
+    "header_pensionProfile": "ፕሮፋይል ፔንሲዮን",
+    "header_subscription": "ፕላናት ሳብስክሪፕሽን",
     "confirmDeletePackageMultipleDescription": "ነዞም ብርክታት ጥቕላል ብቐዋምነት ክትድምስስዎ ከም እትደልዩ ርግጸኛ ዲኹም? እዚ ነቶም ምስዞም ብርክታት ዝተኣሳሰሩ ክፍልታት እውን ክጸሉ እዩ።",
     "showingTiers": "ካብ {total} ብርክታት {count} የርኢ ኣሎ"
   },
@@ -708,6 +710,7 @@
     "guests": "Guests",
     "pensionProfile": "Pension Profile",
     "packages": "Package Tiers",
+    "promotions": "ምንካይ ዋጋታት",
     "staffHr": "Staff & HR",
     "staff": "Staff & HR",
     "transactions": "Transactions",

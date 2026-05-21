@@ -5,23 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Shield, 
-  ShieldCheck, 
-  RefreshCcw, 
-  CheckCircle, 
-  CreditCard, 
-  DollarSign, 
-  Target, 
-  Building, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Package, 
-  Star, 
-  Edit2, 
-  TrashIcon, 
+import {
+  FileText,
+  Shield,
+  ShieldCheck,
+  RefreshCcw,
+  CheckCircle,
+  CreditCard,
+  DollarSign,
+  Target,
+  Building,
+  MapPin,
+  Phone,
+  Mail,
+  Package,
+  Star,
+  Edit2,
+  TrashIcon,
   Plus
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
@@ -74,15 +74,15 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
   setNewPackage
 }) => {
   const { t } = useLanguage();
-  
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 capitalize">
             {activeTab === "settings-billing" ? (t.dashboard?.billingSettings || "Billing Settings") :
-             activeTab === "settings-pension" ? (t.dashboard?.pensionProfile || "Pension Profile") :
-             (t.dashboard?.securitySettings || "Security Settings")}
+              activeTab === "settings-pension" ? (t.dashboard?.pensionProfile || "Pension Profile") :
+                (t.dashboard?.securitySettings || "Security Settings")}
           </h2>
           <p className="text-slate-500 text-sm">{t.dashboard?.settingsDescription || "Configure your property and account preferences."}</p>
         </div>
@@ -128,7 +128,6 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
       <Tabs value={activeTab} className="w-full">
         <TabsContent value="settings-billing" className="mt-0">
           <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
-            <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400" />
             <CardHeader className="pb-4">
               <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 shadow-lg hover:shadow-blue-500/25">
@@ -190,7 +189,6 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
         <TabsContent value="settings-pension" className="mt-0">
           <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01] relative">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="h-2 w-full bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500" />
             <CardHeader className="pb-4 relative">
               <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors duration-300 group-hover:scale-110 shadow-lg group-hover:shadow-purple-500/25">
@@ -289,9 +287,8 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleMostPopular(pkg.id)}
-                          className={`p-2 rounded-lg transition-all duration-200 ${
-                            pkg.isMostPopular ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-600'
-                          }`}
+                          className={`p-2 rounded-lg transition-all duration-200 ${pkg.isMostPopular ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-600'
+                            }`}
                         >
                           <Star className={`h-4 w-4 ${pkg.isMostPopular ? 'fill-current' : ''}`} />
                         </button>
@@ -329,7 +326,6 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
 
         <TabsContent value="settings-security" className="mt-0">
           <Card className="group border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white overflow-hidden ring-1 ring-slate-100 hover:scale-[1.01]">
-            <div className="h-2 w-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-400" />
             <CardHeader className="pb-4">
               <CardTitle className="lg:text-2xl font-bold flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-600 shadow-lg">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { X, Search, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Search, CheckCircle2, AlertCircle, Loader2, CalendarCheck } from 'lucide-react';
 import { useLanguage } from '../../hooks/use-language';
 
 interface WalkInBookingModalProps {
@@ -38,7 +38,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       alert(t.dashboard?.checkOutAfterCheckIn || "Check-out date must be after check-in date.");
       return;
     }
-    
+
     setIsChecking(true);
     try {
       const response = await fetch('http://localhost:3006/api/bookings/walk-in/check-availability', {
@@ -71,33 +71,25 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl border-none ring-1 ring-slate-200 overflow-hidden">
-        <div className="h-2 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600"></div>
-        <div className="p-8">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100/50">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.addWalkInBooking || "Add Walk-In Booking"}</h3>
-                <p className="text-sm text-slate-500 font-medium mt-0.5">{t.dashboard?.addWalkInDesc || "Quickly register guests arriving without prior reservation"}</p>
-              </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-4xl bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border-none ring-1 ring-slate-200 overflow-hidden my-auto translate-y-0 sm:translate-y-0 transform-gpu">
+        <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{t.dashboard?.addWalkInBooking || "Add Walk-In Booking"}</h3>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{t.dashboard?.addWalkInDesc || "Quickly register guests arriving without prior reservation"}</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 rounded-full hover:bg-slate-100 transition-colors shrink-0">
               <X className="h-5 w-5 text-slate-400" />
             </Button>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
             {/* Left Column: Guest Info */}
             <div className="space-y-6">
               <div className="space-y-4">
                 <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.guestInformation || "Guest Information"}</h4>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-slate-700">{t.dashboard?.guestFullName || "Guest Full Name"}</label>
                   <input
@@ -108,7 +100,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     placeholder="e.g., Daniel Abebe"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone Number"}</label>
                   <input
@@ -126,8 +118,8 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             <div className="space-y-6">
               <div className="space-y-4">
                 <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">{t.dashboard?.stayAndPackage || "Stay & Package"}</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-slate-700">{t.dashboard?.checkInDate || "Check-in Date"}</label>
                     <input
@@ -149,7 +141,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-slate-700">{t.dashboard?.selectRoomPackage || "Select Room Package"}</label>
                   <select
@@ -165,12 +157,12 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     ))}
                   </select>
                 </div>
-                
+
                 {walkInForm.checkIn && walkInForm.checkOut && walkInForm.packageId && (
                   <div className="pt-2">
                     {availableRooms === null ? (
-                      <Button 
-                        onClick={handleCheckAvailability} 
+                      <Button
+                        onClick={handleCheckAvailability}
                         disabled={isChecking}
                         className="w-full h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold"
                       >
@@ -199,17 +191,16 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               </div>
             </div>
           </div>
-          
-          <div className="flex gap-4 mt-10 pt-6 border-t border-slate-100">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl font-bold border-2">
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8 sm:mt-10 pt-6 border-t border-slate-100">
+            <Button variant="outline" onClick={onClose} className="w-full sm:flex-1 h-12 rounded-xl font-bold border-2 order-2 sm:order-1">
               {t.dashboard?.cancel || "Cancel"}
             </Button>
-            <Button 
-              onClick={onWalkInSubmit} 
+            <Button
+              onClick={onWalkInSubmit}
               disabled={availableRooms === null || availableRooms === 0}
-              className={`flex-1 h-12 text-white shadow-lg rounded-xl font-bold text-lg transition-all ${
-                availableRooms && availableRooms > 0 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25 active:scale-95' : 'bg-slate-300 shadow-none cursor-not-allowed'
-              }`}
+              className={`w-full sm:flex-1 h-12 text-white shadow-lg rounded-xl font-bold text-base sm:text-lg transition-all order-1 sm:order-2 ${availableRooms && availableRooms > 0 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25 active:scale-95' : 'bg-slate-300 shadow-none cursor-not-allowed'
+                }`}
             >
               {t.dashboard?.confirmBooking || "Confirm Booking"}
             </Button>

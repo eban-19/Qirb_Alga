@@ -698,6 +698,8 @@
     "header_promotions": "Dhiirigelinta iyo Dalabyada",
     "header_transactions": "Macaamilka Maaliyadeed",
     "header_reports": "Warbixinnada iyo Falanqaynta",
+    "header_pensionProfile": "Xogta Hawlgalka",
+    "header_subscription": "Qorshayaasha Isdiiwaangelinta",
     "confirmDeletePackageMultipleDescription": "Ma hubtaa inaad doonayso inaad si joogto ah u tirtirto heerarkan xirmada? Tani waxay sidoo kale saameyn doontaa qolalka la xiriira heerarkan.",
     "showingTiers": "Waxaa la muujinayaa {count} oo ka mid ah {total} heer"
   },
@@ -708,6 +710,7 @@
     "guests": "Guests",
     "pensionProfile": "Pension Profile",
     "packages": "Package Tiers",
+    "promotions": "Dhiirigelino",
     "staffHr": "Staff & HR",
     "staff": "Staff & HR",
     "transactions": "Transactions",

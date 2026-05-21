@@ -47,8 +47,22 @@ const App = () => (
               <Route path="/register-property" element={<RegisterProperty />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/staff" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/bookings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/rooms" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/guests" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/transactions" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/pension-profile" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/packages" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/promotions" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/reports" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/subscription" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/settings/business-profile" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/settings/security" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/settings/bank-settings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/settings/compliance" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/pending-approval" element={<PendingApproval />} />
-              
+
               {/* Admin Dashboard Routes - Protected */}
               <Route path="/dashboard/admin" element={
                 <ProtectedRoute requiredRole="admin">
@@ -120,13 +134,13 @@ const App = () => (
                   <AdminNotificationsPage />
                 </ProtectedRoute>
               } />
-              
+
               {/* Footer Pages */}
               <Route path="/about" element={<About />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

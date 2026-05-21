@@ -23,6 +23,7 @@ import {
   Users,
   Search,
   ChevronDown,
+  ChevronRight,
   User,
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";

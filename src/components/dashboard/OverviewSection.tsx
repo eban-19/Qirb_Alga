@@ -1,12 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { 
-  Users, 
-  Bed, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Users,
+  Bed,
+  Calendar,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   Activity,
   Plus,
@@ -55,7 +55,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Action */}
       <div className="flex justify-start px-2">
-        <Button 
+        <Button
           onClick={onCreatePension}
           className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-105"
         >
@@ -67,7 +67,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
       {/* Main Stats Grid */}
       <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Guests */}
-        <Card 
+        <Card
           onClick={() => onNavigateTab?.('guests')}
           className="border shadow-sm bg-gradient-to-br from-blue-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-blue-200"
         >
@@ -91,7 +91,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Available Rooms */}
-        <Card 
+        <Card
           onClick={() => onNavigateTab?.('rooms')}
           className="border shadow-sm bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-emerald-200"
         >
@@ -115,7 +115,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Active Bookings */}
-        <Card 
+        <Card
           onClick={() => onNavigateTab?.('bookings')}
           className="border shadow-sm bg-gradient-to-br from-purple-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-purple-200"
         >
@@ -139,7 +139,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
 
         {/* Total Revenue */}
-        <Card 
+        <Card
           onClick={() => onNavigateTab?.('transactions')}
           className="border shadow-sm bg-gradient-to-br from-amber-50 to-white relative overflow-hidden group transition-all duration-300 cursor-pointer hover:shadow-md hover:scale-[1.03] hover:border-amber-200"
         >
@@ -230,9 +230,9 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
               <div className="flex items-center gap-3">
                 <h3 className="font-bold text-lg text-slate-800">Recent Activity</h3>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-xs font-bold text-slate-500 hover:text-blue-600"
                 onClick={() => onNavigateTab?.('transactions')}
               >
@@ -272,7 +272,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
               <h3 className="font-bold text-lg text-slate-800">Quick Actions</h3>
             </div>
             <div className="p-8 grid grid-cols-2 gap-4">
-              <button 
+              <button
                 onClick={onBookWalkIn}
                 className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-emerald-100/40 hover:border-emerald-300 transition-all duration-300 cursor-pointer shadow-sm group"
               >
@@ -282,8 +282,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <span className="text-sm font-bold text-slate-800">{t.dashboard?.bookWalkIn || "Book Walk-in"}</span>
                 <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.newCheckIn || "New check-in"}</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={onAddStaff}
                 className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-blue-100/40 hover:border-blue-300 transition-all duration-300 cursor-pointer shadow-sm group"
               >
@@ -294,7 +294,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.registerEmployee || "Register employee"}</span>
               </button>
 
-              <button 
+              <button
                 onClick={onAddRoom}
                 className="p-6 rounded-3xl bg-purple-50/50 border border-purple-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-purple-100/40 hover:border-purple-300 transition-all duration-300 cursor-pointer shadow-sm group"
               >
@@ -305,7 +305,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                 <span className="text-[9px] text-slate-400 font-medium">{t.dashboard?.createRoomUnit || "Create room unit"}</span>
               </button>
 
-              <button 
+              <button
                 onClick={onAddPackage}
                 className="p-6 rounded-3xl bg-amber-50/50 border border-amber-100 flex flex-col items-center justify-center text-center space-y-2 hover:scale-105 hover:bg-amber-100/40 hover:border-amber-300 transition-all duration-300 cursor-pointer shadow-sm group"
               >
