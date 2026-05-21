@@ -167,10 +167,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     <TooltipProvider>
       <div className={cn(
         "flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 transition-all duration-300",
-        isMobile ? "w-64" : cn(
-          "hidden md:flex",
-          collapsed ? "w-16" : "w-64"
-        ),
+        collapsed ? "w-16" : "w-64",
         className
       )}>
         {/* Header */}
@@ -197,14 +194,18 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 </div>
               )}
             </div>
-            {onToggleCollapse && (
+            {(onToggleCollapse || onCloseMobile) && (
               <button
-                onClick={onToggleCollapse}
+                onClick={() => isMobile && onCloseMobile ? onCloseMobile() : onToggleCollapse && onToggleCollapse()}
                 className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-400 hover:text-white transition-all duration-200"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                {isMobile ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
               </button>
             )}
           </div>
