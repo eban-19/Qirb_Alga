@@ -92,6 +92,8 @@ const Booking = () => {
   const [packageAvailability, setPackageAvailability] = useState<any[]>([]);
   const [activePromotions, setActivePromotions] = useState<any[]>([]);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [dynamicPriceData, setDynamicPriceData] = useState<any>(null);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1);
@@ -189,7 +191,7 @@ const Booking = () => {
       case 1:
         return formData.checkIn && formData.checkOut;
       case 2:
-        return !!selectedPackage;
+        return !!selectedPackage && (!dynamicPriceData?.errors || dynamicPriceData.errors.length === 0);
       case 3:
         return formData.fullName && formData.phone;
       case 4:
@@ -240,6 +242,45 @@ const Booking = () => {
   const checkInDate = new Date(formData.checkIn);
   const checkOutDate = new Date(formData.checkOut);
   
+  // Dynamic Pricing Fetcher
+  useEffect(() => {
+    const fetchDynamicPrice = async () => {
+      if (!id || !selectedPackage || !formData.checkIn || !formData.checkOut) return;
+      
+      setIsCalculatingPrice(true);
+      try {
+        const response = await fetch('http://localhost:3006/api/public/calculate-price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pension_id: id,
+            package_id: selectedPackage.id || selectedPackage.package_id,
+            check_in: formData.checkIn,
+            check_out: formData.checkOut,
+            base_price: selectedPackage.price,
+            guests: (selectedPackage.capacity || 2) * formData.rooms
+          })
+        });
+        
+        const result = await response.json();
+        if (result.success && result.result) {
+          setDynamicPriceData(result.result);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dynamic price:', err);
+      } finally {
+        setIsCalculatingPrice(false);
+      }
+    };
+    
+    // Use a small debounce
+    const timeoutId = setTimeout(() => {
+      fetchDynamicPrice();
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [id, selectedPackage?.id, selectedPackage?.package_id, selectedPackage?.price, formData.checkIn, formData.checkOut, formData.rooms]);
+
   // Calculate lead time for early bird discount
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -293,9 +334,15 @@ const Booking = () => {
   const vatRate = parseFloat(systemSettings.VAT_PERCENTAGE) / 100;
   const serviceFeeRate = parseFloat(systemSettings.SERVICE_FEE_PERCENTAGE) / 100;
 
-  const baseSubtotal = (selectedPackage?.price || 0) * diffDays * formData.rooms;
-  const discountAmount = baseSubtotal * (appliedDiscountPercent / 100);
-  const subtotal = baseSubtotal - discountAmount;
+  // If dynamic pricing is available, use it. Otherwise fallback to standard math.
+  const rawBaseSubtotal = dynamicPriceData ? dynamicPriceData.baseTotal : (selectedPackage?.price || 0) * nights;
+  const rawDynamicSubtotal = dynamicPriceData ? dynamicPriceData.finalTotal : rawBaseSubtotal;
+
+  const baseSubtotal = rawBaseSubtotal * formData.rooms;
+  const dynamicSubtotal = rawDynamicSubtotal * formData.rooms;
+  
+  const discountAmount = dynamicSubtotal * (appliedDiscountPercent / 100);
+  const subtotal = dynamicSubtotal - discountAmount;
   
   const tax = subtotal * vatRate;
   const serviceFee = subtotal * serviceFeeRate;
@@ -381,6 +428,7 @@ const Booking = () => {
       payload.append('phone', formData.phone);
       payload.append('totalPrice', total.toString());
       payload.append('rooms', formData.rooms.toString());
+      payload.append('guests', ((selectedPackage?.capacity || 2) * formData.rooms).toString());
       if (idDocument) {
         payload.append('idDocument', idDocument);
       }
@@ -396,7 +444,14 @@ const Booking = () => {
       const responseData = await response.json();
 
       if (responseData.success) {
-        const bookingId = responseData.data?.bookingIds?.[0] || responseData.data?.booking?.booking_id;
+        const bookingId = responseData.data?.bookingIds?.[0] || responseData.data?.booking?.booking_id || responseData.data?.bookingId;
+        const requiresApproval = responseData.data?.requiresApproval;
+        
+        if (requiresApproval) {
+           toast.success("Booking request sent! The host will review your request shortly.");
+           navigate('/profile/bookings');
+           return;
+        }
         
         // Redirect to Chapa Payment
         const cleanName = formData.fullName.trim();
@@ -594,11 +649,61 @@ const Booking = () => {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="checkIn">{t.booking.checkInDate}</Label>
-                      <Input id="checkIn" name="checkIn" type="date" required min={new Date().toISOString().split('T')[0]} value={formData.checkIn} onChange={handleInputChange} className="h-14 rounded-2xl px-6" />
+                      <Input 
+                        id="checkIn" 
+                        name="checkIn" 
+                        type="date" 
+                        required 
+                        min={
+                          (() => {
+                            const today = new Date();
+                            if (room?.bookingPolicy && !room.bookingPolicy.allow_same_day) {
+                              today.setDate(today.getDate() + 1);
+                            }
+                            if (room?.bookingPolicy?.min_advance_days) {
+                              today.setDate(today.getDate() + room.bookingPolicy.min_advance_days);
+                            }
+                            return today.toISOString().split('T')[0];
+                          })()
+                        }
+                        max={
+                          room?.bookingPolicy?.max_advance_days 
+                            ? new Date(new Date().getTime() + room.bookingPolicy.max_advance_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                            : undefined
+                        }
+                        value={formData.checkIn} 
+                        onChange={handleInputChange} 
+                        className="h-14 rounded-2xl px-6" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="checkOut">{t.booking.checkOutDate}</Label>
-                      <Input id="checkOut" name="checkOut" type="date" required min={formData.checkIn || new Date().toISOString().split('T')[0]} value={formData.checkOut} onChange={handleInputChange} className="h-14 rounded-2xl px-6" />
+                      <Input 
+                        id="checkOut" 
+                        name="checkOut" 
+                        type="date" 
+                        required 
+                        min={
+                          (() => {
+                            const minStay = room?.bookingPolicy?.min_stay_nights || 1;
+                            const checkInDate = new Date(formData.checkIn || new Date());
+                            checkInDate.setDate(checkInDate.getDate() + minStay);
+                            return checkInDate.toISOString().split('T')[0];
+                          })()
+                        } 
+                        max={
+                          (() => {
+                            const maxStay = room?.bookingPolicy?.max_stay_nights;
+                            if (!maxStay) return undefined;
+                            const checkInDate = new Date(formData.checkIn || new Date());
+                            checkInDate.setDate(checkInDate.getDate() + maxStay);
+                            return checkInDate.toISOString().split('T')[0];
+                          })()
+                        }
+                        value={formData.checkOut} 
+                        onChange={handleInputChange} 
+                        className="h-14 rounded-2xl px-6" 
+                      />
                     </div>
                   </div>
                   <div className="pt-4">
@@ -708,27 +813,43 @@ const Booking = () => {
                     })}
                   </div>
 
-                  <div className="space-y-2 pt-4">
-                    <Label htmlFor="rooms">{t.booking.numberOfRooms}</Label>
-                    <select 
-                      id="rooms" 
-                      name="rooms" 
-                      required 
-                      value={formData.rooms} 
-                      onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
-                      className="flex h-14 w-full rounded-2xl border border-input bg-background px-6 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      {(() => {
-                        const avail = packageAvailability.find(p => p.packageId === selectedPackage?.id || p.packageName === selectedPackage?.name);
-                        const count = avail ? avail.availableRooms : 0;
-                        return Array.from({ length: Math.min(count, 10) }).map((_, i) => (
-                          <option key={i + 1} value={i + 1}>{i + 1} Room{i > 0 ? 's' : ''}</option>
-                        ));
-                      })()}
-                    </select>
+                  <div className="pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rooms">{t.booking.numberOfRooms}</Label>
+                      <select 
+                        id="rooms" 
+                        name="rooms" 
+                        required 
+                        value={formData.rooms} 
+                        onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
+                        className="flex h-14 w-full rounded-2xl border border-input bg-background px-6 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        {(() => {
+                          const avail = packageAvailability.find(p => p.packageId === selectedPackage?.id || p.packageName === selectedPackage?.name);
+                          const count = avail ? avail.availableRooms : 0;
+                          return Array.from({ length: Math.min(count, 10) }).map((_, i) => (
+                            <option key={i + 1} value={i + 1}>{i + 1} Room{i > 0 ? 's' : ''}</option>
+                          ));
+                        })()}
+                      </select>
+                      {selectedPackage && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Total Capacity: {(selectedPackage.capacity || 2) * formData.rooms} Guests
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-8">
+                    {dynamicPriceData?.errors && dynamicPriceData.errors.length > 0 && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-semibold flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="mb-1">Cannot proceed with booking:</p>
+                          {dynamicPriceData.errors.map((err: string, i: number) => <div key={i}>• {err}</div>)}
+                        </div>
+                      </div>
+                    )}
                     <Button 
                       type="button" 
                       className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" 
@@ -736,7 +857,7 @@ const Booking = () => {
                       disabled={!selectedPackage || (() => {
                         const avail = packageAvailability.find(p => p.packageId === selectedPackage?.id || p.packageName === selectedPackage?.name);
                         return !avail || avail.availableRooms === 0;
-                      })()}
+                      })() || (dynamicPriceData?.errors && dynamicPriceData.errors.length > 0)}
                     >
                       {isAuthenticated ? t.booking.continueToGuestDetails : t.booking.signInToComplete}
                       <ArrowRight className="w-5 h-5 ml-2" />
@@ -882,16 +1003,25 @@ const Booking = () => {
                   className="flex items-center gap-2"
                 >
                   {currentStep === totalSteps ? (
-                    <>
-                      {isSubmitting ? (
-                        <>Processing...</>
-                      ) : (
-                        <>
-                              <CreditCard className="w-4 h-4" />
-                              {t.booking.proceedToPayment}
-                        </>
-                      )}
-                    </>
+                      <>
+                        {isSubmitting ? (
+                          <>Processing...</>
+                        ) : (
+                          <>
+                            {room?.bookingPolicy && !room.bookingPolicy.instant_booking ? (
+                              <>
+                                <CreditCard className="w-4 h-4" />
+                                Request to Book
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="w-4 h-4" />
+                                {t.booking.proceedToPayment}
+                              </>
+                            )}
+                          </>
+                        )}
+                      </>
                   ) : (
                     <>
                       {t.booking.next}
@@ -951,10 +1081,23 @@ const Booking = () => {
                   )}
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t.booking?.roomRate || "Room Rate"}</span>
-                    <span className="text-sm">ETB {selectedPackage.price.toLocaleString()} x {diffDays} nights</span>
-                  </div>
+                  {dynamicPriceData && dynamicPriceData.breakdown ? (
+                    dynamicPriceData.breakdown.map((item: any, idx: number) => (
+                      <div key={idx} className="flex justify-between">
+                        <span className={`text-sm ${item.amount < 0 ? 'text-green-600 font-semibold' : 'text-muted-foreground'}`}>
+                          {item.type} {item.isPerNight ? `x ${diffDays} nights` : ''} {formData.rooms > 1 ? `x ${formData.rooms} rooms` : ''}
+                        </span>
+                        <span className={`text-sm ${item.amount < 0 ? 'text-green-600 font-bold' : ''}`}>
+                          {item.amount < 0 ? '-' : ''} ETB {(Math.abs(item.amount) * formData.rooms).toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">{t.booking?.roomRate || "Room Rate"}</span>
+                      <span className="text-sm">ETB {selectedPackage.price.toLocaleString()} x {diffDays} nights {formData.rooms > 1 ? `x ${formData.rooms} rooms` : ''}</span>
+                    </div>
+                  )}
                   {appliedDiscountPercent > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span className="text-sm font-semibold">{appliedPromoName || t.booking?.specialSavings || 'Special Savings'} ({appliedDiscountPercent}%)</span>

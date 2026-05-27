@@ -28,6 +28,7 @@ import apiService from "@/services/api";
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/hooks/use-language";
+import { PayoutMethodsAdmin } from './PayoutMethodsAdmin';
 
 interface SystemSettingsTabProps {
   activeSection?: 'financial' | 'account' | 'security';
@@ -161,7 +162,11 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 capitalize">
-          {activeSection === 'financial' ? (t.adminTabs?.settings?.financialSettings || 'Financial Settings') : (activeSection === 'account' ? (t.adminTabs?.settings?.accountSettings || 'Account Settings') : (activeSection === 'security' ? (t.adminTabs?.settings?.securitySettings || 'Security Settings') : `${activeSection} Settings`))}
+          {activeSection === 'financial' ? (t.adminTabs?.settings?.financialSettings || 'Financial Settings') : 
+           activeSection === 'account' ? (t.adminTabs?.settings?.accountSettings || 'Account Settings') : 
+           activeSection === 'security' ? (t.adminTabs?.settings?.securitySettings || 'Security Settings') : 
+           activeSection === 'payouts' ? 'Payout Methods' : 
+           `${activeSection} Settings`}
         </h2>
         <p className="text-slate-500">{t.adminTabs?.settings?.subtitle || "Manage system parameters and your personal account."}</p>
       </div>
@@ -524,6 +529,12 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ activeSect
               </CardContent>
             </Card>
           </div>
+        </div>
+      )}
+
+      {activeSection === 'payouts' && (
+        <div className="animate-in fade-in duration-300">
+          <PayoutMethodsAdmin />
         </div>
       )}
     </div>

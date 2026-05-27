@@ -2,15 +2,49 @@ import * as express from 'express';
 import prisma from '../lib/prisma';
 import { BookingStatus, BookingSource, RoomStatus, UserStatus, Role, Prisma } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
+import pricingService from '../services/pricingService';
+import bookingValidationService from '../services/bookingValidationService';
 
 const router = express.Router();
+
+// Public: Calculate dynamic price based on active policies
+router.post('/calculate-price', async (req: express.Request, res: express.Response) => {
+  try {
+    const { pension_id, room_id, package_id, check_in, check_out, base_price } = req.body;
+
+    if (!pension_id || !check_in || !check_out || !base_price) {
+      return res.status(400).json({ success: false, message: 'Missing required parameters' });
+    }
+
+    const checkInDate = new Date(check_in);
+    const checkOutDate = new Date(check_out);
+
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    }
+
+    const result = await pricingService.calculateBookingPrice(
+      parseInt(pension_id),
+      room_id ? parseInt(room_id) : null,
+      package_id ? parseInt(package_id) : null,
+      checkInDate,
+      checkOutDate,
+      parseFloat(base_price)
+    );
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Error in public pricing calculation:', error);
+    res.status(500).json({ success: false, message: 'Server error during calculation' });
+  }
+});
 
 // Create a new public booking
 router.post('/bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const { 
       pensionId, packageName, checkIn, checkOut, 
-      fullName, phone, email, specialRequests, totalPrice, rooms: quantity 
+      fullName, phone, email, specialRequests, totalPrice, rooms: quantity
     } = req.body;
 
     if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || !phone || !quantity) {
@@ -56,6 +90,22 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     if (!pkg) {
       return res.status(404).json({ success: false, message: 'Package not found for this pension' });
+    }
+
+    // Validate Booking Policies and Blackout Dates
+    const validationResult = await bookingValidationService.validateBooking(
+      pId,
+      null, // room not yet assigned
+      new Date(checkIn),
+      new Date(checkOut)
+    );
+
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validationResult.errors[0] || 'Booking violates property policies',
+        errors: validationResult.errors
+      });
     }
 
     // Check room availability
@@ -156,9 +206,21 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
       return res.status(400).json({ success: false, message: 'No available rooms found for the selected dates' });
     }
 
-    // Calculate total price
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const finalTotal = totalPrice ? new Prisma.Decimal(totalPrice) : pkg.price.mul(nights).mul(quantity);
+    // Calculate total price using dynamic pricing engine
+    const pricingResult = await pricingService.calculateBookingPrice(
+      pId,
+      availableRoom.room_id,
+      pkg.package_id,
+      checkInDate,
+      checkOutDate,
+      Number(pkg.price)
+    );
+
+    const finalTotal = totalPrice ? new Prisma.Decimal(totalPrice) : new Prisma.Decimal(pricingResult.finalTotal * parseInt(quantity));
+
+    // Load booking policy to check instant_booking
+    const policy = await prisma.bookingPolicy.findUnique({ where: { pension_id: pId } });
+    const isInstant = policy ? policy.instant_booking : true;
 
     // Create booking
     const newBooking = await prisma.booking.create({
@@ -176,7 +238,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully',
+      message: isInstant ? 'Booking created successfully' : 'Booking request sent for approval',
       data: {
         bookingId: newBooking.booking_id,
         pensionName: pension.name,
@@ -185,7 +247,8 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
         checkOut,
         totalPrice: finalTotal,
         status: BookingStatus.Pending,
-        customerInfo: { fullName, phone, email }
+        customerInfo: { fullName, phone, email },
+        requiresApproval: !isInstant
       }
     });
 
@@ -216,10 +279,31 @@ router.get('/availability', async (req: express.Request, res: express.Response) 
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
 
+    // Fetch blackout dates that overlap
+    const blackoutDates = await prisma.blackoutDate.findMany({
+      where: {
+        pension_id: pId,
+        start_date: { lte: checkOutDate },
+        end_date: { gte: checkInDate }
+      }
+    });
+
+    const isWholePensionBlackedOut = blackoutDates.some(b => b.room_id === null);
+    
+    if (isWholePensionBlackedOut) {
+      return res.json({
+        success: true,
+        data: { availableRooms: [], totalAvailable: 0 }
+      });
+    }
+
+    const blackedOutRoomIds = blackoutDates.filter(b => b.room_id !== null).map(b => b.room_id);
+
     const availableRooms = await prisma.room.findMany({
       where: {
         pension_id: pId,
         availability_status: RoomStatus.Available,
+        ...(blackedOutRoomIds.length > 0 ? { room_id: { notIn: blackedOutRoomIds as number[] } } : {}),
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
@@ -335,8 +419,15 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       return res.status(404).json({ success: false, message: 'Package not found for this pension' });
     }
 
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalPrice = pkg.price.mul(nights);
+    const pricingResult = await pricingService.calculateBookingPrice(
+      pId,
+      null, // Don't know room yet
+      pkg.package_id,
+      checkInDate,
+      checkOutDate,
+      Number(pkg.price)
+    );
+    const totalPrice = new Prisma.Decimal(pricingResult.finalTotal);
 
     const availableRoom = await prisma.room.findFirst({
       where: {

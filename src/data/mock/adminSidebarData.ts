@@ -114,6 +114,18 @@ export const adminSidebarLinks: SidebarLink[] = [
         label: "Security",
         icon: "Shield",
         href: "/dashboard/admin/settings/security"
+      },
+      {
+        id: "settings-payouts",
+        label: "Payout Methods",
+        icon: "CreditCard",
+        href: "/dashboard/admin/settings/payouts"
+      },
+      {
+        id: "settings-subscription-policies",
+        label: "Subscription Policies",
+        icon: "Shield",
+        href: "/dashboard/admin/settings/subscription-policies"
       }
     ]
   }

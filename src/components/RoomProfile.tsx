@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { ArrowLeft, MapPin, PackageOpen, Sparkles, Wifi, Car, Shirt, ShieldCheck, Droplets, Zap, PhoneCall, CalendarCheck, PlayCircle, Image as ImageIcon, Mail, Phone, X, ChevronLeft, ChevronRight, Users, Bed, Gift, Tag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useLanguage } from "@/hooks/use-language";
 import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 import { useNavigate } from "react-router-dom";
@@ -57,7 +57,10 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   const navigate = useNavigate();
   const [showVideo, setShowVideo] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showPoliciesModal, setShowPoliciesModal] = useState(false);
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | undefined>(room.videoUrl || room.images[0]);
+  
+  console.log("DEBUG: RoomProfile Rendered. room.policies =", room.policies);
   const [activeMediaType, setActiveMediaType] = useState<'video'|'image'>(room.videoUrl ? 'video' : 'image');
   const mapsUrl = getGoogleMapsNavigationUrl(room);
   
@@ -127,11 +130,64 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               </a>
             </div>
           </div>
-          <Button size="lg" className="gap-2 shrink-0 shadow-sm" onClick={() => setShowContactModal(true)}>
-            <PhoneCall className="w-4 h-4" />
-            {t.rooms.contactHost}
-          </Button>
+          <div className="flex gap-2">
+            <Button size="lg" variant="outline" className="gap-2 shrink-0 shadow-sm border-primary/20 hover:bg-primary/5" onClick={() => setShowPoliciesModal(true)}>
+              <Tag className="w-4 h-4" />
+              View Price Policy
+            </Button>
+            <Button size="lg" className="gap-2 shrink-0 shadow-sm" onClick={() => setShowContactModal(true)}>
+              <PhoneCall className="w-4 h-4" />
+              {t.rooms.contactHost}
+            </Button>
+          </div>
         </div>
+
+        {/* Booking Policies Badges */}
+        {room.bookingPolicy && (
+          <div className="flex flex-wrap gap-2 mb-6 animate-in fade-in">
+            {room.bookingPolicy.instant_booking ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                ⚡ Instant Booking
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
+                ⏳ Manual Approval Required
+              </span>
+            )}
+            
+            {room.bookingPolicy.cancellation_type === 'FREE' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                🛡️ Free Cancellation {room.bookingPolicy.free_cancellation_hours ? `up to ${room.bookingPolicy.free_cancellation_hours}h` : ''}
+              </span>
+            )}
+            {room.bookingPolicy.cancellation_type === 'PARTIAL' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-full">
+                🛡️ Partial Refund ({room.bookingPolicy.cancellation_penalty_percent}% Penalty)
+              </span>
+            )}
+            {room.bookingPolicy.cancellation_type === 'NON_REFUNDABLE' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
+                ⚠️ Non-Refundable
+              </span>
+            )}
+
+            {!room.bookingPolicy.allow_children && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-700 text-sm font-medium rounded-full">
+                🚷 Adults Only
+              </span>
+            )}
+            {!room.bookingPolicy.allow_pets && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-700 text-sm font-medium rounded-full">
+                🚫 No Pets Allowed
+              </span>
+            )}
+            {room.bookingPolicy.allow_pets && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
+                🐾 Pets Allowed
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Layout: Content */}
         <div className="max-w-7xl mx-auto space-y-10">
@@ -199,6 +255,8 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               return null;
             })()}
 
+
+
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               
               <TabsList className="w-full flex justify-start overflow-x-auto whitespace-nowrap mb-6 p-1.5 bg-muted/50 rounded-2xl h-auto border border-border/50">
@@ -251,6 +309,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                             <span>{pkg.beds || 0} {t.rooms.bedsLabel || "Beds"}</span>
                           </div>
                         </div>
+
 
 
                         <div className="mb-4">
@@ -465,6 +524,9 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               <PhoneCall className="w-5 h-5" />
               {t.rooms.contactHostTitle || "Contact Host"}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Contact information for the host of this property.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center space-y-2">
@@ -515,6 +577,65 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
                 {t.rooms.closeButton || "Close"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pricing Policies Modal */}
+      <Dialog open={showPoliciesModal} onOpenChange={setShowPoliciesModal}>
+        <DialogContent className="sm:max-w-lg rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-heading flex items-center gap-2">
+              <Tag className="w-6 h-6 text-primary" />
+              Pricing Rules & Conditions
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Details of the dynamic pricing rules that apply to this property.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <p className="text-sm text-muted-foreground">
+              These automated pricing rules will apply dynamically during your booking based on dates and guests.
+            </p>
+            <div className="text-xs font-mono bg-muted p-2 rounded">
+              DEBUG: policies length = {room.policies ? room.policies.length : 'undefined'}
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              {(!room.policies || room.policies.length === 0) ? (
+                <div className="text-center p-8 border border-dashed border-border rounded-2xl bg-muted/20">
+                  <p className="text-muted-foreground font-medium">No active pricing rules are set for this property.</p>
+                </div>
+              ) : (
+                room.policies.map((policy: any) => (
+                  <div key={policy.policy_id} className="bg-muted/30 border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                    <div className="mb-3">
+                      <h4 className="font-bold text-lg text-foreground mb-1">{policy.name}</h4>
+                      {policy.description && <p className="text-muted-foreground text-sm">{policy.description}</p>}
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-auto pt-3 border-t border-border/50">
+                      {policy.category === 'WEEKEND' && <span className="text-[11px] font-bold tracking-wider bg-purple-100 text-purple-700 px-3 py-1 rounded-xl">Weekend Rate</span>}
+                      {policy.category === 'SEASONAL' && <span className="text-[11px] font-bold tracking-wider bg-blue-100 text-blue-700 px-3 py-1 rounded-xl">Seasonal</span>}
+                      {policy.category === 'OCCUPANCY' && <span className="text-[11px] font-bold tracking-wider bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl">Occupancy Based</span>}
+                      {policy.category === 'LONG_STAY' && <span className="text-[11px] font-bold tracking-wider bg-orange-100 text-orange-700 px-3 py-1 rounded-xl">Long Stay</span>}
+                      {policy.category === 'EXTRA_BED' && <span className="text-[11px] font-bold tracking-wider bg-pink-100 text-pink-700 px-3 py-1 rounded-xl">Extra Guest</span>}
+                      
+                      <span className="text-[11px] font-bold tracking-wider bg-primary/10 text-primary px-3 py-1 rounded-xl">
+                        {policy.adjustment_type === 'PERCENTAGE' 
+                          ? `${Number(policy.adjustment_value) > 0 ? '+' : ''}${policy.adjustment_value}%`
+                          : policy.adjustment_type === 'FIXED_AMOUNT'
+                          ? `${Number(policy.adjustment_value) > 0 ? '+' : ''}${policy.adjustment_value} ETB`
+                          : `Fixed at ${policy.adjustment_value} ETB`}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => setShowPoliciesModal(false)}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>

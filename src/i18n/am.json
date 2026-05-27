@@ -729,7 +729,10 @@
     "header_transactions": "የፋይናንስ እንቅስቃሴዎች",
     "header_reports": "ሪፖርቶች እና ትንታኔዎች",
     "header_pensionProfile": "የፔንሲዮን ፕሮፋይል",
-    "header_subscription": "የደንበኝነት ምዝገባ ዕቅዶች"
+    "header_subscription": "የደንበኝነት ምዝገባ ዕቅዶች",
+    "allInOneReport": "ሁሉንም ያካተተ ሪፖርት",
+    "comprehensiveStatsDesc": "የወቅቱን አፈፃፀም እና የፋይናንስ መረጃ",
+    "roomBookings": "የክፍል ቦታ ማስያዝ"
   },
   "sidebar": {
     "overview": "አጠቃላይ እይታ",
