@@ -23,40 +23,15 @@ router.get('/status/:ownerId', async (req, res) => {
   const { ownerId } = req.params;
   
   try {
-    const owner = await prisma.user.findUnique({
-      where: { user_id: parseInt(ownerId) },
-      include: {
-        subscriptions: {
-          where: { status: 'ACTIVE' },
-          orderBy: { end_date: 'desc' },
-          take: 1,
-          include: { plan: true }
-        }
-      }
-    });
-
-    if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
-
-    const subscription = owner.subscriptions[0];
-    const trialDays = 14;
-    const trialExpiry = new Date(owner.created_at!.getTime() + trialDays * 24 * 60 * 60 * 1000);
-    const isTrialActive = new Date() < trialExpiry;
-    const trialDaysLeft = Math.max(0, Math.ceil((trialExpiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+    const subscriptionEnforcementService = require('../services/subscriptionEnforcementService').default;
+    const status = await subscriptionEnforcementService.getSubscriptionStatus(parseInt(ownerId));
 
     res.json({
       success: true,
-      data: {
-        hasActiveSubscription: !!subscription && new Date() < subscription.end_date,
-        subscription,
-        trial: {
-          isActive: isTrialActive,
-          daysLeft: trialDaysLeft,
-          expiryDate: trialExpiry
-        },
-        isRestricted: !isTrialActive && (!subscription || new Date() > subscription.end_date)
-      }
+      data: status
     });
   } catch (error) {
+    console.error('Failed to get subscription status:', error);
     res.status(500).json({ success: false, message: 'Failed to check status' });
   }
 });

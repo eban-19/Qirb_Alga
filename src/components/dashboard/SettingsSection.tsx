@@ -169,10 +169,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
         <TabsContent value="settings-bank-settings" className="mt-0">
           <BankSettingsSection
-            bankSettings={bankSettings}
-            setBankSettings={setBankSettings}
             isUpdating={isUpdating}
-            setIsUpdating={setIsUpdating}
+            setIsUpdating={setIsUpdating || (() => {})}
             showSuccess={() => { }}
           />
         </TabsContent>

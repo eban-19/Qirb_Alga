@@ -44,6 +44,7 @@ model User {
   payments           Payment[]
   subscriptions      Subscription[]
   auditLogs          AuditLog[]
+  createdRoomBlocks  RoomBlock[] @relation("RoomBlockAdmin")
 
   @@map("users")
 }
@@ -88,6 +89,9 @@ model Pension {
   staff            Staff[]
   expenses         Expense[]
   promotions       Promotion[]
+  pricingPolicies  PricingPolicy[]
+  bookingPolicy    BookingPolicy?
+  blackoutDates    BlackoutDate[]
 
   @@map("pensions")
 }
@@ -117,6 +121,9 @@ model Room {
   package             Package?  @relation("PackageRooms", fields: [package_id], references: [package_id])
   bookings            Booking[]
   availabilityLogs    RoomAvailabilityLog[]
+  blocks              RoomBlock[]
+  pricingPolicies     PricingPolicy[]
+  blackoutDates       BlackoutDate[]
 
   @@map("rooms")
 }
@@ -126,6 +133,21 @@ enum RoomStatus {
   Occupied
   Maintenance
   Blocked
+}
+
+model RoomBlock {
+  block_id   Int       @id @default(autoincrement())
+  room_id    Int
+  start_date DateTime  @db.Date
+  end_date   DateTime  @db.Date
+  reason     String?   @db.VarChar(255)
+  created_by Int?
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+
+  room       Room      @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+  admin      User?     @relation("RoomBlockAdmin", fields: [created_by], references: [user_id], onDelete: SetNull)
+
+  @@map("room_blocks")
 }
 
 model Booking {
@@ -244,6 +266,115 @@ model Promotion {
   @@map("promotions")
 }
 
+enum PolicyCategory {
+  SEASONAL
+  WEEKEND
+  OCCUPANCY
+  LONG_STAY
+  MINIMUM_STAY
+  CANCELLATION
+  REFUND
+  CHILD
+  EXTRA_BED
+}
+
+enum AdjustmentType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  OVERRIDE
+}
+
+model PricingPolicy {
+  policy_id       Int       @id @default(autoincrement())
+  pension_id      Int
+  room_id         Int?      // Null = applies to all rooms
+  package_id      Int?      // Null = applies to all packages
+  name            String    @db.VarChar(100)
+  category        PolicyCategory
+  description     String?   @db.Text
+  
+  // Rule Definitions (Flexible JSON for complex conditions like days of week)
+  rules           Json
+  
+  // Date constraints
+  start_date      DateTime? @db.Date
+  end_date        DateTime? @db.Date
+  
+  // Conditions
+  min_nights      Int?
+  max_nights      Int?
+  min_guests      Int?
+  max_guests      Int?
+  
+  // Modifiers
+  adjustment_type AdjustmentType?
+  adjustment_value Decimal?       @db.Decimal(10, 2)
+  
+  priority        Int       @default(0) // Higher priority applies first or overrides
+  is_active       Boolean   @default(true)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  
+  pension         Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  room            Room?     @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+  package         Package?  @relation(fields: [package_id], references: [package_id], onDelete: Cascade)
+
+  @@map("pricing_policies")
+}
+
+enum CancellationType {
+  FREE
+  PARTIAL
+  NON_REFUNDABLE
+}
+
+model BookingPolicy {
+  policy_id               Int               @id @default(autoincrement())
+  pension_id              Int               @unique
+  booking_window_start    DateTime?         @db.Date
+  booking_window_end      DateTime?         @db.Date
+  max_advance_days        Int?
+  min_advance_hours       Int?
+  allow_same_day          Boolean           @default(true)
+  same_day_cutoff         String?           @db.VarChar(10) // e.g. "18:00"
+  min_stay_nights         Int?
+  max_stay_nights         Int?
+  check_in_start_time     String?           @db.VarChar(10) // e.g. "14:00"
+  check_in_end_time       String?           @db.VarChar(10) // e.g. "22:00"
+  check_out_time          String?           @db.VarChar(10) // e.g. "12:00"
+  cancellation_type       CancellationType  @default(FREE)
+  free_cancellation_hours Int?
+  cancellation_penalty_percent Int?
+  instant_booking         Boolean           @default(true)
+  max_guests_per_booking  Int?
+  allow_children          Boolean           @default(true)
+  allow_pets              Boolean           @default(false)
+  allow_smoking           Boolean           @default(false)
+  is_active               Boolean           @default(true)
+  created_at              DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at              DateTime?         @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension                 Pension           @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+
+  @@map("booking_policies")
+}
+
+model BlackoutDate {
+  id              Int       @id @default(autoincrement())
+  pension_id      Int
+  room_id         Int?      // Null means whole pension is blacked out
+  start_date      DateTime  @db.Date
+  end_date        DateTime  @db.Date
+  reason          String?   @db.VarChar(255)
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+
+  pension         Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
+  room            Room?     @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+
+  @@map("blackout_dates")
+}
+
 model Package {
   package_id      Int       @id @default(autoincrement())
   pension_id      Int
@@ -266,6 +397,7 @@ model Package {
   pension         Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
   rooms           Room[]    @relation("PackageRooms")
   promotions      Promotion[] @relation("PackagePromotions")
+  pricingPolicies PricingPolicy[]
 
   @@map("packages")
 }
@@ -325,6 +457,7 @@ model OwnerProfile {
 
   user            User      @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
   bank_accounts   BankAccount[]
+  owner_payout_accounts OwnerPayoutAccount[]
 
   @@map("ownerprofiles")
 }
@@ -489,8 +622,41 @@ model SubscriptionPlan {
   updated_at      DateTime       @default(now()) @updatedAt @db.Timestamp(0)
 
   subscriptions   Subscription[]
+  policy          SubscriptionPolicy?
 
   @@map("subscription_plans")
+}
+
+model SubscriptionPolicy {
+  id                      Int      @id @default(autoincrement())
+  plan_id                 Int?     @unique // Null means it's the global default policy
+  
+  // Trial Settings
+  trial_enabled           Boolean  @default(true)
+  trial_duration_days     Int      @default(14)
+  
+  // Expiration & Grace Period
+  grace_period_days       Int      @default(0) // 0 means restricted immediately on expiration
+  
+  // Warnings
+  warning_days_before     Json?    // e.g., [7, 3, 1]
+  
+  // Restrictions
+  soft_restriction_days   Int      @default(0) // Days after expiration + grace period
+  hard_restriction_days   Int      @default(7) // Days after soft restriction before full suspension
+  
+  // Data Retention
+  data_retention_days     Int      @default(90) // Days after hard restriction to archive/delete
+  
+  // Feature Restrictions (what's disabled during soft restriction)
+  restricted_features     Json?    // e.g., ["bookings:create", "rooms:add"]
+  
+  created_at              DateTime @default(now()) @db.Timestamp(0)
+  updated_at              DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  
+  plan                    SubscriptionPlan? @relation(fields: [plan_id], references: [plan_id], onDelete: Cascade)
+
+  @@map("subscription_policies")
 }
 
 model Subscription {
@@ -557,3 +723,46 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+model PayoutMethod {
+  id            Int                 @id @default(autoincrement())
+  name          String              @db.VarChar(100)
+  type          String              @db.VarChar(50) // "bank", "wallet", "mobile_money"
+  provider_code String              @db.VarChar(50) // e.g., for Chapa integration
+  is_active     Boolean             @default(true)
+  created_at    DateTime            @default(now()) @db.Timestamp(0)
+  updated_at    DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+  
+  fields        PayoutMethodField[]
+  accounts      OwnerPayoutAccount[]
+
+  @@map("payout_methods")
+}
+
+model PayoutMethodField {
+  id               Int          @id @default(autoincrement())
+  payout_method_id Int
+  name             String       @db.VarChar(50)  // "accountNumber", "phoneNumber"
+  label            String       @db.VarChar(100) // "Account Number"
+  type             String       @db.VarChar(50)  // "text", "number"
+  is_required      Boolean      @default(true)
+  
+  payout_method    PayoutMethod @relation(fields: [payout_method_id], references: [id], onDelete: Cascade)
+
+  @@map("payout_method_fields")
+}
+
+model OwnerPayoutAccount {
+  id                  Int          @id @default(autoincrement())
+  owner_id            Int
+  payout_method_id    Int
+  account_details     Json         // Stores dynamic form data: { "accountNumber": "123" }
+  chapa_subaccount_id String?      @db.VarChar(100)
+  is_active           Boolean      @default(false)
+  created_at          DateTime     @default(now()) @db.Timestamp(0)
+  updated_at          DateTime     @default(now()) @updatedAt @db.Timestamp(0)
+
+  owner               OwnerProfile @relation(fields: [owner_id], references: [owner_id], onDelete: Cascade)
+  payout_method       PayoutMethod @relation(fields: [payout_method_id], references: [id])
+
+  @@map("owner_payout_accounts")
+}
