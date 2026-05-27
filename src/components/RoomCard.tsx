@@ -1,4 +1,4 @@
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
@@ -60,6 +60,16 @@ const RoomCard = ({ room, onViewProfile, isDeal }: RoomCardProps) => {
           }
           return null;
         })()}
+        {/* Rating badge */}
+        {room.avgRating !== undefined && room.avgRating > 0 && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-bold z-10">
+            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+            <span>{room.avgRating.toFixed(1)}</span>
+            {room.reviewCount !== undefined && room.reviewCount > 0 && (
+              <span className="text-white/70">({room.reviewCount})</span>
+            )}
+          </div>
+        )}
         {/* Availability badge removed as it depends on dates selected later */}
       </div>
 

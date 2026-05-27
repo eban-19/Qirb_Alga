@@ -84,6 +84,8 @@ export interface Room {
   distance?: number;
   phone?: string;
   email?: string;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 const roomSeedData: Room[] = [

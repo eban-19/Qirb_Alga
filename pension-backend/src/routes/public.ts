@@ -44,6 +44,8 @@ interface Pension {
   email: string;
   packages: Package[];
   promotions: any[];
+  avgRating: number;
+  reviewCount: number;
 }
 
 // Debug middleware to log all requests to public routes
@@ -90,6 +92,9 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         promotions: {
           where: { is_active: true },
           include: { package: { select: { package_id: true, name: true } } }
+        },
+        reviews: {
+          select: { rating: true }
         }
       },
       orderBy: { created_at: 'desc' }
@@ -103,6 +108,12 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         ...pkg,
         availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
       }));
+
+      // Compute average rating and review count from included reviews
+      const reviewCount = p.reviews?.length || 0;
+      const avgRating = reviewCount > 0
+        ? parseFloat((p.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1))
+        : 0;
 
       const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
 
@@ -137,6 +148,8 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         phone: p.phone || '',
         email: p.email || '',
         promotions: p.promotions || [],
+        avgRating,
+        reviewCount,
         packages: packages
           .map((pkg: any): Package => ({
             id: pkg.package_id,
@@ -216,6 +229,9 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
         promotions: {
           where: { is_active: true },
           include: { package: { select: { package_id: true, name: true } } }
+        },
+        reviews: {
+          select: { rating: true }
         }
       }
     });
@@ -230,6 +246,11 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
     }));
 
     const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
+
+    const reviewCount = p.reviews?.length || 0;
+    const avgRating = reviewCount > 0
+      ? parseFloat((p.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1))
+      : 0;
 
     // Get coordinates (use existing or geocode from address)
     let coordinates = { 
@@ -261,6 +282,8 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       phone: p.phone || '',
       email: p.email || '',
       promotions: p.promotions || [],
+      avgRating,
+      reviewCount,
       packages: packages
         .map((pkg: any): Package => ({
           id: pkg.package_id,

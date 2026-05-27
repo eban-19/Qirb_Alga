@@ -7,6 +7,7 @@ import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+// Reload prisma client with bankAccount model available
 
 // Get Banks from Chapa API dynamically
 router.get('/banks', async (req, res) => {

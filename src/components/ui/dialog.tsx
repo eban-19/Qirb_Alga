@@ -12,39 +12,43 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
-// Hook to prevent body scroll when modal is open
+// Hook to prevent body scroll when a Dialog overlay is open
 const useScrollLock = () => {
   React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-      }
-    };
+    let savedScrollY = 0;
+    let isLocked = false;
 
     const preventScroll = () => {
+      if (isLocked) return;
+      isLocked = true;
+      savedScrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
-      document.body.style.top = `-${window.scrollY}px`;
+      document.body.style.top = `-${savedScrollY}px`;
       document.body.style.width = '100%';
     };
 
     const enableScroll = () => {
-      const scrollY = document.body.style.top;
+      if (!isLocked) return;
+      isLocked = false;
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
-      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      window.scrollTo(0, savedScrollY);
     };
 
-    const observer = new MutationObserver(() => {
-      const isOpen = document.querySelector('[data-state="open"]');
-      if (isOpen) {
+    const checkDialogState = () => {
+      // Only look at the radix dialog overlay, not tabs/selects/dropdowns
+      const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]');
+      if (dialogOverlay && dialogOverlay.getAttribute('data-state') === 'open') {
         preventScroll();
       } else {
         enableScroll();
       }
-    });
+    };
+
+    const observer = new MutationObserver(checkDialogState);
 
     observer.observe(document.body, {
       childList: true,
@@ -53,11 +57,8 @@ const useScrollLock = () => {
       attributeFilter: ['data-state']
     });
 
-    document.addEventListener('keydown', handleEscape);
-    
     return () => {
       observer.disconnect();
-      document.removeEventListener('keydown', handleEscape);
       enableScroll();
     };
   }, []);
@@ -66,16 +67,17 @@ const useScrollLock = () => {
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+>((({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
+    data-radix-dialog-overlay="true"
     className={cn(
       "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
   />
-));
+)));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<

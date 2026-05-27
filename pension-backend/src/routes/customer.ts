@@ -24,7 +24,8 @@ router.get('/bookings', authenticateToken as any, async (req: any, res: any) => 
             package: true
           }
         },
-        payment: true
+        payment: true,
+        review: true
       },
       orderBy: {
         created_at: 'desc'

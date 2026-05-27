@@ -8,6 +8,7 @@ import { getGoogleMapsNavigationUrl, type Room } from "@/lib/rooms";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import UnifiedAuthModal from "./auth/UnifiedAuthModal";
+import PensionReviews from "./pension/PensionReviews";
 
 // Helper function to construct full URLs for images
 const getFullImageUrl = (imagePath: string | undefined | null): string => {
@@ -450,6 +451,9 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
               </div>
             </div>
           </section>
+
+          {/* Pension reviews feed and summary ratings */}
+          <PensionReviews pensionId={room.pension_id || parseInt(room.id)} />
         </div>
       </div>
 
