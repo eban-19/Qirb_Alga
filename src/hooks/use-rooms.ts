@@ -123,6 +123,7 @@ export function useRoomById(id: string) {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       try {
+        console.log('useRoomById fetching id:', id, 'parseInt:', parseInt(id));
         // Get real data from backend with language parameter
         const response = await apiService.getPublicPension(parseInt(id), { language });
         if (response.data && response.data.packages) {

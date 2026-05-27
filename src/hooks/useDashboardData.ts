@@ -119,7 +119,7 @@ export const useDashboardData = (ui?: any) => {
             // Map backend fields to UI expected fields
             const mappedRooms = rooms.map(r => ({
               ...r,
-              status: r.availability_status || (r as any).status || 'Available',
+              status: (r as any).status || r.availability_status || 'Available',
               price: r.price_per_night || (r as any).price || 0,
               type: (r as any).type || r.room_type || 'Standard'
             }));
@@ -144,7 +144,7 @@ export const useDashboardData = (ui?: any) => {
             });
             const fetchedBookings = Array.from(uniqueBookingsMap.values()).map((b: any) => ({
               ...b,
-              status: b.status?.toLowerCase() === 'pending' ? 'confirmed' : b.status
+              status: b.status
             }));
 
             const totalBookings = (bookingsResp.data as any)?.total || fetchedBookings.length;

@@ -46,8 +46,19 @@ export interface Pension {
   check_in_time?: string;
   check_out_time?: string;
   cancellation_policy?: string;
-  created_at: Date;
-  updated_at: Date;
+  images?: string[];
+  promotions?: any[];
+  packages?: any[];
+  policies?: any[];
+  bookingPolicy?: any;
+  blackoutDates?: any[];
+  availableRooms?: number;
+  ownerInfo?: string;
+  roomDetails?: string;
+  locationName?: string;
+  area?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 // Package related types

@@ -139,11 +139,16 @@ class ApiService {
       const [
         roomsResponse,
         packagesResponse,
-        pensionResponse
+        pensionResponse,
+        policiesResponse
       ] = await Promise.all([
         this.getRooms(parseInt(propertyId)),
         this.getPackages(parseInt(propertyId)),
-        this.getPension(parseInt(propertyId))
+        this.getPension(parseInt(propertyId)),
+        this.request(`/pricing-policies/public/${propertyId}?_t=${Date.now()}`).catch((e) => {
+          console.error("Pricing policies fetch failed:", e);
+          return { success: false, policies: [] };
+        })
       ]);
 
       console.log('=== REAL DATA RESPONSES ===');
@@ -210,6 +215,7 @@ class ApiService {
       console.log('Pension:', pension.name);
       console.log('Rooms count:', transformedRooms.length);
       console.log('Packages count:', transformedPackages.length);
+      console.log('Policies response:', JSON.stringify(policiesResponse));
       console.log('Owner:', ownerInfo.name);
 
       return {
@@ -221,6 +227,7 @@ class ApiService {
           description: pension.description,
           rooms: transformedRooms,
           packages: transformedPackages,
+          policies: Array.isArray((policiesResponse as any)?.policies) ? (policiesResponse as any).policies : [],
           owner: ownerInfo,
           images: pension.image_url ? [pension.image_url] : [],
           totalRooms: transformedRooms.length,

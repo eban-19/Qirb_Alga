@@ -22,6 +22,8 @@ export const useAdminDashboardData = () => {
     if (path.includes('/settings/account')) return 'settings-account';
     if (path.includes('/settings/financial')) return 'settings-financial';
     if (path.includes('/settings/security')) return 'settings-security';
+    if (path.includes('/settings/payouts')) return 'settings-payouts';
+    if (path.includes('/settings/subscription-policies')) return 'settings-subscription-policies';
     if (path.includes('/settings')) return 'settings-financial'; // Default subtab
     return 'overview';
   };

@@ -20,9 +20,12 @@ import { StaffSection } from '../components/dashboard/StaffSection';
 import { PackageTierSection } from '../components/dashboard/PackageTierSection';
 import { BookingSection } from '../components/dashboard/BookingSection';
 import { RoomsSection } from '../components/dashboard/RoomsSection';
+import { RoomCalendarSection } from '../components/dashboard/RoomCalendarSection';
 import { GuestsSection } from '../components/dashboard/GuestsSection';
 import { TransactionsSection } from '../components/dashboard/TransactionsSection';
 import { PromotionsSection } from '../components/dashboard/PromotionsSection';
+import { PricingPoliciesSection } from '../components/dashboard/pricing/PricingPoliciesSection';
+import { BookingPoliciesModule } from '../components/dashboard/policies/BookingPoliciesModule';
 import SubscriptionPlans from '../components/dashboard/SubscriptionPlans';
 
 // Modals
@@ -137,12 +140,15 @@ const Dashboard: React.FC = () => {
                 {ui.activeTab === "overview" ? (t.dashboard?.header_overview || "Dashboard Overview") :
                   ui.activeTab === "bookings" ? (t.dashboard?.header_bookings || "Bookings Management") :
                     ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
-                      ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
+                      ui.activeTab === "room-calendar" ? "Availability Calendar" :
+                        ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
                         ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
                           ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
                             ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
-                              ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
-                                ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                              ui.activeTab === "pricing-policies" ? "Pricing Policies" :
+                                ui.activeTab === "booking-policies" ? "Booking Policies" :
+                                ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                                  ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
                                   ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
                                     ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
                                       ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
@@ -194,7 +200,42 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {status?.trial.isActive && !status.isRestricted && !status.hasActiveSubscription && (
+            {status?.isSoftRestricted && !status?.isRestricted && (
+              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-center gap-3 shadow-sm text-orange-800">
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm font-medium">
+                  <span className="font-bold">Account Restricted:</span> Your subscription has expired. Some features are currently disabled.
+                </p>
+                <Button variant="ghost" size="sm" className="ml-auto text-orange-700 font-bold hover:bg-orange-100" onClick={() => navigate("/dashboard/subscription")}>
+                  Renew Now
+                </Button>
+              </div>
+            )}
+
+            {status?.gracePeriod?.isActive && !status?.isRestricted && !status?.isSoftRestricted && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 shadow-sm text-amber-800">
+                <Clock className="w-5 h-5" />
+                <p className="text-sm font-medium">
+                  <span className="font-bold">Grace Period Active:</span> You have {status.gracePeriod.daysLeft} days to renew before restrictions apply.
+                </p>
+                <Button variant="ghost" size="sm" className="ml-auto text-amber-700 font-bold hover:bg-amber-100" onClick={() => navigate("/dashboard/subscription")}>
+                  Renew Now
+                </Button>
+              </div>
+            )}
+
+            {status?.warnings && status.warnings.length > 0 && !status.isRestricted && !status.isSoftRestricted && !status.gracePeriod?.isActive && (
+              <div className="mb-6 space-y-2">
+                {status.warnings.map((warning, i) => (
+                  <div key={i} className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2 text-blue-800 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{warning}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {status?.trial?.isActive && !status.isRestricted && !status.hasActiveSubscription && (
               <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <Zap className="w-5 h-5 text-primary" />
@@ -219,11 +260,21 @@ const Dashboard: React.FC = () => {
                 propertySettings={ui.propertySettings}
                 recentTransactions={data.recentTransactions}
                 guestsCount={data.guestsData.length}
-                onCreatePension={() => ui.setShowCreatePension(true)}
+                onCreatePension={() => {
+                  if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
+                  ui.setShowCreatePension(true);
+                }}
                 onNavigateTab={(tab) => navigate(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`)}
-                onAddStaff={() => { ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); }}
-                onAddRoom={() => ui.setShowAddRoomModal(true)}
+                onAddStaff={() => { 
+                  if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
+                  ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); 
+                }}
+                onAddRoom={() => {
+                  if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
+                  ui.setShowAddRoomModal(true);
+                }}
                 onAddPackage={() => {
+                  if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
                   ui.setEditingPackage(null);
                   ui.setNewPackage({
                     name: '', name_en: '', name_am: '', name_om: '', price: '',
@@ -301,6 +352,10 @@ const Dashboard: React.FC = () => {
                 onUpdateStatus={handlers.handleUpdateRoomStatus}
                 totalItems={data.dataTotals.rooms}
               />
+            )}
+
+            {ui.activeTab === "room-calendar" && !status?.isRestricted && (
+              <RoomCalendarSection />
             )}
 
             {ui.activeTab === "guests" && !status?.isRestricted && (
@@ -381,6 +436,14 @@ const Dashboard: React.FC = () => {
                 totalItems={data.dataTotals?.packages || data.packages.length}
                 language={language}
               />
+            )}
+
+            {ui.activeTab === "pricing-policies" && !status?.isRestricted && (
+              <PricingPoliciesSection pensionId={data.selectedPensionId as number} />
+            )}
+
+            {ui.activeTab === "booking-policies" && !status?.isRestricted && (
+              <BookingPoliciesModule pensionId={data.selectedPensionId as number} />
             )}
 
             {ui.activeTab === "promotions" && !status?.isRestricted && (
