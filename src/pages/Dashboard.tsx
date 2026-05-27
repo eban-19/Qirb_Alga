@@ -27,6 +27,7 @@ import { PromotionsSection } from '../components/dashboard/PromotionsSection';
 import { PricingPoliciesSection } from '../components/dashboard/pricing/PricingPoliciesSection';
 import { BookingPoliciesModule } from '../components/dashboard/policies/BookingPoliciesModule';
 import SubscriptionPlans from '../components/dashboard/SubscriptionPlans';
+import OwnerReviewsSection from '../components/dashboard/OwnerReviewsSection';
 
 // Modals
 import { CreatePensionModal } from '../components/dashboard/CreatePensionModal';
@@ -151,8 +152,9 @@ const Dashboard: React.FC = () => {
                                   ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
                                   ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
                                     ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
-                                      ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
-                                        "Dashboard Section"}
+                                      ui.activeTab === "reviews" ? "Reviews & Ratings" :
+                                        ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                                          "Dashboard Section"}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -473,6 +475,10 @@ const Dashboard: React.FC = () => {
             )}
 
             {ui.activeTab === "subscription" && <SubscriptionPlans />}
+
+            {ui.activeTab === "reviews" && !status?.isRestricted && (
+              <OwnerReviewsSection pensionId={data.selectedPensionId} />
+            )}
 
             {ui.activeTab.startsWith("settings-") && (
               <SettingsSection

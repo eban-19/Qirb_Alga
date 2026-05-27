@@ -35,6 +35,7 @@ model User {
   pensions           Pension[]
   bookings           Booking[]
   reviews            Review[]
+  reviewReports      ReviewReport[]
   notifications      Notification[]
   ownerProfile       OwnerProfile?
   emailNotifications EmailNotification[]
@@ -205,9 +206,14 @@ model Review {
   created_at  DateTime? @default(now()) @db.Timestamp(0)
   updated_at  DateTime? @default(now()) @updatedAt @db.Timestamp(0)
 
+  images           Json?
+  owner_reply      String?   @db.Text
+  owner_reply_at   DateTime? @db.Timestamp(0)
+
   pension     Pension   @relation(fields: [pension_id], references: [pension_id], onDelete: Cascade)
   booking     Booking   @relation(fields: [booking_id], references: [booking_id], onDelete: Cascade)
   customer    User      @relation(fields: [customer_id], references: [user_id], onDelete: Cascade)
+  reports     ReviewReport[]
 
   @@map("reviews")
 }
@@ -722,6 +728,21 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+model ReviewReport {
+  report_id    Int       @id @default(autoincrement())
+  review_id    Int
+  user_id      Int
+  reason       String    @db.Text
+  status       String    @default("Pending") // "Pending", "Resolved", "Dismissed"
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+
+  review       Review    @relation(fields: [review_id], references: [review_id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("review_reports")
+}
+
 
 model PayoutMethod {
   id            Int                 @id @default(autoincrement())

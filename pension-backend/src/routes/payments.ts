@@ -7,6 +7,7 @@ import crypto from 'crypto';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+// Reload prisma client with bankAccount model available
 
 // Removed legacy /banks, /subaccount, /accounts routes as they are now handled by /api/payout-methods
 

@@ -12,7 +12,8 @@ import {
   Shield,
   AlertTriangle,
   CreditCard,
-  User
+  User,
+  MessageSquare
 } from 'lucide-react';
 
 export interface SidebarLink {
@@ -89,6 +90,7 @@ export const adminSidebarLinks: SidebarLink[] = [
     href: "/dashboard/admin/payments",
     badge: null
   },
+
   {
     id: "system-settings",
     label: "System Settings",
@@ -150,7 +152,8 @@ export const getAdminIcon = (iconName: string) => {
     Shield,
     AlertTriangle,
     CreditCard,
-    User
+    User,
+    MessageSquare
   };
   return icons[iconName] || LayoutDashboard;
 };

@@ -24,6 +24,7 @@ export const useDashboard = () => {
     if (path.includes('/dashboard/promotions')) return 'promotions';
     if (path.includes('/dashboard/reports')) return 'reports';
     if (path.includes('/dashboard/subscription')) return 'subscription';
+    if (path.includes('/dashboard/reviews')) return 'reviews';
     if (path.includes('/dashboard/settings/business-profile')) return 'settings-business-profile';
     if (path.includes('/dashboard/settings/security')) return 'settings-security';
     if (path.includes('/dashboard/settings/bank-settings')) return 'settings-bank-settings';

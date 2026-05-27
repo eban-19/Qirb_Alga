@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search, MapPin, BedDouble, Tags, Loader2 } from "lucide-react";
+import { Search, MapPin, BedDouble, Tags, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import RoomCard from "@/components/RoomCard";
 import RoomCardSkeleton from "@/components/RoomCardSkeleton";
@@ -10,7 +10,7 @@ import { useRooms } from "@/hooks/use-rooms";
 import { useLanguage } from "@/hooks/use-language";
 import type { Room } from "@/lib/rooms";
 
-export type FilterType = "nearest" | "available" | "deals" | null;
+export type FilterType = "nearest" | "available" | "deals" | "topRated" | null;
 
 const RoomList = () => {
   const { data: rooms = [], isLoading } = useRooms();
@@ -46,6 +46,12 @@ const RoomList = () => {
   const handleFilterClick = (filter: Extract<FilterType, string>) => {
     if (activeFilter === filter) {
       setActiveFilter(null);
+      return;
+    }
+
+    // topRated doesn't need geolocation
+    if (filter === 'topRated') {
+      setActiveFilter(filter);
       return;
     }
 
@@ -140,6 +146,15 @@ const RoomList = () => {
         if (priceDiff !== 0) return priceDiff;
         return (a.distance || 0) - (b.distance || 0);
       });
+    } else if (activeFilter === "topRated") {
+      // Only show pensions with at least 1 review
+      result = result.filter((r) => (r.reviewCount || 0) > 0);
+      // Sort by avgRating descending, then by reviewCount as a tiebreaker
+      result.sort((a, b) => {
+        const ratingDiff = (b.avgRating || 0) - (a.avgRating || 0);
+        if (ratingDiff !== 0) return ratingDiff;
+        return (b.reviewCount || 0) - (a.reviewCount || 0);
+      });
     }
 
     return result;
@@ -183,6 +198,15 @@ const RoomList = () => {
             >
               {isLocating === "deals" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tags className="w-4 h-4" />}
               {t.rooms.bestDeals}
+            </Button>
+            <Button 
+              variant={activeFilter === "topRated" ? "default" : "outline"} 
+              size="sm" 
+              className="rounded-full shadow-sm gap-2"
+              onClick={() => handleFilterClick("topRated")}
+            >
+              <Star className="w-4 h-4" />
+              {t.rooms.topRated}
             </Button>
           </div>
         </div>

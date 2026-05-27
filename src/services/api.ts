@@ -578,15 +578,92 @@ class ApiService {
   }
 
   // Review methods
-  async getReviews(params: {
+  async submitReview(pensionId: number, rating: number, comment: string | null, images?: string[], bookingId?: number): Promise<ApiResponse<any>> {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({ pension_id: pensionId, rating, comment, images, booking_id: bookingId }),
+    });
+  }
+
+  async updateReview(reviewId: number, data: { rating?: number; comment?: string | null; images?: string[] }): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteReview(reviewId: number): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getPensionReviews(pensionId: number | string, params: {
     page?: number;
     limit?: number;
     rating?: number;
-    pension_id?: number;
-    user_id?: number;
-  } = {}): Promise<PaginatedResponse<any>> {
-    const query = new URLSearchParams(params as any).toString();
-    return this.request(`/reviews${query ? `?${query}` : ''}`);
+    has_images?: boolean;
+    sort_by?: string;
+  } = {}): Promise<ApiResponse<any>> {
+    const formattedParams: Record<string, string> = {};
+    if (params.page !== undefined) formattedParams.page = String(params.page);
+    if (params.limit !== undefined) formattedParams.limit = String(params.limit);
+    if (params.rating !== undefined) formattedParams.rating = String(params.rating); // only include if set
+    if (params.has_images !== undefined) formattedParams.has_images = String(params.has_images);
+    if (params.sort_by !== undefined) formattedParams.sort_by = params.sort_by;
+    const query = new URLSearchParams(formattedParams).toString();
+    return this.request(`/reviews/pension/${pensionId}${query ? `?${query}` : ''}`);
+  }
+
+  async getPensionReviewStats(pensionId: number | string): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/pension/${pensionId}/stats`);
+  }
+
+  async getPensionReviewAnalytics(pensionId: number | string): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/pension/${pensionId}/analytics`);
+  }
+
+  async submitOwnerReply(reviewId: number, reply: string | null): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ reply }),
+    });
+  }
+
+  async reportReview(reviewId: number, reason: string): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async getAdminPendingReviews(page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/admin/pending?page=${page}&limit=${limit}`);
+  }
+
+  async getAdminReportedReviews(page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/admin/reports?page=${page}&limit=${limit}`);
+  }
+
+  async approveReview(reviewId: number): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/admin/${reviewId}/approval`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved: true }),
+    });
+  }
+
+  async rejectReview(reviewId: number, rejectionReason: string): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/admin/${reviewId}/approval`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved: false, rejectionReason }),
+    });
+  }
+
+  async resolveReport(reportId: number, status: 'Resolved' | 'Dismissed', hideReview?: boolean): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/admin/reports/${reportId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, hideReview }),
+    });
   }
 
   async getMyReviews(params: {

@@ -60,6 +60,7 @@ const App = () => (
               <Route path="/dashboard/promotions" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/reports" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/subscription" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/reviews" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/business-profile" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/security" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/bank-settings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
@@ -108,6 +109,11 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/admin/payments" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/reviews" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
                 </ProtectedRoute>
