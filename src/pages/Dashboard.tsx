@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { OverviewSection } from '../components/dashboard/OverviewSection';
-import { ReportsSection } from '../components/dashboard/ReportsSection';
+import { ReportsSection, TimeRange } from '../components/dashboard/ReportsSection';
 import { SettingsSection } from '../components/dashboard/SettingsSection';
 import { PensionProfileSection } from '../components/dashboard/PensionProfileSection';
 import { StaffSection } from '../components/dashboard/StaffSection';
@@ -65,6 +65,7 @@ const Dashboard: React.FC = () => {
   const { status, isLoading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const { isPensionOwner, user } = useAuth();
+  const [timeRange, setTimeRange] = React.useState<TimeRange>('month');
 
   // Initialize Hooks
   const ui = useDashboard();
@@ -154,8 +155,29 @@ const Dashboard: React.FC = () => {
                                         "Dashboard Section"}
               </h2>
             </div>
-            <div className="flex gap-2">
-              {/* Top actions removed when they are integrated into specific sections */}
+            <div className="flex items-center gap-2">
+              {ui.activeTab === "reports" && (
+                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 focus:ring-4 focus:ring-primary/10 outline-none transition-all cursor-pointer shadow-sm hover:border-primary/30 text-xs"
+                  >
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                    <option value="all">All Time</option>
+                  </select>
+                  <Button
+                    onClick={() => window.print()}
+                    className="rounded-xl h-10 px-6 font-black bg-slate-900 hover:bg-black text-white shadow-lg shadow-slate-200 transition-all transform hover:-translate-y-0.5 text-xs"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-2" />
+                    Generate PDF
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -444,6 +466,9 @@ const Dashboard: React.FC = () => {
                   availableRooms: data.actualRoomStats.availableRooms
                 }}
                 bookingTrends={{ avgStayDuration: 0, cancellationRate: 0 }}
+                transactions={data.recentTransactions}
+                roomsData={data.roomsData}
+                timeRange={timeRange}
               />
             )}
 

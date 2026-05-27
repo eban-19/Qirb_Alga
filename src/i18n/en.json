@@ -735,7 +735,10 @@
     "header_transactions": "Financial Transactions",
     "header_reports": "Reports & Analytics",
     "header_pensionProfile": "Pension Profile",
-    "header_subscription": "Subscription Plans"
+    "header_subscription": "Subscription Plans",
+    "allInOneReport": "All-in-One Report",
+    "comprehensiveStatsDesc": "Real-time performance and financial data",
+    "roomBookings": "Room Bookings"
   },
   "sidebar": {
     "overview": "Overview",
