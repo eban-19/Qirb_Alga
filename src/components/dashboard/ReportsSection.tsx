@@ -48,14 +48,16 @@ import { Expense, Booking, Transaction, Room } from '../../types/dashboard';
 import { useLanguage } from '../../hooks/use-language';
 import {
   FinancialTrendChart,
-  BookingTrendsChart,
-  ExpenseAllocationChart
+  UnifiedBookingChart,
+  ExpenseAllocationChart,
+  RoomTypeDemandChart
 } from './ReportCharts';
 import {
   format,
   isWithinInterval,
   subDays,
   startOfToday,
+  startOfDay,
   startOfWeek,
   startOfMonth,
   startOfYear,
@@ -65,7 +67,9 @@ import {
   isSameDay,
   differenceInDays,
   addDays,
-  endOfDay
+  endOfDay,
+  endOfMonth,
+  endOfYear
 } from 'date-fns';
 
 export type TimeRange = 'today' | 'week' | 'month' | 'year' | 'all';
@@ -107,22 +111,40 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
   const { t } = useLanguage();
   const [reportTab, setReportTab] = useState('stays');
 
-  const parseDate = (dateStr: string) => {
+  const parseDate = (dateStr: any) => {
     if (!dateStr) return new Date(NaN);
+    if (dateStr instanceof Date) return dateStr;
+    const s = String(dateStr).trim();
+
     try {
-      // Try parseISO first (standard for modern APIs)
-      const d = parseISO(dateStr);
+      const d = parseISO(s);
       if (!isNaN(d.getTime())) return d;
-      // Fallback to native Date constructor (supports more formats)
-      const native = new Date(dateStr);
-      if (!isNaN(native.getTime())) return native;
-      return new Date(NaN);
+
+      const parts = s.split(/[\/\-\.]/);
+      if (parts.length === 3) {
+        if (parts[2].length === 4 && parts[0].length <= 2) {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const year = parseInt(parts[2]);
+          const constructed = new Date(year, month, day);
+          if (!isNaN(constructed.getTime())) return constructed;
+        }
+        if (parts[0].length === 4) {
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const day = parseInt(parts[2]);
+          const constructed = new Date(year, month, day);
+          if (!isNaN(constructed.getTime())) return constructed;
+        }
+      }
+
+      const native = new Date(s);
+      return native;
     } catch (e) {
       return new Date(NaN);
     }
   };
 
-  // --- FILTERING LOGIC ---
   const filteredData = useMemo(() => {
     const now = new Date();
     let start: Date;
@@ -134,13 +156,16 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
         end = endOfDay(now);
         break;
       case 'week':
-        start = subDays(now, 7);
+        start = startOfDay(subDays(now, 7));
+        end = endOfDay(now);
         break;
       case 'month':
-        start = subDays(now, 30);
+        start = startOfMonth(now);
+        end = endOfMonth(now);
         break;
       case 'year':
-        start = subDays(now, 365);
+        start = startOfYear(now);
+        end = endOfYear(now);
         break;
       default:
         start = new Date(0);
@@ -150,6 +175,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     const interval = { start, end };
 
     const filteredBookings = bookings.filter(b => {
+      if (timeRange === 'all') return true;
       if (!b.check_in) return false;
       const date = parseDate(b.check_in);
       if (isNaN(date.getTime())) return false;
@@ -157,6 +183,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     });
 
     const filteredExpenses = expensesData.filter(e => {
+      if (timeRange === 'all') return true;
       if (!e.expense_date) return false;
       const date = parseDate(e.expense_date);
       if (isNaN(date.getTime())) return false;
@@ -164,6 +191,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     });
 
     const filteredTransactions = transactions.filter(tr => {
+      if (timeRange === 'all') return true;
       if (!tr.date) return false;
       const date = parseDate(tr.date);
       if (isNaN(date.getTime())) return false;
@@ -192,21 +220,6 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
   }, [timeRange, bookings, expensesData, transactions]);
 
   const netProfit = filteredData.totalRevenue - filteredData.totalExpenses;
-  const profitMargin = filteredData.totalRevenue > 0 ? Math.round((netProfit / filteredData.totalRevenue) * 100) : 0;
-  const adr = filteredData.bookings.length > 0 ? filteredData.totalRevenue / filteredData.bookings.length : 0;
-
-  // Stays stats
-  const activeBookings = bookings.filter(b => {
-    if (!b.check_in || !b.check_out) return false;
-    try {
-      const checkIn = parseDate(b.check_in);
-      const checkOut = parseDate(b.check_out);
-      const today = new Date();
-      return (b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'checked_in') && (isSameDay(today, checkIn) || isAfter(today, checkIn)) && isBefore(today, checkOut);
-    } catch (err) { return false; }
-  });
-
-  // Dynamic Performance Metrics
   const performanceMetrics = useMemo(() => {
     const validBookings = filteredData.bookings.filter(b => b.check_in && b.check_out);
     if (validBookings.length === 0) return { avgStay: "0", cancelRate: "0" };
@@ -231,10 +244,15 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     };
   }, [filteredData.bookings]);
 
-  // Room Inventory stats
-  const occupiedRoomsCount = roomsData.filter(r => r.availability_status?.toLowerCase() === 'occupied' || r.status?.toLowerCase() === 'occupied').length;
-  const availableRoomsCount = roomsData.filter(r => r.availability_status?.toLowerCase() === 'available' || r.status?.toLowerCase() === 'available').length;
-  const maintenanceRoomsCount = roomsData.filter(r => r.availability_status?.toLowerCase() === 'maintenance' || r.status?.toLowerCase() === 'maintenance').length;
+  const activeBookings = bookings.filter(b => {
+    if (!b.check_in || !b.check_out) return false;
+    try {
+      const checkIn = parseDate(b.check_in);
+      const checkOut = parseDate(b.check_out);
+      const today = new Date();
+      return (b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'checked_in') && (isSameDay(today, checkIn) || isAfter(today, checkIn)) && isBefore(today, checkOut);
+    } catch (err) { return false; }
+  });
 
   const getLocalizedCategoryName = (cat: string) => {
     switch (cat.toLowerCase()) {
@@ -294,36 +312,36 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
             />
           </div>
         );
-      case 'inventory':
+      case 'bookings':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
             <MiniStat
-              title="Total Inventory"
-              value={roomsData.length}
-              icon={<Hotel className="w-6 h-6 text-slate-800" />}
+              title="Volume"
+              value={filteredData.bookings.length}
+              icon={<Activity className="w-6 h-6 text-slate-800" />}
               bgColor="bg-slate-100"
-              subtitle="Full property capacity"
+              subtitle={`Total reservations in ${timeRange}`}
             />
             <MiniStat
-              title="Available (Free)"
-              value={availableRoomsCount}
-              icon={<Bed className="w-6 h-6 text-emerald-600" />}
+              title="Success Rate"
+              value={`${filteredData.bookings.length > 0 ? (100 - parseFloat(performanceMetrics.cancelRate)).toFixed(0) : 0}%`}
+              icon={<ShieldCheck className="w-6 h-6 text-emerald-600" />}
               bgColor="bg-emerald-50"
-              subtitle="Clean & ready for new guests"
+              subtitle="Completed & confirmed bookings"
             />
             <MiniStat
-              title="Booked (Occupied)"
-              value={occupiedRoomsCount}
-              icon={<UserCheck className="w-6 h-6 text-rose-600" />}
+              title="Demand Factor"
+              value={(filteredData.bookings.length / (roomsData.length || 1)).toFixed(1)}
+              icon={<TrendingUp className="w-6 h-6 text-rose-600" />}
               bgColor="bg-rose-50"
-              subtitle="Currently being utilized"
+              subtitle="Bookings per unit available"
             />
             <MiniStat
-              title="Under Maintenance"
-              value={maintenanceRoomsCount}
-              icon={<RefreshCcw className="w-6 h-6 text-amber-600" />}
-              bgColor="bg-amber-50"
-              subtitle="Out of service for repair"
+              title="Avg Duration"
+              value={`${performanceMetrics.avgStay} nights`}
+              icon={<Clock className="w-6 h-6 text-blue-600" />}
+              bgColor="bg-blue-50"
+              subtitle="Mean length of guest visits"
             />
           </div>
         );
@@ -365,36 +383,6 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
             />
           </div>
         );
-      case 'performance':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
-            <KpiCard
-              title="Avg Stay Duration"
-              value={`${performanceMetrics.avgStay} Nights`}
-              icon={<Calendar className="w-6 h-6 text-white" />}
-              bgColor="bg-purple-50"
-              iconBg="bg-purple-600"
-              accentColor="text-purple-700"
-              subtitle="Efficiency of room turnover"
-            />
-
-            <MiniStat
-              title="Demand Rate"
-              value={`${filteredData.bookings.length} Bookings`}
-              icon={<TrendingUp className="w-6 h-6 text-indigo-600" />}
-              bgColor="bg-indigo-50"
-              subtitle="New reservations in current period"
-            />
-
-            <MiniStat
-              title="Cancellation Rate"
-              value={`${performanceMetrics.cancelRate}%`}
-              icon={<ArrowDownRight className="w-6 h-6 text-rose-600" />}
-              bgColor="bg-rose-50"
-              subtitle="Lost opportunity metrics"
-            />
-          </div>
-        );
       case 'expenses':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -430,251 +418,48 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-      {/* Cards above Category Selector */}
       {renderTopCards()}
 
       <Tabs value={reportTab} onValueChange={setReportTab} className="space-y-8">
         <TabsList className="bg-slate-100/50 p-2 rounded-[2.5rem] border border-slate-200/40 w-full lg:w-auto h-auto grid grid-cols-2 lg:flex gap-2">
-          <TabsTrigger
-            value="stays"
-            className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Live Stays
+          <TabsTrigger value="stays" className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Category Analytics
           </TabsTrigger>
-          <TabsTrigger
-            value="inventory"
-            className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300"
-          >
-            <Hotel className="w-4 h-4 mr-2" />
-            Room Inventory
+          <TabsTrigger value="bookings" className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300">
+            <PieChartIcon className="w-4 h-4 mr-2" />
+            Booking Analytics
           </TabsTrigger>
-          <TabsTrigger
-            value="financials"
-            className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300"
-          >
+          <TabsTrigger value="financials" className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300">
             <DollarSign className="w-4 h-4 mr-2" />
             Financials
           </TabsTrigger>
-          <TabsTrigger
-            value="performance"
-            className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300"
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            Performance
-          </TabsTrigger>
-          <TabsTrigger
-            value="expenses"
-            className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300"
-          >
+          <TabsTrigger value="expenses" className="rounded-[2rem] px-8 py-3.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-slate-500 transition-all duration-300">
             <Plus className="w-4 h-4 mr-2" />
             Expenses
           </TabsTrigger>
         </TabsList>
 
-        {/* --- LIVE STAYS TAB --- */}
         <TabsContent value="stays" className="space-y-8 mt-0 focus-visible:outline-none">
-          <Card className="rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
-            <CardHeader className="p-10 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">Active Room Occupants</CardTitle>
-                </div>
-                <p className="text-slate-400 text-sm font-bold ml-5">Detailed registry of guests currently residing in the property</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                  <Input placeholder="Search Guest Name..." className="h-11 pl-11 pr-4 rounded-xl bg-slate-50 border-none w-full md:w-64 font-bold text-sm" />
-                </div>
-                <Button variant="outline" className="h-11 rounded-xl border-slate-200">
-                  <ListFilter className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[600px]">
-                <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                    <TableRow className="border-b-2 border-slate-100">
-                      <TableHead className="py-6 px-10 font-black text-slate-500 uppercase tracking-widest text-[10px]">Primary Guest</TableHead>
-                      <TableHead className="py-6 font-black text-slate-500 uppercase tracking-widest text-[10px]">Room Assignment</TableHead>
-                      <TableHead className="py-6 font-black text-slate-500 uppercase tracking-widest text-[10px]">Stay Interval</TableHead>
-                      <TableHead className="py-6 font-black text-slate-500 uppercase tracking-widest text-[10px]">Payment Status</TableHead>
-                      <TableHead className="py-6 px-10 text-right font-black text-slate-500 uppercase tracking-widest text-[10px]">Total Bill</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activeBookings.map((b) => (
-                      <TableRow key={b.id} className="hover:bg-blue-50/30 transition-colors group">
-                        <TableCell className="py-6 px-10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-700 font-black text-sm">
-                              {b.guest_name?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-black text-slate-800 line-clamp-1">{b.guest_name}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">ID: #{b.id}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-900 leading-none mb-1 group-hover:text-blue-600 transition-colors">Room {b.room_number}</span>
-                            <span className="text-[10px] font-bold text-slate-400">Superior Deluxe</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                          <div className="flex items-center gap-2 text-slate-600 font-black text-xs">
-                            <span className="text-slate-400">
-                              {b.check_in ? (
-                                (() => {
-                                  try { return format(parseISO(b.check_in), 'MMM dd'); }
-                                  catch (e) { return 'Invalid'; }
-                                })()
-                              ) : 'N/A'}
-                            </span>
-                            <ArrowDownRight className="w-3 h-3 text-slate-300" />
-                            <span className="text-blue-600">
-                              {b.check_out ? (
-                                (() => {
-                                  try { return format(parseISO(b.check_out), 'MMM dd'); }
-                                  catch (e) { return 'Invalid'; }
-                                })()
-                              ) : 'N/A'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-6">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight ${b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'checked_in' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-                            }`}>
-                            <ShieldCheck className="w-3 h-3" />
-                            {b.status || 'Confirmed'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="py-6 px-10 text-right">
-                          <p className="font-black text-slate-900 text-lg">ETB {(b.total_price || 0).toLocaleString()}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Inclusive of Tax</p>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {activeBookings.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-60 text-center">
-                          <div className="flex flex-col items-center justify-center text-slate-300">
-                            <Users className="w-12 h-12 mb-4 opacity-20" />
-                            <p className="text-lg font-black italic">No guests currently checked in</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <RoomTypeDemandChart bookings={filteredData.bookings} expenses={filteredData.expenses} transactions={filteredData.transactions} />
         </TabsContent>
 
-        {/* --- ROOM INVENTORY TAB --- */}
-        <TabsContent value="inventory" className="space-y-8 mt-0 focus-visible:outline-none">
-          <Card className="rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
-            <CardHeader className="p-10 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50">
-              <div>
-                <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">Full Asset Inventory</CardTitle>
-                <p className="text-slate-400 text-sm font-bold">Comprehensive management of all physical rooms and their configurations</p>
-              </div>
-              {/* Action buttons removed */}
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto max-h-[600px]">
-                <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                    <TableRow className="border-b-2 border-slate-100">
-                      <TableHead className="py-6 px-10 font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Room Number</TableHead>
-                      <TableHead className="py-6 font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Room Category</TableHead>
-                      <TableHead className="py-6 font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Live Status</TableHead>
-                      <TableHead className="py-6 font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Specifications</TableHead>
-                      <TableHead className="py-6 px-10 text-right font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Base Rate (NIGHT)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {roomsData.map((r) => {
-                      const status = (r.availability_status || r.status || 'available').toLowerCase();
-                      const isBooked = status === 'occupied';
-                      const isMaintenance = status === 'maintenance';
-
-                      let statusStyles = "bg-emerald-100 text-emerald-600";
-                      if (isBooked) statusStyles = "bg-rose-100 text-rose-600";
-                      if (isMaintenance) statusStyles = "bg-amber-100 text-amber-600";
-
-                      return (
-                        <TableRow key={r.id} className="hover:bg-slate-50 transition-colors group">
-                          <TableCell className="py-6 px-10 font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
-                            #{r.room_number}
-                          </TableCell>
-                          <TableCell className="py-6">
-                            <div className="flex items-center gap-2">
-                              <Hotel className="w-4 h-4 text-slate-300" />
-                              <span className="text-sm font-bold text-slate-700 tracking-tight">{r.room_type}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-6">
-                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight ${statusStyles}`}>
-                              {status === 'occupied' ? 'Booked' : status === 'available' ? 'Available' : 'Maintenance'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-6">
-                            <div className="flex items-center gap-3">
-                              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-                                <Bed className="w-3 h-3" /> {r.number_of_beds || r.capacity} Beds
-                              </span>
-                              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-                                <Users className="w-3 h-3" /> {r.capacity} Guests
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-6 px-10 text-right">
-                            <p className="font-black text-slate-900">ETB {(r.price_per_night || 0).toLocaleString()}</p>
-                            <p className="text-[10px] text-slate-400 font-bold leading-none mt-1 uppercase tracking-widest">Standard Price</p>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="bookings" className="space-y-8 mt-0 focus-visible:outline-none">
+          <UnifiedBookingChart
+            bookings={filteredData.bookings}
+            allBookings={bookings}
+            expenses={filteredData.expenses}
+            transactions={filteredData.transactions}
+            timeRange={timeRange}
+          />
         </TabsContent>
 
-        {/* --- FINANCIALS TAB --- */}
         <TabsContent value="financials" className="space-y-8 mt-0 focus-visible:outline-none">
           <div className="grid grid-cols-1 gap-8">
-            <FinancialTrendChart
-              bookings={filteredData.bookings}
-              expenses={filteredData.expenses}
-              transactions={filteredData.transactions}
-              timeRange={timeRange}
-            />
+            <FinancialTrendChart bookings={filteredData.bookings} expenses={filteredData.expenses} transactions={filteredData.transactions} timeRange={timeRange} />
           </div>
         </TabsContent>
 
-        {/* --- PERFORMANCE TAB --- */}
-        <TabsContent value="performance" className="space-y-8 mt-0 focus-visible:outline-none">
-          <div className="grid grid-cols-1 gap-8">
-            <BookingTrendsChart
-              bookings={filteredData.bookings}
-              allBookings={bookings}
-              expenses={filteredData.expenses}
-              transactions={filteredData.transactions}
-              timeRange={timeRange}
-            />
-          </div>
-        </TabsContent>
-
-        {/* --- EXPENSES TAB --- */}
         <TabsContent value="expenses" className="space-y-8 mt-0 focus-visible:outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="rounded-[3rem] border-none shadow-xl bg-white overflow-hidden p-8">
@@ -683,7 +468,6 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
                 <div className="h-[220px]">
                   <ExpenseAllocationChart bookings={filteredData.bookings} expenses={filteredData.expenses} transactions={filteredData.transactions} />
                 </div>
-
                 <div className="space-y-5 pt-4 border-t border-slate-100">
                   {Object.entries(filteredData.expensesByCategory).map(([category, amount]) => (
                     <div key={category} className="group">
@@ -692,10 +476,7 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
                         <span className="text-slate-900">ETB {amount.toLocaleString()}</span>
                       </div>
                       <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-amber-500 group-hover:bg-amber-600 transition-all duration-700"
-                          style={{ width: `${(amount / (filteredData.totalExpenses || 1)) * 100}%` }}
-                        />
+                        <div className="h-full bg-amber-500 group-hover:bg-amber-600 transition-all duration-700" style={{ width: `${(amount / (filteredData.totalExpenses || 1)) * 100}%` }} />
                       </div>
                     </div>
                   ))}
@@ -754,8 +535,6 @@ export const ReportsSection: React.FC<ReportsSectionProps> = ({
     </div>
   );
 };
-
-/* --- SUB-COMPONENTS --- */
 
 const KpiCard = ({ title, value, trend, isPositive, icon, bgColor, iconBg, accentColor, subtitle }: any) => (
   <Card className={`rounded-[3rem] border-none shadow-xl ${bgColor} group hover:shadow-2xl transition-all duration-500 relative overflow-hidden h-full`}>

@@ -163,13 +163,6 @@ const Dashboard: React.FC = () => {
                     <option value="year">This Year</option>
                     <option value="all">All Time</option>
                   </select>
-                  <Button
-                    onClick={() => window.print()}
-                    className="rounded-xl h-10 px-6 font-black bg-slate-900 hover:bg-black text-white shadow-lg shadow-slate-200 transition-all transform hover:-translate-y-0.5 text-xs"
-                  >
-                    <Download className="w-3.5 h-3.5 mr-2" />
-                    Generate PDF
-                  </Button>
                 </div>
               )}
             </div>

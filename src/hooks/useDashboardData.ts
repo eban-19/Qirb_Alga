@@ -144,7 +144,9 @@ export const useDashboardData = (ui?: any) => {
             });
             const fetchedBookings = Array.from(uniqueBookingsMap.values()).map((b: any) => ({
               ...b,
-              status: b.status?.toLowerCase() === 'pending' ? 'confirmed' : b.status
+              check_in: b.check_in || b.check_in_date,
+              check_out: b.check_out || b.check_out_date,
+              status: b.status?.toLowerCase() === 'pending' ? 'confirmed' : b.status?.toLowerCase() || 'confirmed'
             }));
 
             const totalBookings = (bookingsResp.data as any)?.total || fetchedBookings.length;
