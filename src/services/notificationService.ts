@@ -1,7 +1,7 @@
 import apiService from './api';
 
 export interface Notification {
-  notification_id: number;
+  notification_id: number | string;
   user_id: number;
   title: string;
   message: string;

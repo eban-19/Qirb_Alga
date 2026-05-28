@@ -682,6 +682,10 @@ class ApiService {
     return this.request('/admin/customers');
   }
 
+  async getCustomerBookingsForAdmin(customerId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/admin/customers/${customerId}/bookings`);
+  }
+
   async getAllStaffs(): Promise<ApiResponse<any[]>> {
     return this.request('/admin/staffs');
   }
@@ -859,7 +863,7 @@ class ApiService {
     return this.request('/notifications/unread-count');
   }
 
-  async markNotificationAsRead(notificationId: number): Promise<ApiResponse<any>> {
+  async markNotificationAsRead(notificationId: number | string): Promise<ApiResponse<any>> {
     return this.request(`/notifications/${notificationId}/read`, {
       method: 'PUT'
     });
