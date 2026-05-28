@@ -90,32 +90,17 @@ const requireSubscription = async (req: any, res: Response, next: NextFunction) 
       return next();
     }
 
-    // Check user for trial status
-    const user = await prisma.user.findUnique({
-      where: { user_id: userId },
-      select: { created_at: true }
-    });
+    // Use SubscriptionEnforcementService instead of hardcoded rules
+    const subscriptionEnforcementService = require('../services/subscriptionEnforcementService').default;
+    
+    // For general middleware protection, we check a generic 'dashboard_access' feature
+    // In the future, specific routes could check specific features
+    const hasAccess = await subscriptionEnforcementService.checkFeatureAccess(userId, 'dashboard_access');
 
-    if (user) {
-      const trialDays = 14;
-      const trialExpiry = new Date(user.created_at!.getTime() + trialDays * 24 * 60 * 60 * 1000);
-      if (new Date() < trialExpiry) {
-        return next(); // Trial is active
-      }
-    }
-
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        owner_id: userId,
-        status: SubscriptionStatus.ACTIVE,
-        end_date: { gt: new Date() }
-      }
-    });
-
-    if (!subscription) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: 'Active subscription or trial required to access this feature',
+        message: 'Active subscription, trial, or grace period required to access this feature',
         requiresSubscription: true
       });
     }

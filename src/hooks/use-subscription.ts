@@ -3,13 +3,21 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface SubscriptionStatus {
   hasActiveSubscription: boolean;
-  subscription: any;
+  isRestricted: boolean; // Hard restricted
+  isSoftRestricted: boolean;
   trial: {
     isActive: boolean;
     daysLeft: number;
-    expiryDate: string;
+    expiryDate: string | null;
   };
-  isRestricted: boolean;
+  gracePeriod: {
+    isActive: boolean;
+    daysLeft: number;
+    expiryDate: string | null;
+  };
+  subscription: any | null;
+  plan: any | null;
+  warnings: string[];
 }
 
 export const useSubscription = () => {

@@ -2,7 +2,8 @@ import * as express from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken, requireSubscription } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
-import { RoomStatus, Prisma } from '@prisma/client';
+import { RoomStatus, BookingStatus, Prisma } from '@prisma/client';
+import availabilityService from '../services/availabilityService';
 
 const router = express.Router();
 
@@ -76,6 +77,58 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
   } catch (error: any) {
     console.error('Get rooms error:', error);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
+});
+
+// Get room calendar
+router.get('/:id/calendar', authenticateToken as any, async (req: express.Request, res: express.Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'Invalid room ID' });
+    
+    const { startDate, endDate } = req.query;
+    const start = startDate ? new Date(startDate as string) : undefined;
+    const end = endDate ? new Date(endDate as string) : undefined;
+
+    const result = await availabilityService.getRoomCalendar(id, start, end);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Block room dates
+router.post('/:id/block', authenticateToken as any, async (req: any, res: express.Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'Invalid room ID' });
+    
+    const { startDate, endDate, reason } = req.body;
+    if (!startDate || !endDate) return res.status(400).json({ success: false, message: 'Start and end dates are required' });
+
+    const result = await availabilityService.blockRoomDates({
+      roomId: id,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      reason,
+      staffId: req.user.userId
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// Unblock room dates
+router.delete('/:id/block/:blockId', authenticateToken as any, async (req: any, res: express.Response) => {
+  try {
+    const blockId = parseInt(req.params.blockId as string);
+    if (isNaN(blockId)) return res.status(400).json({ success: false, message: 'Invalid block ID' });
+    
+    const result = await availabilityService.unblockRoomDates(blockId);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
@@ -335,20 +388,44 @@ router.get('/my/rooms', authenticateToken as any, async (req: any, res: express.
         pension_id: pension_id ? parseInt(pension_id as string) : undefined
       },
       include: {
-        pension: { select: { name: true } }
+        pension: { select: { name: true } },
+        bookings: {
+          where: {
+            status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+            check_out_date: { gte: new Date() }
+          }
+        },
+        blocks: {
+          where: {
+            start_date: { lte: new Date() },
+            end_date: { gte: new Date() }
+          }
+        }
       },
       orderBy: { created_at: 'desc' },
       take,
       skip
     });
 
-    const normalizedRooms = rooms.map((r: any) => ({ 
-      ...r, 
-      id: r.room_id, 
-      pension_name: r.pension.name,
-      type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
-      is_available: r.availability_status === RoomStatus.Available
-    }));
+    const normalizedRooms = rooms.map((r: any) => {
+      const now = new Date();
+      const isBooked = r.bookings && r.bookings.some((b: any) => new Date(b.check_in_date) <= now && new Date(b.check_out_date) >= now);
+      const isBlocked = r.blocks && r.blocks.length > 0;
+      const hasUpcoming = r.bookings && r.bookings.some((b: any) => new Date(b.check_in_date) > now);
+      let dynamicStatus = "Available";
+      if (isBlocked) dynamicStatus = "Maintenance";
+      else if (isBooked) dynamicStatus = "Occupied";
+      else if (hasUpcoming) dynamicStatus = "Available (Future Bookings)";
+
+      return { 
+        ...r, 
+        id: r.room_id, 
+        pension_name: r.pension.name,
+        type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
+        is_available: !isBooked && !isBlocked,
+        status: dynamicStatus
+      };
+    });
 
     res.json({ success: true, data: { items: normalizedRooms } });
   } catch (error: any) {

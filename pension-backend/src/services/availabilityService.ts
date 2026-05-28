@@ -374,6 +374,110 @@ class AvailabilityService {
     }
   }
 
+  // Get Calendar Data for a Room (Bookings + Blocks)
+  async getRoomCalendar(roomId: number, startDate?: Date, endDate?: Date) {
+    try {
+      // If dates not provided, default to current month +/- 1 month
+      const now = new Date();
+      const queryStart = startDate || new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const queryEnd = endDate || new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+      // Fetch active bookings
+      const bookings = await prisma.booking.findMany({
+        where: {
+          room_id: roomId,
+          status: { in: [BookingStatus.Confirmed, BookingStatus.Pending, BookingStatus.Completed] },
+          check_in_date: { lte: queryEnd },
+          check_out_date: { gte: queryStart }
+        },
+        include: {
+          customer: { select: { full_name: true, phone: true } }
+        }
+      });
+
+      // Fetch blocked dates
+      const blocks = await prisma.roomBlock.findMany({
+        where: {
+          room_id: roomId,
+          start_date: { lte: queryEnd },
+          end_date: { gte: queryStart }
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          bookings,
+          blocks
+        }
+      };
+    } catch (error: any) {
+      console.error('Get room calendar error:', error);
+      throw error;
+    }
+  }
+
+  // Block room dates manually (e.g. Maintenance)
+  async blockRoomDates(data: { roomId: number; startDate: Date; endDate: Date; reason?: string; staffId: number }) {
+    try {
+      // Validate dates
+      if (data.endDate <= data.startDate) {
+        throw new Error('End date must be after start date');
+      }
+
+      // Check for overlapping bookings
+      const overlappingBookings = await prisma.booking.findFirst({
+        where: {
+          room_id: data.roomId,
+          status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+          check_in_date: { lt: data.endDate },
+          check_out_date: { gt: data.startDate }
+        }
+      });
+
+      if (overlappingBookings) {
+        throw new Error('Cannot block dates because there are existing bookings in this range.');
+      }
+
+      // Create the block
+      const block = await prisma.roomBlock.create({
+        data: {
+          room_id: data.roomId,
+          start_date: data.startDate,
+          end_date: data.endDate,
+          reason: data.reason,
+          created_by: data.staffId
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Dates blocked successfully',
+        data: block
+      };
+    } catch (error: any) {
+      console.error('Block room dates error:', error);
+      throw error;
+    }
+  }
+
+  // Unblock room dates
+  async unblockRoomDates(blockId: number) {
+    try {
+      await prisma.roomBlock.delete({
+        where: { block_id: blockId }
+      });
+
+      return {
+        success: true,
+        message: 'Dates unblocked successfully'
+      };
+    } catch (error: any) {
+      console.error('Unblock room dates error:', error);
+      throw error;
+    }
+  }
+
   // Helper methods
   private async getPensionOwnerId(pensionId: number): Promise<number> {
     const pension = await prisma.pension.findUnique({

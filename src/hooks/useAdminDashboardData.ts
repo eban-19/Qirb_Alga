@@ -19,9 +19,12 @@ export const useAdminDashboardData = () => {
     if (path.includes('/bookings')) return 'bookings';
     if (path.includes('/alerts')) return 'alerts';
     if (path.includes('/payments')) return 'payments';
+    if (path.includes('/reviews')) return 'reviews';
     if (path.includes('/settings/account')) return 'settings-account';
     if (path.includes('/settings/financial')) return 'settings-financial';
     if (path.includes('/settings/security')) return 'settings-security';
+    if (path.includes('/settings/payouts')) return 'settings-payouts';
+    if (path.includes('/settings/subscription-policies')) return 'settings-subscription-policies';
     if (path.includes('/settings')) return 'settings-financial'; // Default subtab
     return 'overview';
   };

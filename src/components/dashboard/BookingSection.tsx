@@ -111,10 +111,12 @@ const BookingCard = ({
             )}
           </div>
           <Badge className={`${booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500 shadow-emerald-500/25' :
-            booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500 shadow-blue-500/25' : 'bg-slate-500 shadow-slate-500/25'
+            booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500 shadow-blue-500/25' :
+            booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500 shadow-amber-500/25' : 'bg-slate-500 shadow-slate-500/25'
             } text-white text-xs shadow-sm capitalize`}>
             {booking.status?.toLowerCase() === 'confirmed' ? (t.dashboard?.confirmedStays || 'Confirmed') :
               booking.status?.toLowerCase() === 'completed' ? (t.dashboard?.pastBookings || 'Completed') :
+              booking.status?.toLowerCase() === 'pending' ? (t.dashboard?.pendingBookings || 'Pending') :
                 (booking.status || 'N/A')}
           </Badge>
         </div>
@@ -219,12 +221,48 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [showIdModal, setShowIdModal] = useState(false);
   const [selectedIdUrl, setSelectedIdUrl] = useState<string | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed' | 'confirmed'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed' | 'confirmed' | 'pending'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'upcoming' | 'specific'>('all');
+  const [specificDate, setSpecificDate] = useState<string>('');
 
   const filteredBookings = bookings.filter(b => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'active') return b.status?.toLowerCase() === 'confirmed';
-    return b.status?.toLowerCase() === activeFilter;
+    // 1. Status Filter
+    let passStatus = true;
+    if (activeFilter === 'active') {
+      passStatus = ['confirmed', 'pending'].includes(b.status?.toLowerCase());
+    } else if (activeFilter !== 'all') {
+      passStatus = b.status?.toLowerCase() === activeFilter;
+    }
+
+    if (!passStatus) return false;
+
+    // 2. Date Filter
+    if (dateFilter === 'all') return true;
+
+    // Normalize check in/out dates to YYYY-MM-DD local
+    const checkInDate = new Date(b.check_in_date);
+    const checkOutDate = new Date(b.check_out_date);
+    // Use local timezone strings
+    const bCheckIn = `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}`;
+    const bCheckOut = `${checkOutDate.getFullYear()}-${String(checkOutDate.getMonth() + 1).padStart(2, '0')}-${String(checkOutDate.getDate()).padStart(2, '0')}`;
+    
+    const todayObj = new Date();
+    const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+    if (dateFilter === 'today') {
+      // Booking overlaps with today
+      return bCheckIn <= today && bCheckOut >= today;
+    }
+    if (dateFilter === 'upcoming') {
+      // Booking check-in is after today
+      return bCheckIn > today;
+    }
+    if (dateFilter === 'specific' && specificDate) {
+      // Booking overlaps with the specific date
+      return bCheckIn <= specificDate && bCheckOut >= specificDate;
+    }
+
+    return true;
   });
 
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
@@ -453,14 +491,16 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
               <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
                 {[
                   { id: 'all', label: t.dashboard?.allBookings || 'All Bookings', color: 'text-slate-600' },
-                  { id: 'active', label: t.dashboard?.activeBookings || 'Active Bookings', color: 'text-blue-600' },
-                  { id: 'confirmed', label: t.dashboard?.confirmedStays || 'Confirmed Stays', color: 'text-emerald-600' },
-                  { id: 'completed', label: t.dashboard?.pastBookings || 'Past Bookings', color: 'text-indigo-600' }
+                  { id: 'active', label: t.dashboard?.activeBookings || 'Active', color: 'text-blue-600' },
+                  { id: 'pending', label: t.dashboard?.pendingBookings || 'Pending', color: 'text-amber-600' },
+                  { id: 'confirmed', label: t.dashboard?.confirmedStays || 'Confirmed', color: 'text-emerald-600' },
+                  { id: 'completed', label: t.dashboard?.pastBookings || 'Completed', color: 'text-indigo-600' }
                 ].map((filter) => (
                   <SelectItem key={filter.id} value={filter.id} className="rounded-lg focus:bg-slate-50 cursor-pointer">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full shrink-0 ${filter.id === 'all' ? 'bg-slate-400' :
                         filter.id === 'active' ? 'bg-blue-400' :
+                        filter.id === 'pending' ? 'bg-amber-400' :
                           filter.id === 'confirmed' ? 'bg-emerald-400' : 'bg-indigo-400'
                         }`} />
                       <span className={`font-medium truncate ${filter.color}`}>
@@ -471,6 +511,42 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-initial">
+            <Calendar className="h-4 w-4 text-slate-500 shrink-0" />
+            <Select value={dateFilter} onValueChange={(value) => {
+              setDateFilter(value as any);
+              if (value !== 'specific') setSpecificDate('');
+            }}>
+              <SelectTrigger className="w-full sm:w-[150px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                <SelectValue placeholder="Date filter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                <SelectItem value="all" className="rounded-lg focus:bg-slate-50 cursor-pointer">
+                  <span className="font-medium text-slate-600">All Dates</span>
+                </SelectItem>
+                <SelectItem value="today" className="rounded-lg focus:bg-slate-50 cursor-pointer">
+                  <span className="font-medium text-blue-600">Today</span>
+                </SelectItem>
+                <SelectItem value="upcoming" className="rounded-lg focus:bg-slate-50 cursor-pointer">
+                  <span className="font-medium text-amber-600">Upcoming</span>
+                </SelectItem>
+                <SelectItem value="specific" className="rounded-lg focus:bg-slate-50 cursor-pointer">
+                  <span className="font-medium text-emerald-600">Specific Date</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {dateFilter === 'specific' && (
+              <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="ml-1 h-9 rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                />
+              </div>
+            )}
           </div>
 
           {onAddNewBooking && (
@@ -590,10 +666,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                           <TableCell className="text-right font-bold text-slate-900">ETB {(booking.total_price || 0).toLocaleString()}</TableCell>
                           <TableCell>
                             <Badge className={`${booking.status?.toLowerCase() === 'confirmed' ? 'bg-emerald-500' :
-                              booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500' : 'bg-slate-500'
+                              booking.status?.toLowerCase() === 'completed' ? 'bg-blue-500' :
+                              booking.status?.toLowerCase() === 'pending' ? 'bg-amber-500' : 'bg-slate-500'
                               } text-white border-none px-3 py-1 font-medium shadow-sm`}>
                               {booking.status?.toLowerCase() === 'confirmed' ? (t.dashboard?.confirmedStays || 'Confirmed') :
                                 booking.status?.toLowerCase() === 'completed' ? (t.dashboard?.pastBookings || 'Completed') :
+                                booking.status?.toLowerCase() === 'pending' ? (t.dashboard?.pendingBookings || 'Pending') :
                                   (booking.status || 'N/A')}
                             </Badge>
                           </TableCell>

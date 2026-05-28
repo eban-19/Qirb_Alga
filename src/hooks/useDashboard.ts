@@ -13,14 +13,18 @@ export const useDashboard = () => {
     const path = location.pathname;
     if (path.includes('/dashboard/staff')) return 'staff';
     if (path.includes('/dashboard/bookings')) return 'bookings';
+    if (path.includes('/dashboard/rooms/') && path.endsWith('/calendar')) return 'room-calendar';
     if (path.includes('/dashboard/rooms')) return 'rooms';
     if (path.includes('/dashboard/guests')) return 'guests';
     if (path.includes('/dashboard/transactions')) return 'transactions';
     if (path.includes('/dashboard/pension-profile')) return 'pension-profile';
     if (path.includes('/dashboard/packages')) return 'packages';
+    if (path.includes('/dashboard/pricing-policies')) return 'pricing-policies';
+    if (path.includes('/dashboard/booking-policies')) return 'booking-policies';
     if (path.includes('/dashboard/promotions')) return 'promotions';
     if (path.includes('/dashboard/reports')) return 'reports';
     if (path.includes('/dashboard/subscription')) return 'subscription';
+    if (path.includes('/dashboard/reviews')) return 'reviews';
     if (path.includes('/dashboard/settings/business-profile')) return 'settings-business-profile';
     if (path.includes('/dashboard/settings/security')) return 'settings-security';
     if (path.includes('/dashboard/settings/bank-settings')) return 'settings-bank-settings';

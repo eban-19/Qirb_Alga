@@ -77,6 +77,7 @@ export interface Room {
   totalRooms?: number;
   rooms?: any[];
   packages: Package[];
+  policies?: any[];
   promotions?: Promotion[];
   images: string[];
   image_url?: string;
@@ -84,6 +85,8 @@ export interface Room {
   distance?: number;
   phone?: string;
   email?: string;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 const roomSeedData: Room[] = [

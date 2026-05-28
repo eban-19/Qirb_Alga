@@ -13,7 +13,10 @@ import {
   FileCheck,
   Home,
   Package,
-  Gift
+  Gift,
+  Star
+  Tags,
+  ShieldBan
 } from 'lucide-react';
 
 export const sidebarLinks = [
@@ -24,7 +27,10 @@ export const sidebarLinks = [
   { id: "staff", labelKey: "staff", icon: "Users" },
   { id: "pension-profile", labelKey: "pensionProfile", icon: "Building" },
   { id: "packages", labelKey: "packages", icon: "Package" },
+  { id: "pricing-policies", labelKey: "pricingPolicies", icon: "Tags" },
+  { id: "booking-policies", labelKey: "bookingPolicies", icon: "ShieldBan" },
   { id: "promotions", labelKey: "promotions", icon: "Gift" },
+  { id: "reviews", labelKey: "reviews", icon: "Star" },
   { id: "transactions", labelKey: "transactions", icon: "ArrowLeftRight" },
   { id: "reports", labelKey: "reports", icon: "BarChart3" },
   {
@@ -56,7 +62,10 @@ export const getIcon = (name: string) => {
     FileCheck,
     Home,
     Package,
-    Gift
+    Gift,
+    Star
+    Tags,
+    ShieldBan
   };
   return icons[name] || LayoutDashboard;
 };

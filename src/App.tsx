@@ -50,13 +50,17 @@ const App = () => (
               <Route path="/dashboard/staff" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/bookings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/rooms" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/rooms/:roomId/calendar" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/guests" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/transactions" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/pension-profile" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/packages" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/pricing-policies" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/booking-policies" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/promotions" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/reports" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/subscription" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+              <Route path="/dashboard/reviews" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/business-profile" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/security" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/settings/bank-settings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
@@ -109,6 +113,11 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/dashboard/admin/reviews" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard/admin/settings" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
@@ -125,6 +134,16 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/admin/settings/security" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings/payouts" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin/settings/subscription-policies" element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
                 </ProtectedRoute>

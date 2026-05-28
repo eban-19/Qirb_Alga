@@ -13,11 +13,13 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
-  ChevronDown
+  ChevronDown,
+  CalendarDays
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,7 +68,9 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onUpdateStatus
 }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
 
@@ -200,6 +204,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               {safeRooms.map((room) => (
                 <Card key={room.id} className={`group border-none shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white ${selectedRows.includes(room.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className={`h-3 w-full ${room.status === "Available" ? "bg-emerald-500" :
+                    room.status === "Available (Future Bookings)" ? "bg-teal-500" :
                     room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                     }`} />
                   <CardContent className="p-8 relative">
@@ -212,6 +217,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
                         <div className={`h-14 w-14 flex items-center justify-center rounded-xl font-bold text-xl shadow-lg ${room.status === "Available" ? "bg-emerald-100 text-emerald-700" :
+                          room.status === "Available (Future Bookings)" ? "bg-teal-100 text-teal-700" :
                           room.status === "Occupied" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
                           }`}>
                           {room.room_number || room.id}
@@ -224,9 +230,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         </div>
                       </div>
                       <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
+                        room.status === "Available (Future Bookings)" ? "bg-teal-500" :
                         room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                         } text-white text-xs px-3 py-1 shadow-sm`}>
                         {room.status === "Available" ? (t.dashboard?.available || 'Available') :
+                          room.status === "Available (Future Bookings)" ? (t.dashboard?.availableFuture || 'Available (Booked Later)') :
                           room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
                             (room.status || 'N/A')}
                       </Badge>
@@ -254,16 +262,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300 p-1">
                           <DropdownMenuItem
-                            onClick={() => onUpdateStatus?.(room.id, room.status)}
-                            disabled={room.status === 'Occupied'}
-                            className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
+                            onClick={() => navigate(`/dashboard/rooms/${room.id}/calendar`)}
+                            className="flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors hover:bg-blue-50 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-600"
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            <CalendarDays className="h-4 w-4" />
                             <div className="flex flex-col text-left">
-                              <span className="font-bold text-sm">{t.dashboard?.toggleStatus || "Toggle Status"}</span>
-                              <span className="text-[10px] text-slate-500">
-                                {room.status === 'Occupied' ? (t.dashboard?.activeBooking || 'Active booking') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark as Occupied') : (t.dashboard?.markAsAvailable || 'Mark as Available'))}
-                              </span>
+                              <span className="font-bold text-sm">Availability Calendar</span>
+                              <span className="text-[10px] text-slate-500">View bookings & block dates</span>
                             </div>
                           </DropdownMenuItem>
                           <div className="h-px bg-slate-100 my-1" />
@@ -356,9 +361,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         <TableCell className="font-bold text-emerald-600">ETB {room.price}</TableCell>
                         <TableCell>
                           <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
+                            room.status === "Available (Future Bookings)" ? "bg-teal-500" :
                             room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
                             } text-white text-xs shadow-sm`}>
                             {room.status === "Available" ? (t.dashboard?.available || 'Available') :
+                              room.status === "Available (Future Bookings)" ? (t.dashboard?.availableFuture || 'Available (Booked Later)') :
                               room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
                                 (room.status || 'N/A')}
                           </Badge>
@@ -379,14 +386,11 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 duration-300 p-1">
                                 <DropdownMenuItem
-                                  onClick={() => onUpdateStatus?.(room.id, room.status)}
-                                  disabled={room.status === 'Occupied'}
-                                  className={`flex items-center gap-2 p-2.5 cursor-pointer rounded-lg transition-colors ${room.status === 'Occupied' ? 'opacity-50 grayscale' : 'focus:bg-blue-50 focus:text-blue-600'}`}
+                                  onClick={() => navigate(`/dashboard/rooms/${room.id}/calendar`)}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg transition-colors hover:bg-blue-50 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-600"
                                 >
-                                  {room.status === 'Available' ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                                  <span className="font-medium text-sm">
-                                    {room.status === 'Occupied' ? (t.dashboard?.occupied || 'Occupied') : (room.status === 'Available' ? (t.dashboard?.markAsOccupied || 'Mark Occupied') : (t.dashboard?.markAsAvailable || 'Mark Available'))}
-                                  </span>
+                                  <CalendarDays className="h-4 w-4" />
+                                  <span className="font-medium text-sm">Availability Calendar</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => onDeleteRoom && onDeleteRoom(room.id)}

@@ -4,6 +4,8 @@ import upload from '../middleware/upload';
 import notificationService from '../services/notificationService';
 import geocodingService from '../services/geocoding';
 import { PensionStatus, ApprovalStatus, RoomStatus, BookingStatus, Role, BookingSource, Prisma } from '@prisma/client';
+import pricingService from '../services/pricingService';
+import bookingValidationService from '../services/bookingValidationService';
 
 const router = express.Router();
 
@@ -44,6 +46,11 @@ interface Pension {
   email: string;
   packages: Package[];
   promotions: any[];
+  avgRating: number;
+  reviewCount: number;
+  policies?: any[];
+  bookingPolicy?: any;
+  blackoutDates?: any[];
 }
 
 // Debug middleware to log all requests to public routes
@@ -90,6 +97,9 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         promotions: {
           where: { is_active: true },
           include: { package: { select: { package_id: true, name: true } } }
+        },
+        reviews: {
+          select: { rating: true }
         }
       },
       orderBy: { created_at: 'desc' }
@@ -103,6 +113,12 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         ...pkg,
         availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
       }));
+
+      // Compute average rating and review count from included reviews
+      const reviewCount = p.reviews?.length || 0;
+      const avgRating = reviewCount > 0
+        ? parseFloat((p.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1))
+        : 0;
 
       const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
 
@@ -137,6 +153,8 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         phone: p.phone || '',
         email: p.email || '',
         promotions: p.promotions || [],
+        avgRating,
+        reviewCount,
         packages: packages
           .map((pkg: any): Package => ({
             id: pkg.package_id,
@@ -216,6 +234,9 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
         promotions: {
           where: { is_active: true },
           include: { package: { select: { package_id: true, name: true } } }
+        },
+        reviews: {
+          select: { rating: true }
         }
       }
     });
@@ -224,12 +245,34 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       return res.status(404).json({ success: false, message: 'Pension not found' });
     }
 
+    // Fetch active pricing policies for this pension
+    const policies = await prisma.pricingPolicy.findMany({
+      where: {
+        pension_id: pId,
+        is_active: true
+      },
+      orderBy: { priority: 'desc' }
+    });
+
+    const bookingPolicy = await prisma.bookingPolicy.findUnique({
+      where: { pension_id: pId }
+    });
+
+    const blackoutDates = await prisma.blackoutDate.findMany({
+      where: { pension_id: pId }
+    });
+
     const packages = p.packages.map((pkg: any) => ({
       ...pkg,
       availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
     }));
 
     const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
+
+    const reviewCount = p.reviews?.length || 0;
+    const avgRating = reviewCount > 0
+      ? parseFloat((p.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount).toFixed(1))
+      : 0;
 
     // Get coordinates (use existing or geocode from address)
     let coordinates = { 
@@ -261,8 +304,13 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       phone: p.phone || '',
       email: p.email || '',
       promotions: p.promotions || [],
+      avgRating,
+      reviewCount,
+      bookingPolicy,
+      blackoutDates,
+      policies: policies || [],
       packages: packages
-        .map((pkg: any): Package => ({
+        .map((pkg: any) => ({
           id: pkg.package_id,
           name: pkg.name,
           price: parseFloat(pkg.price.toString()),
@@ -296,6 +344,53 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
   } catch (error: any) {
     console.error('Get public pension error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Public: Calculate dynamic price based on active policies
+router.post('/calculate-price', async (req: express.Request, res: express.Response) => {
+  try {
+    const { pension_id, room_id, package_id, check_in, check_out, base_price, guests } = req.body;
+
+    if (!pension_id || !check_in || !check_out || !base_price) {
+      return res.status(400).json({ success: false, message: 'Missing required parameters' });
+    }
+
+    const checkInDate = new Date(check_in);
+    const checkOutDate = new Date(check_out);
+
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    }
+
+    const result = await pricingService.calculateBookingPrice(
+      parseInt(pension_id),
+      room_id ? parseInt(room_id) : null,
+      package_id ? parseInt(package_id) : null,
+      checkInDate,
+      checkOutDate,
+      parseFloat(base_price),
+      guests ? parseInt(guests) : 1
+    );
+
+    // Validate booking policies and merge errors
+    const validationResult = await bookingValidationService.validateBooking(
+      parseInt(pension_id),
+      room_id ? parseInt(room_id) : null,
+      checkInDate,
+      checkOutDate,
+      guests ? parseInt(guests) : 1
+    );
+
+    if (!validationResult.isValid) {
+      if (!result.errors) result.errors = [];
+      result.errors.push(...validationResult.errors);
+    }
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Error in public pricing calculation:', error);
+    res.status(500).json({ success: false, message: 'Server error during calculation' });
   }
 });
 
