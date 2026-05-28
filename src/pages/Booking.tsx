@@ -18,22 +18,22 @@ const getFullImageUrl = (imagePath: string | undefined | null): string => {
   if (!imagePath) {
     return '/src/assets/room-1.png';
   }
-  
+
   // If it's already a full URL (starts with http), return as is
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
-  
+
   // If it's a frontend asset path (/src/assets/), return as-is
   if (imagePath.startsWith('/src/assets/')) {
     return imagePath;
   }
-  
+
   // If it's an uploaded file path (/uploads/), prepend the backend URL
   if (imagePath.startsWith('/uploads/')) {
     return `http://localhost:3006${imagePath}`;
   }
-  
+
   // If it's a relative path without /uploads/, prepend it
   const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
   return `http://localhost:3006/uploads${normalizedPath}`;
@@ -48,7 +48,7 @@ const Booking = () => {
 
   const { user, isAuthenticated } = useAuth();
   const pkgNameFromUrl = searchParams.get("package");
-  
+
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
 
   useEffect(() => {
@@ -239,7 +239,7 @@ const Booking = () => {
   // Calculate pricing
   const checkInDate = new Date(formData.checkIn);
   const checkOutDate = new Date(formData.checkOut);
-  
+
   // Calculate lead time for early bird discount
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -256,7 +256,17 @@ const Booking = () => {
   let appliedPromoName = '';
   let appliedPromoType = '';
 
-  // Find the best applicable promotion (respecting package scope)
+  // 1. Check for package-level discount first
+  if (selectedPackage) {
+    const pkgAvail = packageAvailability.find(p => p.packageId === selectedPackage.id || p.packageName === selectedPackage.name);
+    if (pkgAvail && pkgAvail.discountPercentage > 0 && pkgAvail.discountMinDays > 0 && daysInAdvance >= pkgAvail.discountMinDays) {
+      appliedDiscountPercent = pkgAvail.discountPercentage;
+      appliedPromoName = `${pkgAvail.discountMinDays}+ Days Early Bird`;
+      appliedPromoType = 'EARLY_BIRD';
+    }
+  }
+
+  // 2. Find if there's a better general promotion (respecting package scope)
   if (activePromotions.length > 0) {
     for (const promo of activePromotions) {
       // Check package scope: apply only if promotion is for all packages OR matches selected package
@@ -296,7 +306,7 @@ const Booking = () => {
   const baseSubtotal = (selectedPackage?.price || 0) * diffDays * formData.rooms;
   const discountAmount = baseSubtotal * (appliedDiscountPercent / 100);
   const subtotal = baseSubtotal - discountAmount;
-  
+
   const tax = subtotal * vatRate;
   const serviceFee = subtotal * serviceFeeRate;
   const total = subtotal + tax + serviceFee;
@@ -322,7 +332,7 @@ const Booking = () => {
         toast.error("Could not verify availability. Please try again.");
         return;
       }
-      
+
       const pkgs = Array.isArray(availability) ? availability : availability.packages || [];
       const totalAvailable = pkgs.reduce((sum: number, pkg: any) => sum + pkg.availableRooms, 0);
       if (totalAvailable === 0) {
@@ -344,7 +354,7 @@ const Booking = () => {
         return;
       }
     }
-    
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -397,7 +407,7 @@ const Booking = () => {
 
       if (responseData.success) {
         const bookingId = responseData.data?.bookingIds?.[0] || responseData.data?.booking?.booking_id;
-        
+
         // Redirect to Chapa Payment
         const cleanName = formData.fullName.trim();
         const nameParts = cleanName.split(/\s+/);
@@ -416,7 +426,7 @@ const Booking = () => {
             phone: formData.phone
           })
         });
-        
+
         const paymentData = await paymentResponse.json();
         if (paymentData.success && paymentData.data.checkout_url) {
           window.location.href = paymentData.data.checkout_url;
@@ -460,7 +470,7 @@ const Booking = () => {
             </p>
             <div className="p-6 bg-gradient-to-br from-card to-muted/30 rounded-3xl border border-primary/20 text-left space-y-4 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-700"></div>
-              
+
               <div className="flex justify-between items-center border-b border-border pb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Booking Receipt</span>
                 <span className="text-xs font-mono text-primary font-bold">#{bookingId || 'PENDING'}</span>
@@ -533,19 +543,19 @@ const Booking = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow pt-24 pb-32 container mx-auto px-4 lg:px-8">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2 text-muted-foreground hover:text-foreground gap-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-4 h-4" /> {t.rooms.backToRooms}
         </Button>
-        
+
         <div className="mb-8 block md:hidden">
           <h1 className="text-3xl font-heading font-bold text-foreground mb-2">{t.booking.secureBooking}</h1>
           <p className="text-muted-foreground">{t.booking.secureBookingDesc}</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start relative border-t-0 lg:border-t lg:border-border lg:pt-8">
-          
+
           {/* Left Column: Form */}
           <div className="w-full lg:w-[60%] space-y-8">
             <div className="hidden md:block mb-8">
@@ -554,25 +564,23 @@ const Booking = () => {
             </div>
 
             <form onSubmit={handleStepSubmit} className="space-y-10">
-              
+
               {/* Progress Steps */}
               <div className="flex items-center justify-between mb-12">
                 {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 shadow-sm ${
-                      currentStep >= step 
-                        ? 'bg-primary text-primary-foreground scale-110 shadow-primary/20' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 shadow-sm ${currentStep >= step
+                      ? 'bg-primary text-primary-foreground scale-110 shadow-primary/20'
+                      : 'bg-muted text-muted-foreground'
+                      }`}>
                       {step === 1 && <Calendar className="w-5 h-5" />}
                       {step === 2 && <Package className="w-5 h-5" />}
                       {step === 3 && <User className="w-5 h-5" />}
                       {step === 4 && <CreditCard className="w-5 h-5" />}
                     </div>
                     {step < totalSteps && (
-                      <div className={`w-12 sm:w-20 h-1 mx-2 rounded-full transition-colors duration-500 ${
-                        currentStep > step ? 'bg-primary' : 'bg-muted'
-                      }`} />
+                      <div className={`w-12 sm:w-20 h-1 mx-2 rounded-full transition-colors duration-500 ${currentStep > step ? 'bg-primary' : 'bg-muted'
+                        }`} />
                     )}
                   </div>
                 ))}
@@ -590,7 +598,7 @@ const Booking = () => {
                     </h2>
                     <p className="text-muted-foreground">{t.booking.pickStayDatesDesc}</p>
                   </div>
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="checkIn">{t.booking.checkInDate}</Label>
@@ -602,22 +610,22 @@ const Booking = () => {
                     </div>
                   </div>
                   <div className="pt-4">
-                    <Button 
-                        type="button" 
-                        className="w-full h-14 rounded-xl text-lg font-bold" 
-                        onClick={handleNextStep}
-                        disabled={isCheckingAvailability}
+                    <Button
+                      type="button"
+                      className="w-full h-14 rounded-xl text-lg font-bold"
+                      onClick={handleNextStep}
+                      disabled={isCheckingAvailability}
                     >
-                        {isCheckingAvailability ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            {t.booking.checkingAvailability}
-                          </>
-                        ) : (
-                          <>
-                            {t.booking.checkAvailability} <ArrowRight className="w-5 h-5 ml-2" />
-                          </>
-                        )}
+                      {isCheckingAvailability ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          {t.booking.checkingAvailability}
+                        </>
+                      ) : (
+                        <>
+                          {t.booking.checkAvailability} <ArrowRight className="w-5 h-5 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </section>
@@ -635,27 +643,55 @@ const Booking = () => {
                     </h2>
                     <p className="text-muted-foreground">{t.booking.selectPackageDesc}</p>
                   </div>
-                  
+
                   <div className="grid gap-4">
                     {room.packages.map((pkg: any) => {
                       const avail = packageAvailability.find(p => p.packageId === pkg.id || p.packageName === pkg.name);
                       const isSoldOut = avail ? avail.availableRooms === 0 : false;
-                      
+
+                      // Find best promotion for THIS specific package
+                      let bestDiscount = 0;
+                      let bestPromoName = '';
+
+                      // Check package-level discount
+                      if (avail && avail.discountPercentage > 0 && avail.discountMinDays > 0 && daysInAdvance >= avail.discountMinDays) {
+                        bestDiscount = avail.discountPercentage;
+                        bestPromoName = `${avail.discountMinDays}+ Days Early Bird: ${avail.discountPercentage}% Off`;
+                      }
+
+                      // Check general promotions
+                      if (activePromotions.length > 0) {
+                        for (const promo of activePromotions) {
+                          const pkgId = pkg.id || pkg.package_id;
+                          const promoApplies = !promo.package_id || String(promo.package_id) === String(pkgId);
+                          if (!promoApplies) continue;
+
+                          let met = false;
+                          if (promo.type === 'EARLY_BIRD' && promo.min_days && daysInAdvance >= promo.min_days) met = true;
+                          else if (promo.type === 'LONG_STAY' && promo.min_days && nights >= promo.min_days) met = true;
+                          else if (promo.type === 'LAST_MINUTE' && promo.max_days && daysInAdvance <= promo.max_days) met = true;
+
+                          if (met && promo.discount_percent > bestDiscount) {
+                            bestDiscount = promo.discount_percent;
+                            bestPromoName = `${promo.name}: ${promo.discount_percent}% Off`;
+                          }
+                        }
+                      }
+
                       return (
-                        <div 
+                        <div
                           key={pkg.name}
                           onClick={() => !isSoldOut && setSelectedPackage(pkg)}
-                          className={`relative cursor-pointer p-6 rounded-2xl border-2 transition-all flex items-center justify-between gap-4 ${
-                            selectedPackage?.name === pkg.name 
-                              ? 'border-primary bg-primary/5 shadow-md' 
-                              : isSoldOut 
-                                ? 'border-muted bg-muted/20 opacity-70 cursor-not-allowed'
-                                : 'border-border hover:border-primary/50'
-                          }`}
+                          className={`relative cursor-pointer p-6 rounded-2xl border-2 transition-all flex items-center justify-between gap-4 ${selectedPackage?.name === pkg.name
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : isSoldOut
+                              ? 'border-muted bg-muted/20 opacity-70 cursor-not-allowed'
+                              : 'border-border hover:border-primary/50'
+                            }`}
                         >
-                          {avail && avail.discountPercentage > 0 && avail.discountMinDays > 0 && (
-                            <div className="absolute -top-3 left-4 bg-orange-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10">
-                              {avail.discountMinDays}+ Days Early Bird: {avail.discountPercentage}% Off
+                          {bestDiscount > 0 && (
+                            <div className="absolute -top-3 left-4 bg-orange-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 animate-in fade-in zoom-in duration-300">
+                              {bestPromoName}
                             </div>
                           )}
                           <div className="flex items-center gap-4">
@@ -669,7 +705,7 @@ const Booking = () => {
                                 <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {pkg.beds}</span>
                                 {(() => {
                                   const count = avail ? avail.availableRooms : 0;
-                                  
+
                                   if (count > 0) {
                                     return (
                                       <span className="flex items-center gap-1 text-green-600 font-medium">
@@ -688,10 +724,10 @@ const Booking = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            {avail && avail.discountPercentage > 0 && avail.discountMinDays > 0 && daysInAdvance >= avail.discountMinDays ? (
+                            {bestDiscount > 0 ? (
                               <>
                                 <div className="text-xs text-muted-foreground line-through decoration-red-500/50">ETB {pkg.price.toLocaleString()}</div>
-                                <div className="font-black text-lg text-green-600">ETB {(pkg.price * (1 - avail.discountPercentage / 100)).toLocaleString()}</div>
+                                <div className="font-black text-lg text-green-600">ETB {(pkg.price * (1 - bestDiscount / 100)).toLocaleString()}</div>
                               </>
                             ) : (
                               <div className={`font-black text-lg ${isSoldOut ? 'text-muted-foreground line-through' : ''}`}>ETB {pkg.price.toLocaleString()}</div>
@@ -710,11 +746,11 @@ const Booking = () => {
 
                   <div className="space-y-2 pt-4">
                     <Label htmlFor="rooms">{t.booking.numberOfRooms}</Label>
-                    <select 
-                      id="rooms" 
-                      name="rooms" 
-                      required 
-                      value={formData.rooms} 
+                    <select
+                      id="rooms"
+                      name="rooms"
+                      required
+                      value={formData.rooms}
                       onChange={(e) => setFormData(prev => ({ ...prev, rooms: parseInt(e.target.value) }))}
                       className="flex h-14 w-full rounded-2xl border border-input bg-background px-6 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     >
@@ -729,9 +765,9 @@ const Booking = () => {
                   </div>
 
                   <div className="pt-8">
-                    <Button 
-                      type="button" 
-                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" 
+                    <Button
+                      type="button"
+                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
                       onClick={handleNextStep}
                       disabled={!selectedPackage || (() => {
                         const avail = packageAvailability.find(p => p.packageId === selectedPackage?.id || p.packageName === selectedPackage?.name);
@@ -757,7 +793,7 @@ const Booking = () => {
                     </h2>
                     <p className="text-muted-foreground">{t.booking.guestDetailsDesc}</p>
                   </div>
-                  
+
                   <div className="grid gap-8">
                     <div className="bg-muted/30 p-6 rounded-2xl border border-border/50 flex flex-col md:flex-row gap-6 md:gap-12">
                       <div>
@@ -792,9 +828,9 @@ const Booking = () => {
                     </div>
                   </div>
                   <div className="pt-8">
-                    <Button 
-                      type="button" 
-                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" 
+                    <Button
+                      type="button"
+                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
                       onClick={handleNextStep}
                       disabled={!idDocument}
                     >
@@ -804,9 +840,9 @@ const Booking = () => {
                 </section>
               )}
 
-              <UnifiedAuthModal 
-                isOpen={showAuthModal} 
-                onClose={() => setShowAuthModal(false)} 
+              <UnifiedAuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
                 onSuccess={handleAuthSuccess}
                 defaultFullName={formData.fullName}
               />
@@ -823,7 +859,7 @@ const Booking = () => {
                     </h2>
                     <p className="text-muted-foreground">{t.booking.checkoutDesc}</p>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <label className="relative block cursor-pointer rounded-3xl border-2 p-8 transition-all duration-500 border-primary bg-primary/5 ring-8 ring-primary/5 shadow-2xl shadow-primary/10">
                       <input
@@ -875,7 +911,7 @@ const Booking = () => {
                   <ArrowLeft className="w-4 h-4" />
                   {t.booking.previous}
                 </Button>
-                
+
                 <Button
                   type="submit"
                   disabled={!isStepValid()}
@@ -887,8 +923,8 @@ const Booking = () => {
                         <>Processing...</>
                       ) : (
                         <>
-                              <CreditCard className="w-4 h-4" />
-                              {t.booking.proceedToPayment}
+                          <CreditCard className="w-4 h-4" />
+                          {t.booking.proceedToPayment}
                         </>
                       )}
                     </>
@@ -991,7 +1027,7 @@ const Booking = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
