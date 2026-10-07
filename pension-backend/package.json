@@ -11,9 +11,10 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "build": "tsc",
-    "seed:owner": "ts-node prisma/seed-approved-owner.ts",
-    "seed:admin": "ts-node prisma/seed.ts",
-    "seed:subscriptions": "ts-node prisma/seed-subscriptions.ts",
+    "seed:owner": "ts-node -r dotenv/config prisma/seed-approved-owner.ts",
+    "seed:data": "ts-node -r dotenv/config prisma/seed-data.ts",
+    "seed:admin": "ts-node -r dotenv/config prisma/seed.ts",
+    "seed:subscriptions": "ts-node -r dotenv/config prisma/seed-subscriptions.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -1,20 +1,20 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  Bed, 
-  UserCircle, 
-  Building, 
-  ArrowLeftRight, 
-  BarChart3, 
-  Settings, 
-  ShieldCheck, 
-  Contact, 
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Bed,
+  UserCircle,
+  Building,
+  ArrowLeftRight,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  Contact,
   FileCheck,
   Home,
   Package,
   Gift,
-  Star
+  Star,
   Tags,
   ShieldBan
 } from 'lucide-react';
@@ -63,7 +63,7 @@ export const getIcon = (name: string) => {
     Home,
     Package,
     Gift,
-    Star
+    Star,
     Tags,
     ShieldBan
   };
