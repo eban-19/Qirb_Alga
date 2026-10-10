@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
 import { RoomStatus } from '@prisma/client';
+import { validateRequiredText, validatePrice } from '../utils/validation';
 
 const router = express.Router();
 
@@ -84,6 +85,16 @@ router.post('/', authenticateToken as any, async (req: express.Request, res: exp
     const { pension_id, name, description, price, services, is_most_popular, image_url, name_ml, description_ml } = req.body;
     const pId = parseInt(pension_id as string);
 
+    if (isNaN(pId)) {
+      return res.status(400).json({ success: false, message: 'Valid pension ID is required' });
+    }
+
+    const nameErr = validateRequiredText(name, 'Package name', 2, 80);
+    if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+
+    const priceErr = validatePrice(price, 'Package price', true, 1);
+    if (priceErr) return res.status(400).json({ success: false, message: priceErr });
+
     // If this package is marked as most popular, unset others for this pension
     if (is_most_popular) {
       await prisma.package.updateMany({
@@ -123,6 +134,16 @@ router.put('/:id', authenticateToken as any, async (req: express.Request, res: e
     const { name, description, price, services, is_most_popular, image_url, name_ml, description_ml } = req.body;
     const pkgId = parseInt(id as string);
     
+    if (name !== undefined) {
+      const nameErr = validateRequiredText(name, 'Package name', 2, 80);
+      if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+    }
+
+    if (price !== undefined) {
+      const priceErr = validatePrice(price, 'Package price', true, 1);
+      if (priceErr) return res.status(400).json({ success: false, message: priceErr });
+    }
+
     const existingPackage = await prisma.package.findUnique({
       where: { package_id: pkgId }
     });

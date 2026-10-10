@@ -12,6 +12,7 @@ import UnifiedAuthModal from "@/components/auth/UnifiedAuthModal";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, ShieldCheck, User, Home, Calendar, AlertCircle, Users, Bed, Package, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { validateDateRange, validateName, validatePhone } from "@/utils/validation";
 
 // Helper function to construct full URLs for images (same as in RoomProfile)
 const getFullImageUrl = (imagePath: string | undefined | null): string => {
@@ -136,8 +137,9 @@ const Booking = () => {
   }, [resendTimer]);
 
   const handleSendOtp = async () => {
-    if (!formData.phone) {
-      toast.error("Please enter a phone number first.");
+    const phoneVal = validatePhone(formData.phone, true);
+    if (!phoneVal.isValid) {
+      toast.error(phoneVal.error);
       return;
     }
     setIsSendingOtp(true);
@@ -355,12 +357,9 @@ const Booking = () => {
 
   const handleNextStep = async () => {
     if (currentStep === 1) {
-      if (!formData.checkIn || !formData.checkOut) {
-        toast.error("Please select both check-in and check-out dates.");
-        return;
-      }
-      if (new Date(formData.checkOut) <= new Date(formData.checkIn)) {
-        toast.error("Check-out date must be after check-in date.");
+      const dateVal = validateDateRange(formData.checkIn, formData.checkOut, true);
+      if (!dateVal.isValid) {
+        toast.error(dateVal.error);
         return;
       }
 
@@ -410,8 +409,26 @@ const Booking = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.checkIn || !formData.checkOut || !formData.fullName || !formData.phone || !idDocument) {
-      toast.error("Please fill in all required fields, including your ID document.");
+    const dateVal = validateDateRange(formData.checkIn, formData.checkOut, true);
+    if (!dateVal.isValid) {
+      toast.error(dateVal.error);
+      return;
+    }
+
+    const nameVal = validateName(formData.fullName, 'Guest name', true);
+    if (!nameVal.isValid) {
+      toast.error(nameVal.error);
+      return;
+    }
+
+    const phoneVal = validatePhone(formData.phone, true);
+    if (!phoneVal.isValid) {
+      toast.error(phoneVal.error);
+      return;
+    }
+
+    if (!idDocument) {
+      toast.error("Please upload your ID document.");
       return;
     }
 

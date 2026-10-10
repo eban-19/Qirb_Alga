@@ -4,8 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, AlertCircle } from "lucide-react";
 import { RoomPackage } from "@/lib/rooms";
+import {
+  filterDecimalInput,
+  filterIntegerInput,
+  validateRequiredText,
+  validatePositiveInteger
+} from "@/utils/validation";
 
 interface Room {
   id?: string;
@@ -74,9 +80,38 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
     packages: property?.packages || [],
     ...property
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const propName = formData.name_en || formData.name || "";
+    const nameVal = validateRequiredText(propName, "Property Name", 2, 100);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+
+    const cityVal = validateRequiredText(formData.city, "City", 2, 50);
+    if (!cityVal.isValid) {
+      setError(cityVal.error);
+      return;
+    }
+
+    const areaVal = validateRequiredText(formData.area, "Area", 2, 50);
+    if (!areaVal.isValid) {
+      setError(areaVal.error);
+      return;
+    }
+
+    if (formData.availableRooms !== undefined && formData.availableRooms !== '') {
+      const roomsVal = validatePositiveInteger(formData.availableRooms, "Available Rooms", 0);
+      if (!roomsVal.isValid) {
+        setError(roomsVal.error);
+        return;
+      }
+    }
     
     // Construct multilingual JSON objects
     const name_ml = {
@@ -117,8 +152,9 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
     onClose();
   };
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
   };
 
   const handlePackageChange = (index: number, field: string, value: string | number | string[]) => {
@@ -140,7 +176,7 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
   };
 
   const removePackage = (index: number) => {
-    const updatedPackages = formData.packages.filter((_, i) => i !== index);
+    const updatedPackages = formData.packages.filter((_: any, i: number) => i !== index);
     setFormData(prev => ({ ...prev, packages: updatedPackages }));
   };
 
@@ -156,6 +192,15 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
           </Button>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button type="button" onClick={() => setError(null)} className="font-bold text-red-500">✕</button>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -6,6 +6,14 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { LocationPicker } from '../ui/LocationPicker';
 import { useLanguage } from '../../hooks/use-language';
+import {
+  filterPhoneInput,
+  filterIntegerInput,
+  validateRequiredText,
+  validatePhone,
+  validateEmail,
+  validatePositiveInteger
+} from '../../utils/validation';
 
 interface CreatePensionModalProps {
   isOpen: boolean;
@@ -29,7 +37,45 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
   setPensionImageFile
 }) => {
   const { t } = useLanguage();
+  const [error, setError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleCreate = () => {
+    setError(null);
+    const pensionName = (language === 'en' ? newPension.name_en : language === 'am' ? newPension.name_am : newPension.name_om) || newPension.name || '';
+    const nameVal = validateRequiredText(pensionName, 'Pension Name', 2, 100);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+    if (!newPension.address) {
+      setError('Pension address is required');
+      return;
+    }
+    if (newPension.phone && newPension.phone.trim()) {
+      const phoneVal = validatePhone(newPension.phone, false);
+      if (!phoneVal.isValid) {
+        setError(phoneVal.error);
+        return;
+      }
+    }
+    if (newPension.email && newPension.email.trim()) {
+      const emailVal = validateEmail(newPension.email, false);
+      if (!emailVal.isValid) {
+        setError(emailVal.error);
+        return;
+      }
+    }
+    if (newPension.capacity !== undefined && newPension.capacity !== '') {
+      const capVal = validatePositiveInteger(newPension.capacity, 'Total Capacity', 1, 1000);
+      if (!capVal.isValid) {
+        setError(capVal.error);
+        return;
+      }
+    }
+    onCreatePension();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
@@ -50,6 +96,12 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 space-y-0 overflow-y-auto custom-scrollbar flex-1">
+          {error && (
+            <div className="mx-6 mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="font-bold text-rose-500 hover:text-rose-700 ml-2">✕</button>
+            </div>
+          )}
           {/* Hero Map Section (Edge-to-Edge) */}
           <div className="w-full border-b border-slate-100">
             <LocationPicker
@@ -78,6 +130,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                   value={(language === 'en' ? newPension.name_en : language === 'am' ? newPension.name_am : newPension.name_om) || newPension.name || ''}
                   onChange={(e) => {
                     const value = e.target.value;
+                    if (error) setError(null);
                     if (language === 'en') setNewPension({ ...newPension, name_en: value, name: value });
                     else if (language === 'am') setNewPension({ ...newPension, name_am: value });
                     else setNewPension({ ...newPension, name_om: value });
@@ -92,8 +145,11 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                 <Input
                   id="phone"
                   value={newPension.phone}
-                  onChange={(e) => setNewPension({ ...newPension, phone: e.target.value })}
-                  placeholder={t.dashboard?.enterPhoneNumber || "Enter phone number"}
+                  onChange={(e) => {
+                    setNewPension({ ...newPension, phone: filterPhoneInput(e.target.value) });
+                    if (error) setError(null);
+                  }}
+                  placeholder="0911..."
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
@@ -104,8 +160,11 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                   id="email"
                   type="email"
                   value={newPension.email}
-                  onChange={(e) => setNewPension({ ...newPension, email: e.target.value })}
-                  placeholder={t.dashboard?.enterEmail || "Enter email"}
+                  onChange={(e) => {
+                    setNewPension({ ...newPension, email: e.target.value });
+                    if (error) setError(null);
+                  }}
+                  placeholder="name@example.com"
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
@@ -132,9 +191,13 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                 <Label htmlFor="capacity" className="text-sm font-bold text-slate-700">{t.dashboard?.totalCapacityRooms || "Total Capacity (Rooms)"}</Label>
                 <Input
                   id="capacity"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={newPension.capacity}
-                  onChange={(e) => setNewPension({ ...newPension, capacity: e.target.value })}
+                  onChange={(e) => {
+                    setNewPension({ ...newPension, capacity: filterIntegerInput(e.target.value) });
+                    if (error) setError(null);
+                  }}
                   placeholder="e.g. 20"
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
@@ -207,8 +270,8 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
 
             <div className="flex gap-3 pt-2">
               <Button
-                onClick={onCreatePension}
-                disabled={!newPension.name && !newPension.name_en && !newPension.name_am && !newPension.name_om || !newPension.address}
+                onClick={handleCreate}
+                disabled={(!newPension.name && !newPension.name_en && !newPension.name_am && !newPension.name_om) || !newPension.address}
                 className="flex-1 h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl"
               >
                 {t.dashboard?.createPension || "Create Pension"}

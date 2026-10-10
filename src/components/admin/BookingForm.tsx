@@ -5,7 +5,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
+import {
+  filterNameInput,
+  filterPhoneInput,
+  filterDecimalInput,
+  validateName,
+  validateEmail,
+  validatePhone,
+  validateDateRange,
+  validatePrice,
+  validateRequiredText
+} from "@/utils/validation";
 
 interface Booking {
   id?: string;
@@ -46,15 +57,61 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
     specialRequests: booking?.specialRequests || "",
     ...booking
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const propVal = validateRequiredText(formData.propertyName, "Property Name", 2, 100);
+    if (!propVal.isValid) {
+      setError(propVal.error);
+      return;
+    }
+
+    const ownerVal = validateName(formData.ownerName, "Owner Name", true);
+    if (!ownerVal.isValid) {
+      setError(ownerVal.error);
+      return;
+    }
+
+    const guestVal = validateName(formData.guestName, "Guest Name", true);
+    if (!guestVal.isValid) {
+      setError(guestVal.error);
+      return;
+    }
+
+    const emailVal = validateEmail(formData.guestEmail, true);
+    if (!emailVal.isValid) {
+      setError(emailVal.error);
+      return;
+    }
+
+    const phoneVal = validatePhone(formData.guestPhone, true);
+    if (!phoneVal.isValid) {
+      setError(phoneVal.error);
+      return;
+    }
+
+    const priceVal = validatePrice(formData.totalPrice, "Total Price", 0);
+    if (!priceVal.isValid) {
+      setError(priceVal.error);
+      return;
+    }
+
+    const dateVal = validateDateRange(formData.checkIn, formData.checkOut, true);
+    if (!dateVal.isValid) {
+      setError(dateVal.error);
+      return;
+    }
+
     onSave(formData);
     onClose();
   };
 
   const handleChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
   };
 
   if (!isOpen) return null;
@@ -69,6 +126,15 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
           </Button>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button type="button" onClick={() => setError(null)} className="font-bold text-red-500">✕</button>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -91,7 +157,7 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
                 <Input
                   id="ownerName"
                   value={formData.ownerName}
-                  onChange={(e) => handleChange("ownerName", e.target.value)}
+                  onChange={(e) => handleChange("ownerName", filterNameInput(e.target.value))}
                   required
                 />
               </div>
@@ -100,7 +166,7 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
                 <Input
                   id="guestName"
                   value={formData.guestName}
-                  onChange={(e) => handleChange("guestName", e.target.value)}
+                  onChange={(e) => handleChange("guestName", filterNameInput(e.target.value))}
                   required
                 />
               </div>
@@ -119,7 +185,8 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
                 <Input
                   id="guestPhone"
                   value={formData.guestPhone}
-                  onChange={(e) => handleChange("guestPhone", e.target.value)}
+                  onChange={(e) => handleChange("guestPhone", filterPhoneInput(e.target.value))}
+                  placeholder="0911..."
                   required
                 />
               </div>
@@ -127,9 +194,13 @@ export function BookingForm({ booking, isOpen, onClose, onSave, properties }: Bo
                 <Label htmlFor="totalPrice">Total Price (ETB)</Label>
                 <Input
                   id="totalPrice"
-                  type="number"
-                  value={formData.totalPrice}
-                  onChange={(e) => handleChange("totalPrice", parseInt(e.target.value))}
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.totalPrice.toString()}
+                  onChange={(e) => {
+                    const filtered = filterDecimalInput(e.target.value);
+                    handleChange("totalPrice", filtered ? parseFloat(filtered) : 0);
+                  }}
                   required
                 />
               </div>

@@ -6,6 +6,16 @@ import { Input } from '../ui/input';
 import { Users, X } from 'lucide-react';
 import { useLanguage } from "@/hooks/use-language";
 import { Staff } from '../../types/dashboard';
+import {
+  filterNameInput,
+  filterPhoneInput,
+  filterDecimalInput,
+  validateName,
+  validateEmail,
+  validatePhone,
+  validatePrice,
+  validateRequiredText
+} from '../../utils/validation';
 
 interface AddStaffModalProps {
   isOpen: boolean;
@@ -25,8 +35,43 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   onSaveStaff
 }) => {
   const { t } = useLanguage();
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    setError(null);
+    const nameVal = validateName(newStaff.full_name, 'Staff name', true);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+    if (newStaff.email && newStaff.email.trim()) {
+      const emailVal = validateEmail(newStaff.email, false);
+      if (!emailVal.isValid) {
+        setError(emailVal.error);
+        return;
+      }
+    }
+    const phoneVal = validatePhone(newStaff.phone, true);
+    if (!phoneVal.isValid) {
+      setError(phoneVal.error);
+      return;
+    }
+    const roleVal = validateRequiredText(newStaff.role, 'Position / Role', 2, 50);
+    if (!roleVal.isValid) {
+      setError(roleVal.error);
+      return;
+    }
+    if (newStaff.salary !== undefined && newStaff.salary !== '') {
+      const salaryVal = validatePrice(newStaff.salary, 'Salary', 0);
+      if (!salaryVal.isValid) {
+        setError(salaryVal.error);
+        return;
+      }
+    }
+    onSaveStaff();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -51,6 +96,12 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 space-y-6 sm:space-y-8">
+            {error && (
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold flex items-center justify-between">
+                <span>{error}</span>
+                <button onClick={() => setError(null)} className="font-bold text-rose-500 hover:text-rose-700 ml-2">✕</button>
+              </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
               {/* Left Column: Personal Info */}
               <div className="space-y-4 sm:space-y-6">
@@ -61,7 +112,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     <Label className="text-xs sm:text-sm font-bold text-slate-700">{t.dashboard?.fullName || "Full Name"}</Label>
                     <Input
                       value={newStaff.full_name}
-                      onChange={(e) => setNewStaff({ ...newStaff, full_name: e.target.value })}
+                      onChange={(e) => {
+                        setNewStaff({ ...newStaff, full_name: filterNameInput(e.target.value) });
+                        if (error) setError(null);
+                      }}
                       placeholder="e.g., Abebe Daniel"
                       className="h-11 sm:h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 text-sm sm:text-base"
                     />
@@ -72,7 +126,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     <Input
                       type="email"
                       value={newStaff.email}
-                      onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                      onChange={(e) => {
+                        setNewStaff({ ...newStaff, email: e.target.value });
+                        if (error) setError(null);
+                      }}
                       placeholder="name@pensionhub.com"
                       className="h-11 sm:h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 text-sm sm:text-base"
                     />
@@ -82,8 +139,11 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     <Label className="text-xs sm:text-sm font-bold text-slate-700">Phone Number</Label>
                     <Input
                       value={newStaff.phone}
-                      onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-                      placeholder="+251 ..."
+                      onChange={(e) => {
+                        setNewStaff({ ...newStaff, phone: filterPhoneInput(e.target.value) });
+                        if (error) setError(null);
+                      }}
+                      placeholder="0911..."
                       className="h-11 sm:h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 text-sm sm:text-base"
                     />
                   </div>
@@ -99,7 +159,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     <Label className="text-xs sm:text-sm font-bold text-slate-700">Position / Role</Label>
                     <Input
                       value={newStaff.role}
-                      onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                      onChange={(e) => {
+                        setNewStaff({ ...newStaff, role: e.target.value });
+                        if (error) setError(null);
+                      }}
                       placeholder="e.g., Manager, Receptionist"
                       className="h-11 sm:h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 text-sm sm:text-base"
                     />
@@ -111,9 +174,12 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] sm:text-xs font-bold">ETB</span>
                         <Input
-                          type="number"
+                          type="text"
                           value={newStaff.salary}
-                          onChange={(e) => setNewStaff({ ...newStaff, salary: e.target.value })}
+                          onChange={(e) => {
+                            setNewStaff({ ...newStaff, salary: filterDecimalInput(e.target.value) });
+                            if (error) setError(null);
+                          }}
                           className="h-11 sm:h-12 pl-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-blue-500/20 text-sm sm:text-base"
                         />
                       </div>
@@ -138,7 +204,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             <div className="flex gap-3 mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-slate-100">
               <Button variant="outline" onClick={onClose} className="flex-1 h-11 sm:h-12 rounded-xl font-bold border border-slate-200 text-sm sm:text-base">{t.dashboard?.cancel || "Cancel"}</Button>
               <Button 
-                onClick={onSaveStaff} 
+                onClick={handleSave} 
                 className="flex-1 h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm sm:text-base active:scale-95 transition-all"
               >
                 {editingStaff ? (t.dashboard?.updateStaff || 'Update Staff') : (t.dashboard?.addStaffMember || 'Add Staff Member')}

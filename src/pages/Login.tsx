@@ -23,6 +23,16 @@ import {
   EyeOff 
 } from "lucide-react";
 import { getAccountStatusMessage, AccountStatusError } from "@/utils/authMessages";
+import {
+  filterNameInput,
+  filterPhoneInput,
+  filterOtpInput,
+  validateName,
+  validatePhone,
+  validateEmail,
+  validatePassword,
+  validateOtpCode
+} from "@/utils/validation";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -79,51 +89,16 @@ const Login = () => {
     }
 
     if (method === 'phone') {
-      const cleanPhone = identifier.trim();
-      const digitsOnly = cleanPhone.replace('+', '');
-      if (!/^\d+$/.test(digitsOnly)) {
-        toast.error("Phone number must contain only numeric digits");
+      const phoneErr = validatePhone(identifier, true, false, 'Phone number');
+      if (phoneErr) {
+        toast.error(phoneErr);
         return;
       }
-
-      if (cleanPhone.startsWith('+')) {
-        if (!cleanPhone.startsWith('+251')) {
-          toast.error("International format must start with country code +251");
-          return;
-        }
-        const afterCountry = cleanPhone.slice(4);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          toast.error("Ethiopian phone number must start with 9 (Ethio Telecom) or 7 (Safaricom) after +251");
-          return;
-        }
-        if (cleanPhone.length !== 13) {
-          toast.error(`International phone number with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`);
-          return;
-        }
-      } else if (cleanPhone.startsWith('251')) {
-        const afterCountry = cleanPhone.slice(3);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          toast.error("Ethiopian phone number must start with 9 (Ethio Telecom) or 7 (Safaricom) after 251");
-          return;
-        }
-        if (cleanPhone.length !== 12) {
-          toast.error(`International phone number starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`);
-          return;
-        }
-      } else {
-        const startsWithZero = cleanPhone.startsWith('0');
-        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
-        
-        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
-          toast.error("Ethiopian phone number must start with 09 (Ethio Telecom) or 07 (Safaricom)");
-          return;
-        }
-        
-        const expectedLength = startsWithZero ? 10 : 9;
-        if (cleanPhone.length !== expectedLength) {
-          toast.error(`Local phone number starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`);
-          return;
-        }
+    } else {
+      const emailErr = validateEmail(identifier, true, 'Email address');
+      if (emailErr) {
+        toast.error(emailErr);
+        return;
       }
     }
 
@@ -169,56 +144,38 @@ const Login = () => {
     e.preventDefault();
 
     if (method === 'email' && isNewUser) {
-      if (!phoneNumber) {
-        toast.error("Phone number is required for registration");
-        return;
-      }
-      
-      const cleanPhone = phoneNumber.trim();
-      const digitsOnly = cleanPhone.replace('+', '');
-      if (!/^\d+$/.test(digitsOnly)) {
-        toast.error("Phone number must contain only numeric digits");
+      const nameErr = validateName(fullName, 'Full name', true);
+      if (nameErr) {
+        toast.error(nameErr);
         return;
       }
 
-      if (cleanPhone.startsWith('+')) {
-        if (!cleanPhone.startsWith('+251')) {
-          toast.error("International format must start with country code +251");
-          return;
-        }
-        const afterCountry = cleanPhone.slice(4);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          toast.error("Ethiopian phone number must start with 9 (Ethio Telecom) or 7 (Safaricom) after +251");
-          return;
-        }
-        if (cleanPhone.length !== 13) {
-          toast.error(`International phone number with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`);
-          return;
-        }
-      } else if (cleanPhone.startsWith('251')) {
-        const afterCountry = cleanPhone.slice(3);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          toast.error("Ethiopian phone number must start with 9 (Ethio Telecom) or 7 (Safaricom) after 251");
-          return;
-        }
-        if (cleanPhone.length !== 12) {
-          toast.error(`International phone number starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`);
-          return;
-        }
-      } else {
-        const startsWithZero = cleanPhone.startsWith('0');
-        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
-        
-        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
-          toast.error("Ethiopian phone number must start with 09 (Ethio Telecom) or 07 (Safaricom)");
-          return;
-        }
-        
-        const expectedLength = startsWithZero ? 10 : 9;
-        if (cleanPhone.length !== expectedLength) {
-          toast.error(`Local phone number starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`);
-          return;
-        }
+      const phoneErr = validatePhone(phoneNumber, true, false, 'Phone number');
+      if (phoneErr) {
+        toast.error(phoneErr);
+        return;
+      }
+
+      const passErr = validatePassword(password, true, 'Password');
+      if (passErr) {
+        toast.error(passErr);
+        return;
+      }
+    }
+
+    if (step === 'otp') {
+      const otpErr = validateOtpCode(otpCode);
+      if (otpErr) {
+        toast.error(otpErr);
+        return;
+      }
+    }
+
+    if (step === 'register_details') {
+      const nameErr = validateName(fullName, 'Full name', true);
+      if (nameErr) {
+        toast.error(nameErr);
+        return;
       }
     }
 
@@ -276,9 +233,6 @@ const Login = () => {
             toast.success('Successfully authenticated!');
           }
         } else if (step === 'register_details') {
-          if (!fullName.trim()) {
-            throw new Error('Full Name is required');
-          }
           await otpLogin(identifier, otpCode, fullName);
           toast.success('Account created and authenticated successfully!');
         }
@@ -370,7 +324,7 @@ const Login = () => {
                       type={method === 'email' ? 'email' : 'tel'}
                       placeholder={method === 'phone' ? "e.g. 0911..." : "name@example.com"}
                       value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
+                      onChange={(e) => setIdentifier(method === 'phone' ? filterPhoneInput(e.target.value) : e.target.value)}
                       className="h-13 rounded-xl pl-12 border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-semibold"
                       required
                       disabled={loading}
@@ -400,7 +354,7 @@ const Login = () => {
                     id="otp"
                     placeholder="· · · · · ·"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
+                    onChange={(e) => setOtpCode(filterOtpInput(e.target.value))}
                     maxLength={6}
                     className="h-13 rounded-xl text-center text-xl font-mono tracking-widest border-slate-200 bg-slate-50/20 focus:ring-blue-500/20"
                     required
@@ -435,7 +389,7 @@ const Login = () => {
                     id="fullName"
                     placeholder="e.g. Abebe Bikila"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => setFullName(filterNameInput(e.target.value))}
                     className="h-13 rounded-xl border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-medium"
                     required
                     disabled={loading}
@@ -471,7 +425,7 @@ const Login = () => {
                         id="fullName"
                         placeholder="Abebe Bikila"
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => setFullName(filterNameInput(e.target.value))}
                         className="h-13 rounded-xl border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-medium"
                         required
                         disabled={loading}
@@ -483,7 +437,7 @@ const Login = () => {
                         id="phoneNumber"
                         placeholder="e.g. 0911..."
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        onChange={(e) => setPhoneNumber(filterPhoneInput(e.target.value))}
                         className="h-13 rounded-xl border-slate-200 bg-slate-50/20 focus:ring-blue-500/20 font-medium"
                         required
                         disabled={loading}

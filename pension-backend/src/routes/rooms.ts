@@ -4,6 +4,7 @@ import { authenticateToken, requireSubscription } from '../middleware/auth';
 import { getMultilingualText } from '../utils/multilingual';
 import { RoomStatus, BookingStatus, Prisma } from '@prisma/client';
 import availabilityService from '../services/availabilityService';
+import { validateRequiredText, validatePrice, validatePositiveInteger } from '../utils/validation';
 
 const router = express.Router();
 
@@ -197,6 +198,18 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
     if (!pension_id || !room_type) {
       return res.status(400).json({ success: false, message: 'Pension ID and room type are required' });
     }
+
+    const typeErr = validateRequiredText(room_type, 'Room type name', 2, 80);
+    if (typeErr) return res.status(400).json({ success: false, message: typeErr });
+
+    const priceErr = validatePrice(price_per_night, 'Price per night', true, 1);
+    if (priceErr) return res.status(400).json({ success: false, message: priceErr });
+
+    const capErr = validatePositiveInteger(capacity, 'Room capacity', false, 1, 100);
+    if (capErr) return res.status(400).json({ success: false, message: capErr });
+
+    const bedsErr = validatePositiveInteger(number_of_beds, 'Number of beds', false, 1, 50);
+    if (bedsErr) return res.status(400).json({ success: false, message: bedsErr });
 
     // Check if room number already exists for this pension
     if (room_number) {

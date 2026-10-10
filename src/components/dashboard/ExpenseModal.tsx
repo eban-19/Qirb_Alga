@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { CreditCard, Trash2 } from 'lucide-react';
+import { filterDecimalInput, validatePrice } from '../../utils/validation';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -27,12 +28,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (expense) {
       setCategory(expense.category || expense.rawExpense?.category || '');
       setDescription(expense.description || expense.rawExpense?.description || '');
       setAmount(String(expense.amount || expense.rawExpense?.amount || ''));
+      setError(null);
       
       const rawDate = expense.rawExpense?.expense_date || expense.date;
       if (rawDate) {
@@ -45,12 +48,29 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     const expenseId = expense?.rawExpense?.expense_id || expense?.expense_id || expense?.id;
     if (!expenseId) return;
 
+    if (!category.trim()) {
+      setError('Category is required');
+      return;
+    }
+
+    const priceVal = validatePrice(amount, 'Expense amount', 0.01);
+    if (!priceVal.isValid) {
+      setError(priceVal.error);
+      return;
+    }
+
+    if (!date) {
+      setError('Date is required');
+      return;
+    }
+
     const success = await onUpdate(expenseId, {
-      category,
-      description,
+      category: category.trim(),
+      description: description.trim(),
       amount: parseFloat(amount),
       expense_date: date,
     });
@@ -128,11 +148,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center justify-between">
+                <span>{error}</span>
+                <button type="button" onClick={() => setError(null)} className="text-red-500 font-bold ml-2">✕</button>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700">Category</Label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  if (error) setError(null);
+                }}
                 required
                 className="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               >
@@ -149,11 +178,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700">Amount (ETB)</Label>
               <Input
-                type="number"
-                step="0.01"
+                type="text"
                 required
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  setAmount(filterDecimalInput(e.target.value));
+                  if (error) setError(null);
+                }}
                 placeholder="0.00"
                 className="h-11 rounded-xl"
               />

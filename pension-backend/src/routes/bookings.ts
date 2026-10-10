@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import notificationService from '../services/notificationService';
 import bookingService from '../services/bookingService';
 import { BookingStatus, RoomStatus, Prisma } from '@prisma/client';
+import { validateName, validatePhone, validateDateRange } from '../utils/validation';
 
 const router = express.Router();
 
@@ -216,14 +217,23 @@ router.post('/walk-in', authenticateToken as any, async (req: any, res: any) => 
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    const pension = await prisma.pension.findFirst({ where: { owner_id: userId } });
-    if (!pension) return res.status(404).json({ success: false, message: 'Pension not found' });
+    const nameErr = validateName(guestName, 'Guest name', true);
+    if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+
+    const phoneErr = validatePhone(phoneNumber, true, false, 'Guest phone number');
+    if (phoneErr) return res.status(400).json({ success: false, message: phoneErr });
+
+    const dateErr = validateDateRange(checkIn, checkOut, false);
+    if (dateErr) return res.status(400).json({ success: false, message: dateErr });
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    if (checkOutDate <= checkInDate) {
-      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
+    const pension = await prisma.pension.findFirst({
+      where: { owner_id: userId }
+    });
+    if (!pension) {
+      return res.status(404).json({ success: false, message: 'Pension not found for this owner' });
     }
 
     const pkg = await prisma.package.findUnique({

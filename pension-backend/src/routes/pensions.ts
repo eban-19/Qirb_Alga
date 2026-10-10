@@ -4,6 +4,7 @@ import { authenticateToken, requireAdmin, requireOwnerApproval, requireSubscript
 import geocodingService from '../services/geocoding';
 import { getMultilingualText } from '../utils/multilingual';
 import { Prisma } from '@prisma/client';
+import { validateRequiredText, validatePhone, validateEmail, validatePositiveInteger } from '../utils/validation';
 
 const router = express.Router();
 
@@ -292,6 +293,27 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
       });
     }
 
+    const nameErr = validateRequiredText(name, 'Pension name', 2, 100);
+    if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+
+    const addrErr = validateRequiredText(address, 'Address', 3, 255);
+    if (addrErr) return res.status(400).json({ success: false, message: addrErr });
+
+    if (phone) {
+      const phoneErr = validatePhone(phone, false, false, 'Phone number');
+      if (phoneErr) return res.status(400).json({ success: false, message: phoneErr });
+    }
+
+    if (email) {
+      const emailErr = validateEmail(email, false, 'Email address');
+      if (emailErr) return res.status(400).json({ success: false, message: emailErr });
+    }
+
+    if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      if (capErr) return res.status(400).json({ success: false, message: capErr });
+    }
+
     // Geocode address only if coordinates are missing
     let coordinates = { lat: 9.03, lng: 38.74 }; // Default Addis Ababa coordinates
     if (latitude !== undefined && longitude !== undefined) {
@@ -369,6 +391,31 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
       owner_info_ml,
       room_details_ml
     }: PensionData & { name_ml?: any, description_ml?: any, owner_info_ml?: any, room_details_ml?: any } = req.body;
+
+    if (name !== undefined) {
+      const nameErr = validateRequiredText(name, 'Pension name', 2, 100);
+      if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+    }
+
+    if (address !== undefined) {
+      const addrErr = validateRequiredText(address, 'Address', 3, 255);
+      if (addrErr) return res.status(400).json({ success: false, message: addrErr });
+    }
+
+    if (phone !== undefined && phone !== null && phone !== '') {
+      const phoneErr = validatePhone(phone, false, false, 'Phone number');
+      if (phoneErr) return res.status(400).json({ success: false, message: phoneErr });
+    }
+
+    if (email !== undefined && email !== null && email !== '') {
+      const emailErr = validateEmail(email, false, 'Email address');
+      if (emailErr) return res.status(400).json({ success: false, message: emailErr });
+    }
+
+    if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      if (capErr) return res.status(400).json({ success: false, message: capErr });
+    }
 
     // Check if user owns this pension or is admin
     const pension = await prisma.pension.findUnique({

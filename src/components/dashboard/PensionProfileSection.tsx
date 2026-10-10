@@ -13,9 +13,18 @@ import {
   FileText,
   Users,
   BedDouble,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../../hooks/use-language';
+import {
+  filterPhoneInput,
+  filterIntegerInput,
+  validateRequiredText,
+  validatePhone,
+  validateEmail,
+  validatePositiveInteger
+} from '../../utils/validation';
 
 interface PensionProfileSectionProps {
   propertySettings: any;
@@ -38,6 +47,38 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
 }) => {
   const { t } = useLanguage();
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleSave = () => {
+    setError(null);
+    const nameVal = validateRequiredText(propertySettings.name, 'Pension Name', 2, 100);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+    if (propertySettings.phone && propertySettings.phone.trim()) {
+      const phoneVal = validatePhone(propertySettings.phone, false);
+      if (!phoneVal.isValid) {
+        setError(phoneVal.error);
+        return;
+      }
+    }
+    if (propertySettings.email && propertySettings.email.trim()) {
+      const emailVal = validateEmail(propertySettings.email, false);
+      if (!emailVal.isValid) {
+        setError(emailVal.error);
+        return;
+      }
+    }
+    if (propertySettings.capacity !== undefined && propertySettings.capacity !== '') {
+      const capVal = validatePositiveInteger(propertySettings.capacity, 'Total Capacity', 1, 1000);
+      if (!capVal.isValid) {
+        setError(capVal.error);
+        return;
+      }
+    }
+    onSaveProfile();
+  };
 
   const getFullImageUrl = (imagePath: string | undefined | null): string => {
     if (!imagePath) return '';
@@ -69,6 +110,16 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
         </div>
       )}
 
+      {error && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="font-bold text-rose-500 hover:text-rose-700 ml-2">✕</button>
+        </div>
+      )}
+
       <Card className="border-none shadow-xl bg-white overflow-hidden ring-1 ring-slate-100">
         <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold flex items-center gap-3">
@@ -86,7 +137,10 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               </Label>
               <Input
                 value={propertySettings.name}
-                onChange={(e) => setPropertySettings({ ...propertySettings, name: e.target.value })}
+                onChange={(e) => {
+                  setPropertySettings({ ...propertySettings, name: e.target.value });
+                  if (error) setError(null);
+                }}
                 placeholder="e.g., Sunshine Pension"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
@@ -97,7 +151,10 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               </Label>
               <Input
                 value={propertySettings.address}
-                onChange={(e) => setPropertySettings({ ...propertySettings, address: e.target.value })}
+                onChange={(e) => {
+                  setPropertySettings({ ...propertySettings, address: e.target.value });
+                  if (error) setError(null);
+                }}
                 placeholder="e.g., Bole, Addis Ababa"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
@@ -124,8 +181,11 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               </Label>
               <Input
                 value={propertySettings.phone}
-                onChange={(e) => setPropertySettings({ ...propertySettings, phone: e.target.value })}
-                placeholder="+251 ..."
+                onChange={(e) => {
+                  setPropertySettings({ ...propertySettings, phone: filterPhoneInput(e.target.value) });
+                  if (error) setError(null);
+                }}
+                placeholder="0911..."
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
             </div>
@@ -135,7 +195,10 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
               </Label>
               <Input
                 value={propertySettings.email}
-                onChange={(e) => setPropertySettings({ ...propertySettings, email: e.target.value })}
+                onChange={(e) => {
+                  setPropertySettings({ ...propertySettings, email: e.target.value });
+                  if (error) setError(null);
+                }}
                 placeholder="info@pension.com"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
@@ -145,9 +208,13 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
                 <BedDouble className="h-4 w-4 text-purple-600" /> {t.dashboard?.totalCapacityRooms || "Total Capacity (Rooms)"}
               </Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={propertySettings.capacity}
-                onChange={(e) => setPropertySettings({ ...propertySettings, capacity: e.target.value })}
+                onChange={(e) => {
+                  setPropertySettings({ ...propertySettings, capacity: filterIntegerInput(e.target.value) });
+                  if (error) setError(null);
+                }}
                 placeholder="e.g., 20"
                 className="h-11 border-slate-200 bg-slate-50/30"
               />
@@ -232,7 +299,7 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
           </div>
 
           <div className="flex justify-end pt-6 border-t">
-            <Button onClick={onSaveProfile} disabled={isUpdating} className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg">
+            <Button onClick={handleSave} disabled={isUpdating} className="h-11 px-8 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg">
               {isUpdating ? (t.dashboard?.updating || 'Updating...') : (t.dashboard?.updatePensionProfile || 'Update Pension Profile')}
             </Button>
           </div>

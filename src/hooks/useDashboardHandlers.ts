@@ -2,6 +2,15 @@ import { useLanguage } from './use-language';
 import apiService from '../services/api';
 import { Package, Staff, Room } from '../types/dashboard';
 import { toast } from 'sonner';
+import {
+  validateName,
+  validatePhone,
+  validateEmail,
+  validatePassword,
+  validateDateRange,
+  validatePrice,
+  validateRequiredText
+} from '../utils/validation';
 
 export const useDashboardHandlers = (
   data: any,
@@ -13,6 +22,27 @@ export const useDashboardHandlers = (
   // --- PENSION HANDLERS ---
   const handleCreatePension = async () => {
     try {
+      const pensionName = ui.newPension.name || ui.newPension.name_en || '';
+      const nameVal = validateRequiredText(pensionName, 'Pension name', 2, 100);
+      if (!nameVal.isValid) {
+        alert(nameVal.error);
+        return;
+      }
+      if (ui.newPension.phone) {
+        const phoneVal = validatePhone(ui.newPension.phone, false);
+        if (!phoneVal.isValid) {
+          alert(phoneVal.error);
+          return;
+        }
+      }
+      if (ui.newPension.email) {
+        const emailVal = validateEmail(ui.newPension.email, false);
+        if (!emailVal.isValid) {
+          alert(emailVal.error);
+          return;
+        }
+      }
+
       const response = await apiService.createPension(ui.newPension);
       if (response.success) {
         ui.setShowCreatePension(false);
@@ -42,6 +72,24 @@ export const useDashboardHandlers = (
       if (!pensionId) {
         alert('No pension selected. Please ensure your pension is set up correctly.');
         return;
+      }
+
+      const nameVal = validateName(ui.newStaff.full_name, 'Staff name', true);
+      if (!nameVal.isValid) {
+        alert(nameVal.error);
+        return;
+      }
+      const phoneVal = validatePhone(ui.newStaff.phone, true);
+      if (!phoneVal.isValid) {
+        alert(phoneVal.error);
+        return;
+      }
+      if (ui.newStaff.email && ui.newStaff.email.trim()) {
+        const emailVal = validateEmail(ui.newStaff.email, false);
+        if (!emailVal.isValid) {
+          alert(emailVal.error);
+          return;
+        }
       }
 
       if (ui.editingStaff) {
@@ -241,6 +289,18 @@ export const useDashboardHandlers = (
 
   const handleAddPackage = async () => {
     try {
+      const pkgName = (language === 'en' ? ui.newPackage.name_en : language === 'am' ? ui.newPackage.name_am : ui.newPackage.name_om) || ui.newPackage.name || '';
+      const nameVal = validateRequiredText(pkgName, 'Package Name', 2, 80);
+      if (!nameVal.isValid) {
+        alert(nameVal.error);
+        return;
+      }
+      const priceVal = validatePrice(ui.newPackage.price, 'Price per night', 1);
+      if (!priceVal.isValid) {
+        alert(priceVal.error);
+        return;
+      }
+
       let packageData = {
         ...ui.newPackage,
         price: parseFloat(ui.newPackage.price) || 0
@@ -297,13 +357,33 @@ export const useDashboardHandlers = (
 
   const handleWalkInSubmit = async () => {
     try {
+      const nameVal = validateName(ui.walkInForm.guestName, 'Guest name', true);
+      if (!nameVal.isValid) {
+        alert(nameVal.error);
+        return;
+      }
+      const phoneVal = validatePhone(ui.walkInForm.phoneNumber, true, true);
+      if (!phoneVal.isValid) {
+        alert(phoneVal.error);
+        return;
+      }
+      const dateVal = validateDateRange(ui.walkInForm.checkIn, ui.walkInForm.checkOut, true);
+      if (!dateVal.isValid) {
+        alert(dateVal.error);
+        return;
+      }
+      if (!ui.walkInForm.packageId) {
+        alert('Please select a room package');
+        return;
+      }
+
       const selectedPackage = data.packages.find((p: Package) => String(p.id || p.package_id) === String(ui.walkInForm.packageId));
 
       const payload = {
         pensionId: data.selectedPensionId,
         packageName: selectedPackage?.name,
-        guestName: ui.walkInForm.guestName,
-        phoneNumber: ui.walkInForm.phoneNumber,
+        guestName: ui.walkInForm.guestName.trim(),
+        phoneNumber: ui.walkInForm.phoneNumber.trim(),
         checkIn: ui.walkInForm.checkIn,
         checkOut: ui.walkInForm.checkOut
       };
@@ -377,6 +457,16 @@ export const useDashboardHandlers = (
   };
 
   const handleSaveSecuritySettings = async () => {
+    if (!ui.securitySettings.currentPassword) {
+      alert('Current password is required');
+      return;
+    }
+    const passVal = validatePassword(ui.securitySettings.newPassword, true);
+    if (!passVal.isValid) {
+      alert(passVal.error);
+      return;
+    }
+
     ui.setIsUpdating(true);
     try {
       const response = await apiService.changePassword(
@@ -408,11 +498,32 @@ export const useDashboardHandlers = (
   const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const category = (formData.get('category') as string)?.trim();
+    const amountStr = formData.get('amount') as string;
+    const expenseDate = formData.get('expense_date') as string;
+    const description = (formData.get('description') as string)?.trim();
+
+    if (!category) {
+      toast.error('Expense category is required');
+      return;
+    }
+
+    const priceVal = validatePrice(amountStr, 'Expense amount', 0.01);
+    if (!priceVal.isValid) {
+      toast.error(priceVal.error);
+      return;
+    }
+
+    if (!expenseDate) {
+      toast.error('Expense date is required');
+      return;
+    }
+
     const expenseData = {
-      category: formData.get('category'),
-      description: formData.get('description'),
-      amount: parseFloat(formData.get('amount') as string),
-      expense_date: formData.get('expense_date')
+      category,
+      description,
+      amount: parseFloat(amountStr),
+      expense_date: expenseDate
     };
 
     try {

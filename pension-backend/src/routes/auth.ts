@@ -5,6 +5,13 @@ import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { Role, UserStatus, ApprovalStatus } from '@prisma/client';
 import { OTPService } from '../services/otp.service';
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validateOtpCode
+} from '../utils/validation';
 
 const router = express.Router();
 
@@ -25,11 +32,36 @@ router.post('/register', async (req: any, res: any) => {
       pensionData
     } = req.body;
 
-    // Validate input
-    if (!email || !password || !fullName || !phone) {
+    // Validate inputs
+    const errors: Record<string, string> = {};
+
+    const nameErr = validateName(fullName, 'Full Name', true);
+    if (nameErr) errors.fullName = nameErr;
+
+    const emailErr = validateEmail(email, true, 'Email address');
+    if (emailErr) errors.email = emailErr;
+
+    const phoneErr = validatePhone(phone, true, false, 'Phone number');
+    if (phoneErr) errors.phone = phoneErr;
+
+    const passErr = validatePassword(password, true, 'Password');
+    if (passErr) errors.password = passErr;
+
+    if (businessEmail) {
+      const bEmailErr = validateEmail(businessEmail, false, 'Business email');
+      if (bEmailErr) errors.businessEmail = bEmailErr;
+    }
+
+    if (businessPhone) {
+      const bPhoneErr = validatePhone(businessPhone, false, false, 'Business phone');
+      if (bPhoneErr) errors.businessPhone = bPhoneErr;
+    }
+
+    if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, full name, and phone number are required'
+        message: Object.values(errors)[0],
+        errors
       });
     }
 
@@ -256,10 +288,23 @@ router.post('/otp-login', async (req: any, res: any) => {
   try {
     const { phone, code, fullName } = req.body;
 
-    if (!phone || !code) {
+    const errors: Record<string, string> = {};
+    const phoneErr = validatePhone(phone, true, false, 'Phone number');
+    if (phoneErr) errors.phone = phoneErr;
+
+    const codeErr = validateOtpCode(code);
+    if (codeErr) errors.code = codeErr;
+
+    if (fullName) {
+      const nameErr = validateName(fullName, 'Full Name', false);
+      if (nameErr) errors.fullName = nameErr;
+    }
+
+    if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Phone and code are required'
+        message: Object.values(errors)[0],
+        errors
       });
     }
 
@@ -412,6 +457,32 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
     const finalLicenseNumber = licenseNumber || license_number;
     const finalLicenseDocument = licenseDocument || license_document || id_document_url;
 
+    const errors: Record<string, string> = {};
+    if (finalFullName) {
+      const nameErr = validateName(finalFullName, 'Full Name', false);
+      if (nameErr) errors.fullName = nameErr;
+    }
+    if (finalPhone) {
+      const phoneErr = validatePhone(finalPhone, false, false, 'Phone number');
+      if (phoneErr) errors.phone = phoneErr;
+    }
+    if (finalBusinessEmail) {
+      const bEmailErr = validateEmail(finalBusinessEmail, false, 'Business email');
+      if (bEmailErr) errors.businessEmail = bEmailErr;
+    }
+    if (finalBusinessPhone) {
+      const bPhoneErr = validatePhone(finalBusinessPhone, false, false, 'Business phone');
+      if (bPhoneErr) errors.businessPhone = bPhoneErr;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(errors)[0],
+        errors
+      });
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // Update basic user profile
       if (finalFullName || finalPhone) {
@@ -496,6 +567,15 @@ router.put('/change-password', authenticateToken as any, async (req: any, res: a
   try {
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Current password is required' });
+    }
+
+    const passErr = validatePassword(newPassword, true, 'New password');
+    if (passErr) {
+      return res.status(400).json({ success: false, message: passErr });
+    }
 
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
