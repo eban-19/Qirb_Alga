@@ -471,6 +471,18 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Forgot password - only shown for existing users */}
+                {!isNewUser && (
+                  <div className="text-right -mt-2">
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
                 
                 <Button 
                   type="submit" 

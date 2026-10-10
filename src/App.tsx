@@ -15,6 +15,8 @@ import CustomerProfile from "./pages/CustomerProfile.tsx";
 import SubscriptionVerify from "./pages/SubscriptionVerify";
 import RegisterProperty from "./pages/RegisterProperty.tsx";
 import Login from "./pages/Login.tsx";
+import ForgotPassword from "./pages/ForgotPassword.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import AdminDashboard from "./pages/AdminDashboard";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -46,6 +48,8 @@ const App = () => (
               <Route path="/owner/subscription/verify" element={<SubscriptionVerify />} />
               <Route path="/register-property" element={<RegisterProperty />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/staff" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
               <Route path="/dashboard/bookings" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
