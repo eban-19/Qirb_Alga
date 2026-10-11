@@ -80,9 +80,9 @@ class SubscriptionEnforcementService {
     if (!user) throw new Error('User not found');
 
     const policy = await this.getEffectivePolicy(ownerId);
-    
+
     const activeSub = await prisma.subscription.findFirst({
-      where: { 
+      where: {
         owner_id: ownerId,
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED] } // Check expired for grace period
       },
@@ -102,11 +102,18 @@ class SubscriptionEnforcementService {
       warnings: []
     };
 
+    // Auto-grant access in development environment to avoid developer lockout
+    if (process.env.NODE_ENV !== 'production') {
+      result.trial.isActive = true;
+      result.trial.daysLeft = 999;
+      return result;
+    }
+
     // 1. Evaluate Trial
     if (policy.trial_enabled && user.created_at) {
       const trialExpiry = new Date(user.created_at.getTime() + policy.trial_duration_days * 24 * 60 * 60 * 1000);
       const isTrialActive = now < trialExpiry;
-      
+
       if (isTrialActive && (!activeSub || activeSub.status === SubscriptionStatus.EXPIRED)) {
         result.trial.isActive = true;
         result.trial.expiryDate = trialExpiry;
@@ -119,13 +126,13 @@ class SubscriptionEnforcementService {
     if (activeSub) {
       if (now < activeSub.end_date && activeSub.status === SubscriptionStatus.ACTIVE) {
         result.hasActiveSubscription = true;
-        
+
         // Check for warnings
         const daysUntilExpiry = Math.ceil((activeSub.end_date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         const warningDays = policy.warning_days_before as number[];
         if (warningDays && Array.isArray(warningDays)) {
           if (warningDays.includes(daysUntilExpiry)) {
-             result.warnings.push(`Your subscription expires in ${daysUntilExpiry} days.`);
+            result.warnings.push(`Your subscription expires in ${daysUntilExpiry} days.`);
           }
         }
       } else {
@@ -155,10 +162,10 @@ class SubscriptionEnforcementService {
           result.isRestricted = true;
           result.warnings.push(`Your account has been suspended due to an expired subscription.`);
         }
-        
+
         // If they are past grace period and soft_restriction_days is 0, they are soft restricted
         if (now >= gracePeriodEnd && now < hardRestrictionStart) {
-           result.isSoftRestricted = true;
+          result.isSoftRestricted = true;
         }
       }
     } else {
@@ -174,7 +181,7 @@ class SubscriptionEnforcementService {
    */
   async checkFeatureAccess(ownerId: number, featureName: string): Promise<boolean> {
     const status = await this.getSubscriptionStatus(ownerId);
-    
+
     if (status.isRestricted) return false; // Hard restriction blocks everything
     if (status.trial.isActive) return true; // Trial allows everything
     if (status.hasActiveSubscription) return true; // Active sub allows everything

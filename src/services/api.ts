@@ -32,7 +32,7 @@ class ApiService {
 
       // Check if response is HTML (error page) instead of JSON
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
         throw new Error(`Server returned HTML error page instead of JSON. Response: ${text.substring(0, 200)}...`);
@@ -42,7 +42,7 @@ class ApiService {
 
       if (!response.ok) {
         const errorMessage = data.error ? `${data.message}: ${data.error}` : (data.message || `HTTP error! status: ${response.status}`);
-        
+
         // Create enhanced error with original response data
         const enhancedError = new Error(errorMessage);
         (enhancedError as any).originalResponse = data; // Preserve original response data
@@ -133,7 +133,7 @@ class ApiService {
   }>> {
     console.log('=== FETCHING REAL PENSION DATA ===');
     console.log('Pension ID:', propertyId);
-    
+
     try {
       // Use the same data structure as pension owner dashboard
       const [
@@ -239,13 +239,13 @@ class ApiService {
 
     } catch (error: any) {
       console.error('Failed to fetch pension data:', error);
-      
+
       // First try to get basic property info to use actual names
       let basicPropertyInfo = null;
       try {
         const basicResponse = await this.request('/admin/properties');
         if (basicResponse.success && basicResponse.data) {
-          const property = (basicResponse.data as any[]).find(p => 
+          const property = (basicResponse.data as any[]).find(p =>
             String(p.id || p.pension_id) === String(propertyId)
           );
           if (property) {
@@ -462,7 +462,7 @@ class ApiService {
   }
 
   async createWalkInBooking(bookingData: any): Promise<ApiResponse<any>> {
-    return this.request('/public/walk-in-bookings', {
+    return this.request('/bookings/walk-in', {
       method: 'POST',
       body: JSON.stringify(bookingData),
     });
@@ -529,7 +529,7 @@ class ApiService {
   async getPackages(pensionId: number, params: { language?: string } = {}): Promise<ApiResponse<any[]>> {
     const query = new URLSearchParams(params as any).toString();
     const response = await this.request<any[]>(`/packages/pensions/${pensionId}${query ? `?${query}` : ''}`);
-    
+
     if (response.success && Array.isArray(response.data)) {
       response.data = response.data.map(pkg => {
         let services = [];
@@ -553,7 +553,7 @@ class ApiService {
         };
       });
     }
-    
+
     return response;
   }
 
@@ -840,7 +840,7 @@ class ApiService {
     try {
       // First get basic properties list
       const response = await this.request('/admin/properties');
-      
+
       if (!response.success || !response.data) {
         console.error('Failed to fetch basic properties list');
         return response as ApiResponse<any[]>;
@@ -855,9 +855,9 @@ class ApiService {
         (response.data as any[]).map(async (property: any) => {
           try {
             console.log(`=== FETCHING REAL DATA FOR PROPERTY ${property.id}: ${property.name} ===`);
-            
+
             const propertyId = property.id || property.pension_id;
-            
+
             // Fetch real rooms and packages data
             const [roomsResponse, packagesResponse] = await Promise.all([
               this.getRooms(parseInt(propertyId)),
@@ -876,7 +876,7 @@ class ApiService {
             const realPackages = Array.isArray(packagesData) ? packagesData : [];
 
             // Calculate real room counts
-            const availableRooms = realRooms.filter((room: any) => 
+            const availableRooms = realRooms.filter((room: any) =>
               room.is_available || room.status === 'available'
             ).length;
 

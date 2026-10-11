@@ -94,7 +94,7 @@ async function main() {
 
   // 5. Create Rooms and link to the first package
   const firstPackage = await prisma.package.findFirst({ where: { pension_id: pension.pension_id } });
-  
+
   if (firstPackage) {
     for (let i = 1; i <= 5; i++) {
       await prisma.room.upsert({

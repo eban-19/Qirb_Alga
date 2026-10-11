@@ -7,13 +7,14 @@ export class OTPService {
   /**
    * Normalize phone number to +251 format
    */
-  private static normalizePhone(phone: string): string {
+  public static normalizePhone(phone: string): string {
+    if (!phone) return phone;
     let clean = phone.replace(/\D/g, ''); // Remove all non-digits
-    
-    if (clean.startsWith('09')) {
+
+    if (clean.startsWith('09') || clean.startsWith('07')) {
       return '+251' + clean.substring(1);
     }
-    if (clean.startsWith('9')) {
+    if (clean.startsWith('9') || clean.startsWith('7')) {
       return '+251' + clean;
     }
     if (clean.startsWith('251')) {
@@ -38,7 +39,7 @@ export class OTPService {
       // 1. Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       console.log(`[OTP] Generated Code: ${otp} (Expires in 5m)`);
-      
+
       // 2. Set expiration (5 minutes from now)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
@@ -73,7 +74,7 @@ export class OTPService {
   static async verifyOTP(phone: string, code: string, markVerified: boolean = true): Promise<boolean> {
     try {
       const normalizedPhone = this.normalizePhone(phone);
-      
+
       const verification = await prisma.phoneVerification.findFirst({
         where: {
           phone: normalizedPhone,
