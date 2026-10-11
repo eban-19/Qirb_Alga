@@ -9,7 +9,8 @@ import {
   validatePassword,
   validateDateRange,
   validatePrice,
-  validateRequiredText
+  validateRequiredText,
+  validatePositiveInteger
 } from '../utils/validation';
 
 export const useDashboardHandlers = (
