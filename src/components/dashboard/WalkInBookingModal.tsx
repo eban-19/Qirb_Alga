@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { X, Search, CheckCircle2, AlertCircle, Loader2, CalendarCheck } from 'lucide-react';
 import { useLanguage } from '../../hooks/use-language';
+import {
+  filterNameInput,
+  filterPhone10Input,
+  validateName,
+  validatePhone,
+  validateDateRange
+} from '../../utils/validation';
 
 interface WalkInBookingModalProps {
   isOpen: boolean;
@@ -23,19 +30,23 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const { t } = useLanguage();
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Reset availability when dates or package change
   useEffect(() => {
     setAvailableRooms(null);
+    setError(null);
   }, [walkInForm.checkIn, walkInForm.checkOut, walkInForm.packageId]);
 
   const handleCheckAvailability = async () => {
+    setError(null);
     if (!walkInForm.checkIn || !walkInForm.checkOut || !walkInForm.packageId) {
-      alert(t.dashboard?.selectDatesPackageFirst || "Please select dates and a package first.");
+      setError(t.dashboard?.selectDatesPackageFirst || "Please select dates and a package first.");
       return;
     }
-    if (new Date(walkInForm.checkOut) <= new Date(walkInForm.checkIn)) {
-      alert(t.dashboard?.checkOutAfterCheckIn || "Check-out date must be after check-in date.");
+    const dateVal = validateDateRange(walkInForm.checkIn, walkInForm.checkOut, true);
+    if (!dateVal.isValid) {
+      setError(dateVal.error);
       return;
     }
 
@@ -57,15 +68,39 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       if (result.success) {
         setAvailableRooms(result.availableRooms);
       } else {
-        alert(result.message || (t.dashboard?.failedCheckAvailability || "Failed to check availability"));
+        setError(result.message || (t.dashboard?.failedCheckAvailability || "Failed to check availability"));
         setAvailableRooms(0);
       }
     } catch (error) {
       console.error("Availability check failed:", error);
-      alert(t.dashboard?.errorCheckAvailability || "Something went wrong checking availability.");
+      setError(t.dashboard?.errorCheckAvailability || "Something went wrong checking availability.");
     } finally {
       setIsChecking(false);
     }
+  };
+
+  const handleConfirm = () => {
+    setError(null);
+    const nameVal = validateName(walkInForm.guestName, 'Guest name', true);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+    const phoneVal = validatePhone(walkInForm.phoneNumber, true, true);
+    if (!phoneVal.isValid) {
+      setError(phoneVal.error);
+      return;
+    }
+    const dateVal = validateDateRange(walkInForm.checkIn, walkInForm.checkOut, true);
+    if (!dateVal.isValid) {
+      setError(dateVal.error);
+      return;
+    }
+    if (!walkInForm.packageId) {
+      setError('Please select a room package');
+      return;
+    }
+    onWalkInSubmit();
   };
 
   if (!isOpen) return null;
@@ -84,6 +119,13 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             </Button>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="font-bold text-rose-500 hover:text-rose-700 ml-2">✕</button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
             {/* Left Column: Guest Info */}
             <div className="space-y-6">
@@ -95,20 +137,27 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                   <input
                     type="text"
                     value={walkInForm.guestName}
-                    onChange={(e) => setWalkInForm({ ...walkInForm, guestName: e.target.value })}
+                    onChange={(e) => {
+                      setWalkInForm({ ...walkInForm, guestName: filterNameInput(e.target.value) });
+                      if (error) setError(null);
+                    }}
                     className="w-full h-12 px-4 border border-slate-200 rounded-xl bg-slate-50/30 focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium text-slate-700 transition-all"
                     placeholder="e.g., Daniel Abebe"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone Number"}</label>
+                  <label className="block text-sm font-bold text-slate-700">{t.dashboard?.phone || "Phone Number (10 digits)"}</label>
                   <input
                     type="tel"
                     value={walkInForm.phoneNumber}
-                    onChange={(e) => setWalkInForm({ ...walkInForm, phoneNumber: e.target.value })}
+                    maxLength={10}
+                    onChange={(e) => {
+                      setWalkInForm({ ...walkInForm, phoneNumber: filterPhone10Input(e.target.value) });
+                      if (error) setError(null);
+                    }}
                     className="w-full h-12 px-4 border border-slate-200 rounded-xl bg-slate-50/30 focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium text-slate-700 transition-all"
-                    placeholder="+251 ..."
+                    placeholder="0911234567"
                   />
                 </div>
               </div>
@@ -197,7 +246,7 @@ export const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               {t.dashboard?.cancel || "Cancel"}
             </Button>
             <Button
-              onClick={onWalkInSubmit}
+              onClick={handleConfirm}
               disabled={availableRooms === null || availableRooms === 0}
               className={`w-full sm:flex-1 h-12 text-white shadow-lg rounded-xl font-bold text-base sm:text-lg transition-all order-1 sm:order-2 ${availableRooms && availableRooms > 0 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25 active:scale-95' : 'bg-slate-300 shadow-none cursor-not-allowed'
                 }`}

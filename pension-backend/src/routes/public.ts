@@ -369,8 +369,7 @@ router.post('/calculate-price', async (req: express.Request, res: express.Respon
       package_id ? parseInt(package_id) : null,
       checkInDate,
       checkOutDate,
-      parseFloat(base_price),
-      guests ? parseInt(guests) : 1
+      parseFloat(base_price)
     );
 
     // Validate booking policies and merge errors
@@ -378,8 +377,7 @@ router.post('/calculate-price', async (req: express.Request, res: express.Respon
       parseInt(pension_id),
       room_id ? parseInt(room_id) : null,
       checkInDate,
-      checkOutDate,
-      guests ? parseInt(guests) : 1
+      checkOutDate
     );
 
     if (!validationResult.isValid) {

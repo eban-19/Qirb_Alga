@@ -6,6 +6,16 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Phone, Mail, Lock, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
+import {
+  validatePhone,
+  validateEmail,
+  validatePassword,
+  validateName,
+  validateOtpCode,
+  filterPhoneInput,
+  filterOtpInput,
+  filterNameInput
+} from '@/utils/validation';
 
 interface UnifiedAuthModalProps {
   isOpen: boolean;
@@ -31,57 +41,22 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
 
   const handleNext = async () => {
     setError(null);
-    if (!identifier) {
-      setError('Please enter your email or phone number');
+    if (!identifier.trim()) {
+      setError(method === 'phone' ? 'Please enter your phone number' : 'Please enter your email address');
       return;
     }
 
     if (method === 'phone') {
-      const cleanPhone = identifier.trim();
-      const digitsOnly = cleanPhone.replace('+', '');
-      if (!/^\d+$/.test(digitsOnly)) {
-        setError("Phone must contain only numeric digits");
+      const phoneValidation = validatePhone(identifier, true);
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error);
         return;
       }
-
-      if (cleanPhone.startsWith('+')) {
-        if (!cleanPhone.startsWith('+251')) {
-          setError("Must start with country code +251");
-          return;
-        }
-        const afterCountry = cleanPhone.slice(4);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          setError("Must start with +2519 or +2517");
-          return;
-        }
-        if (cleanPhone.length !== 13) {
-          setError("Must be exactly 13 characters");
-          return;
-        }
-      } else if (cleanPhone.startsWith('251')) {
-        const afterCountry = cleanPhone.slice(3);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          setError("Must start with 2519 or 2517");
-          return;
-        }
-        if (cleanPhone.length !== 12) {
-          setError("Must be exactly 12 digits");
-          return;
-        }
-      } else {
-        const startsWithZero = cleanPhone.startsWith('0');
-        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
-        
-        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
-          setError("Must start with 09 or 07");
-          return;
-        }
-        
-        const expectedLength = startsWithZero ? 10 : 9;
-        if (cleanPhone.length !== expectedLength) {
-          setError(`Must be exactly ${expectedLength} digits`);
-          return;
-        }
+    } else {
+      const emailValidation = validateEmail(identifier, true);
+      if (!emailValidation.isValid) {
+        setError(emailValidation.error);
+        return;
       }
     }
 
@@ -128,56 +103,22 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
     setError(null);
 
     if (method === 'email' && isNewUser) {
-      if (!phoneNumber) {
-        setError("Phone number is required for registration");
-        return;
-      }
-      
-      const cleanPhone = phoneNumber.trim();
-      const digitsOnly = cleanPhone.replace('+', '');
-      if (!/^\d+$/.test(digitsOnly)) {
-        setError("Phone must contain only numeric digits");
+      const nameValidation = validateName(fullName, 'Full name', true);
+      if (!nameValidation.isValid) {
+        setError(nameValidation.error);
         return;
       }
 
-      if (cleanPhone.startsWith('+')) {
-        if (!cleanPhone.startsWith('+251')) {
-          setError("Must start with country code +251");
-          return;
-        }
-        const afterCountry = cleanPhone.slice(4);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          setError("Must start with +2519 or +2517");
-          return;
-        }
-        if (cleanPhone.length !== 13) {
-          setError("Must be exactly 13 characters");
-          return;
-        }
-      } else if (cleanPhone.startsWith('251')) {
-        const afterCountry = cleanPhone.slice(3);
-        if (!afterCountry.startsWith('9') && !afterCountry.startsWith('7')) {
-          setError("Must start with 2519 or 2517");
-          return;
-        }
-        if (cleanPhone.length !== 12) {
-          setError("Must be exactly 12 digits");
-          return;
-        }
-      } else {
-        const startsWithZero = cleanPhone.startsWith('0');
-        const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
-        
-        if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
-          setError("Must start with 09 or 07");
-          return;
-        }
-        
-        const expectedLength = startsWithZero ? 10 : 9;
-        if (cleanPhone.length !== expectedLength) {
-          setError(`Must be exactly ${expectedLength} digits`);
-          return;
-        }
+      const phoneValidation = validatePhone(phoneNumber, true);
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error);
+        return;
+      }
+
+      const passValidation = validatePassword(password, true);
+      if (!passValidation.isValid) {
+        setError(passValidation.error);
+        return;
       }
     }
 
@@ -190,17 +131,17 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email: identifier,
+              email: identifier.trim().toLowerCase(),
               password,
-              fullName,
-              phone: phoneNumber,
+              fullName: fullName.trim(),
+              phone: phoneNumber.trim(),
               role: 'Customer'
             })
           });
           const regData = await regRes.json();
           if (regData.success) {
             // After register, perform login
-            const res = await login(identifier, password);
+            const res = await login(identifier.trim().toLowerCase(), password);
             if (res.success) {
               toast.success('Account created successfully!');
               onSuccess();
@@ -212,7 +153,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             setError(regData.message || 'Registration failed');
           }
         } else {
-          const res = await login(identifier, password);
+          const res = await login(identifier.trim().toLowerCase(), password);
           if (res.success) {
             toast.success('Login successful!');
             const role = res.data?.user?.role?.toLowerCase() || '';
@@ -230,11 +171,18 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
         }
       } else {
         if (step === 'otp') {
+          const otpValidation = validateOtpCode(otpCode, 6);
+          if (!otpValidation.isValid) {
+            setError(otpValidation.error);
+            setIsLoading(false);
+            return;
+          }
+
           // Verify OTP first without logging in
           const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: identifier, code: otpCode })
+            body: JSON.stringify({ phone: identifier.trim(), code: otpCode.trim() })
           });
           const verifyData = await verifyRes.json();
           
@@ -247,7 +195,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             setIsLoading(false);
             return;
           } else {
-            const res = await otpLogin(identifier, otpCode);
+            const res = await otpLogin(identifier.trim(), otpCode.trim());
             if (res.success) {
               toast.success('Login successful!');
               const role = res.data?.user?.role?.toLowerCase() || '';
@@ -259,8 +207,13 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             }
           }
         } else if (step === 'register_details') {
-          if (!fullName.trim()) throw new Error('Full Name is required');
-          const res = await otpLogin(identifier, otpCode, fullName);
+          const nameValidation = validateName(fullName, 'Full name', true);
+          if (!nameValidation.isValid) {
+            setError(nameValidation.error);
+            setIsLoading(false);
+            return;
+          }
+          const res = await otpLogin(identifier.trim(), otpCode.trim(), fullName.trim());
           if (res.success) {
             toast.success('Login successful!');
             const role = res.data?.user?.role?.toLowerCase() || '';
@@ -342,9 +295,13 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                   <Input
                     id="identifier"
                     type={method === 'email' ? 'email' : 'tel'}
-                    placeholder={method === 'phone' ? "e.g. 0911..." : "name@example.com"}
+                    placeholder={method === 'phone' ? "0911..." : "name@example.com"}
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      const val = method === 'phone' ? filterPhoneInput(e.target.value) : e.target.value;
+                      setIdentifier(val);
+                      if (error) setError(null);
+                    }}
                     className="h-14 rounded-xl pl-12"
                   />
                   <div className="absolute left-4 top-4 text-muted-foreground">
@@ -371,7 +328,10 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                   id="otp"
                   placeholder="· · · · · ·"
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
+                  onChange={(e) => {
+                    setOtpCode(filterOtpInput(e.target.value, 6));
+                    if (error) setError(null);
+                  }}
                   maxLength={6}
                   className="h-14 rounded-xl text-center text-2xl font-mono tracking-widest"
                 />
@@ -397,7 +357,10 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                   id="fullName"
                   placeholder="Abebe Bikila"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(filterNameInput(e.target.value));
+                    if (error) setError(null);
+                  }}
                   className="h-14 rounded-xl"
                   required
                   disabled={isLoading}
@@ -426,7 +389,10 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                       id="fullName"
                       placeholder="Abebe Bikila"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      onChange={(e) => {
+                        setFullName(filterNameInput(e.target.value));
+                        if (error) setError(null);
+                      }}
                       className="h-14 rounded-xl"
                       required
                     />
@@ -435,9 +401,12 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                     <Label htmlFor="phoneNumber">Phone Number</Label>
                     <Input
                       id="phoneNumber"
-                      placeholder="e.g. 0911..."
+                      placeholder="0911..."
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onChange={(e) => {
+                        setPhoneNumber(filterPhoneInput(e.target.value));
+                        if (error) setError(null);
+                      }}
                       className="h-14 rounded-xl"
                       required
                     />
@@ -450,9 +419,12 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                   <Input
                     id="password"
                     type="password"
-                    placeholder={isNewUser ? "Min 6 characters" : "Enter your password"}
+                    placeholder={isNewUser ? "Min 8 chars with letter, digit & symbol" : "Enter your password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
                     className="h-14 rounded-xl pl-12"
                     required
                   />

@@ -9,6 +9,7 @@ import {
   AlertCircle, Sparkles, Upload, Keyboard, Plus, Trash2, CheckCircle2
 } from 'lucide-react';
 import { Package } from '../../types/dashboard';
+import { filterIntegerInput, validatePositiveInteger } from '../../utils/validation';
 
 interface AddRoomModalProps {
   isOpen: boolean;
@@ -349,8 +350,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                           <Label className="text-xs font-bold text-slate-500">Start Number</Label>
                           <Input
                             value={seqStart}
-                            onChange={(e) => setSeqStart(e.target.value)}
-                            type="number"
+                            onChange={(e) => setSeqStart(filterIntegerInput(e.target.value))}
+                            type="text"
+                            inputMode="numeric"
                             className="h-11 border-slate-200 bg-white rounded-xl"
                           />
                         </div>
@@ -358,10 +360,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                           <Label className="text-xs font-bold text-slate-500">Quantity of Rooms</Label>
                           <Input
                             value={seqCount}
-                            onChange={(e) => setSeqCount(e.target.value)}
-                            type="number"
-                            min="1"
-                            max="100"
+                            onChange={(e) => setSeqCount(filterIntegerInput(e.target.value))}
+                            type="text"
+                            inputMode="numeric"
                             className="h-11 border-slate-200 bg-white rounded-xl"
                           />
                         </div>
@@ -405,9 +406,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     <Label className="text-xs font-bold text-slate-500">Total Rooms</Label>
                     <Input
                       value={newRoom.numberOfRooms}
-                      onChange={(e) => setNewRoom({ ...newRoom, numberOfRooms: e.target.value })}
-                      type="number"
-                      min="1"
+                      onChange={(e) => setNewRoom({ ...newRoom, numberOfRooms: filterIntegerInput(e.target.value) })}
+                      type="text"
+                      inputMode="numeric"
                       className="h-11 border-slate-200 bg-slate-50/30 rounded-xl text-center font-bold text-slate-700"
                     />
                   </div>
@@ -415,9 +416,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     <Label className="text-xs font-bold text-slate-500">Total Beds</Label>
                     <Input
                       value={newRoom.numberOfBeds || ''}
-                      onChange={(e) => setNewRoom({ ...newRoom, numberOfBeds: e.target.value })}
-                      type="number"
-                      min="1"
+                      onChange={(e) => setNewRoom({ ...newRoom, numberOfBeds: filterIntegerInput(e.target.value) })}
+                      type="text"
+                      inputMode="numeric"
                       className="h-11 border-slate-200 bg-slate-50/30 rounded-xl text-center font-bold text-slate-700"
                     />
                   </div>
@@ -425,9 +426,9 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     <Label className="text-xs font-bold text-slate-500">Max Capacity</Label>
                     <Input
                       value={newRoom.capacity}
-                      onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value })}
-                      type="number"
-                      min="1"
+                      onChange={(e) => setNewRoom({ ...newRoom, capacity: filterIntegerInput(e.target.value) })}
+                      type="text"
+                      inputMode="numeric"
                       className="h-11 border-slate-200 bg-slate-50/30 rounded-xl text-center font-bold text-slate-700"
                     />
                   </div>

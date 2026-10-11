@@ -1,6 +1,7 @@
 import * as express from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken, requireSubscription } from '../middleware/auth';
+import { validateName, validateEmail, validatePhone, validatePrice, validateRequiredText } from '../utils/validation';
 
 const router = express.Router();
 
@@ -63,12 +64,34 @@ router.post('/pensions/:pensionId', authenticateToken as any, requireSubscriptio
     const name = full_name;
     const position = role; // Frontend sends 'role' instead of 'position'
 
-    // Validate required fields
-    if (!name || name.trim() === '') {
-      return res.status(400).json({ success: false, message: 'Staff name is required' });
+    const errors: Record<string, string> = {};
+    const nameErr = validateName(name, 'Staff name', true);
+    if (nameErr) errors.name = nameErr;
+
+    const posErr = validateRequiredText(position, 'Staff position / role', 2, 50);
+    if (posErr) errors.position = posErr;
+
+    if (phone) {
+      const phoneErr = validatePhone(phone, false, false, 'Phone number');
+      if (phoneErr) errors.phone = phoneErr;
     }
-    if (!position || position.trim() === '') {
-      return res.status(400).json({ success: false, message: 'Staff position is required' });
+
+    if (email) {
+      const emailErr = validateEmail(email, false, 'Email address');
+      if (emailErr) errors.email = emailErr;
+    }
+
+    if (salary !== undefined && salary !== null && salary !== '') {
+      const salErr = validatePrice(salary, 'Salary', false, 0);
+      if (salErr) errors.salary = salErr;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(errors)[0],
+        errors
+      });
     }
 
     // Check ownership

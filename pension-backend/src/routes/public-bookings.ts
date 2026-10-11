@@ -5,6 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import pricingService from '../services/pricingService';
 import bookingValidationService from '../services/bookingValidationService';
 import { OTPService } from '../services/otp.service';
+import { validateName, validatePhone, validateEmail, validateDateRange, validatePositiveInteger } from '../utils/validation';
 
 const router = express.Router();
 
@@ -55,17 +56,25 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
       });
     }
 
-    // Validate dates
+    const nameErr = validateName(fullName, 'Full name', true);
+    if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+
+    const phoneErr = validatePhone(phone, true, false, 'Phone number');
+    if (phoneErr) return res.status(400).json({ success: false, message: phoneErr });
+
+    if (email) {
+      const emailErr = validateEmail(email, false, 'Email address');
+      if (emailErr) return res.status(400).json({ success: false, message: emailErr });
+    }
+
+    const dateErr = validateDateRange(checkIn, checkOut, false);
+    if (dateErr) return res.status(400).json({ success: false, message: dateErr });
+
+    const qtyErr = validatePositiveInteger(quantity, 'Number of rooms', true, 1, 50);
+    if (qtyErr) return res.status(400).json({ success: false, message: qtyErr });
+
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-
-    if (checkInDate >= checkOutDate) {
-      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
-    }
-
-    if (checkInDate <= new Date()) {
-      return res.status(400).json({ success: false, message: 'Check-in date must be in the future' });
-    }
 
     const pId = parseInt(pensionId);
 
@@ -377,19 +386,19 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
+    const nameErr = validateName(guestName, 'Guest name', true);
+    if (nameErr) return res.status(400).json({ success: false, message: nameErr });
+
+    const phoneErr = validatePhone(phoneNumber, true, false, 'Guest phone number');
+    if (phoneErr) return res.status(400).json({ success: false, message: phoneErr });
+
+    const dateErr = validateDateRange(checkIn, checkOut, false);
+    if (dateErr) return res.status(400).json({ success: false, message: dateErr });
+
     const pId = parseInt(pensionId);
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    if (checkInDate >= checkOutDate) {
-      return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (checkInDate < today) {
-      return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
-    }
 
     const pension = await prisma.pension.findUnique({
       where: {

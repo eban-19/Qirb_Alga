@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
@@ -7,6 +7,7 @@ import { Package as PackageIcon, X, Upload, Plus, CheckCircle2, Trash2, Box } fr
 import { Switch } from '../ui/switch';
 import { Package } from '../../types/dashboard';
 import { useLanguage } from '../../hooks/use-language';
+import { filterDecimalInput, validateRequiredText, validatePrice } from '../../utils/validation';
 
 interface AddPackageModalProps {
   isOpen: boolean;
@@ -30,7 +31,25 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
   handlePackageImageUpload
 }) => {
   const { t } = useLanguage();
+  const [error, setError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    setError(null);
+    const pkgName = (language === 'en' ? newPackage.name_en : language === 'am' ? newPackage.name_am : newPackage.name_om) || newPackage.name || '';
+    const nameVal = validateRequiredText(pkgName, 'Package Name', 2, 80);
+    if (!nameVal.isValid) {
+      setError(nameVal.error);
+      return;
+    }
+    const priceVal = validatePrice(newPackage.price, 'Price per night', 1);
+    if (!priceVal.isValid) {
+      setError(priceVal.error);
+      return;
+    }
+    onAddPackage();
+  };
 
   const handleRemoveImage = (index: number) => {
     const currentImages = newPackage.images || [];
@@ -55,7 +74,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                 <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {editingPackage ? (t.dashboard?.editPackageTier || 'Edit Package Tier') : (t.dashboard?.createNewPackageTier || 'Create New Package Tier')}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 font-medium truncate sm:whitespace-normal">
+                <p className="text-xs sm:text-sm text-slate-550 font-medium truncate sm:whitespace-normal">
                   {editingPackage ? (t.dashboard?.editPackageDesc || 'Update your package details and pricing') : (t.dashboard?.createPackageDesc || 'Define a new pricing category for your rooms')}
                 </p>
               </div>
@@ -67,6 +86,12 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar space-y-6">
+          {error && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="font-bold text-rose-500 hover:text-rose-700 ml-2">✕</button>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* Left Column: Basic Details */}
             <div className="space-y-8">
@@ -79,6 +104,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     value={(language === 'en' ? newPackage.name_en : language === 'am' ? newPackage.name_am : newPackage.name_om) || newPackage.name || ''}
                     onChange={(e) => {
                       const value = e.target.value;
+                      if (error) setError(null);
                       if (language === 'en') setNewPackage({ ...newPackage, name_en: value, name: value });
                       else if (language === 'am') setNewPackage({ ...newPackage, name_am: value });
                       else setNewPackage({ ...newPackage, name_om: value });
@@ -94,8 +120,11 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">ETB</span>
                     <Input
                       value={newPackage.price}
-                      onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
-                      type="number"
+                      onChange={(e) => {
+                        setNewPackage({ ...newPackage, price: filterDecimalInput(e.target.value) });
+                        if (error) setError(null);
+                      }}
+                      type="text"
                       className="h-12 pl-14 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-purple-500/20 text-lg font-bold text-purple-600"
                     />
                   </div>
@@ -266,7 +295,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
           <Button variant="outline" onClick={onClose} className="flex-1 h-11 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-600 border border-slate-200 hover:bg-white transition-all text-xs sm:text-base">
             {t.dashboard?.cancel || "Cancel"}
           </Button>
-          <Button onClick={onAddPackage} className="flex-[2] h-11 sm:h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl sm:rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-base">
+          <Button onClick={handleSave} className="flex-[2] h-11 sm:h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl sm:rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-base">
             {editingPackage ? (t.dashboard?.updatePackageTier || 'Update Package Tier') : (t.dashboard?.createPackageTier || 'Create Package Tier')}
           </Button>
         </div>

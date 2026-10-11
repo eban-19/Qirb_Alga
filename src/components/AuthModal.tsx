@@ -7,6 +7,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
+import {
+  validateEmail,
+  validatePassword,
+  validateName,
+  validatePhone,
+  filterPhoneInput,
+  filterNameInput
+} from '@/utils/validation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -28,6 +36,7 @@ interface RegisterFormData {
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, register, loading, error, clearError } = useAuth();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // Login form state
   const [loginForm, setLoginForm] = useState<LoginFormData>({
@@ -45,35 +54,91 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleLogin = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    setClientError(null);
+
+    const emailVal = validateEmail(loginForm.email, true);
+    if (!emailVal.isValid) {
+      setClientError(emailVal.error);
+      return;
+    }
+
+    if (!loginForm.password) {
+      setClientError('Password is required');
+      return;
+    }
+
     try {
-      await login(loginForm.email, loginForm.password);
+      await login(loginForm.email.trim().toLowerCase(), loginForm.password);
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled by auth context
     }
   };
 
   const handleRegister = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    setClientError(null);
+
+    const nameVal = validateName(registerForm.fullName, 'Full name', true);
+    if (!nameVal.isValid) {
+      setClientError(nameVal.error);
+      return;
+    }
+
+    const emailVal = validateEmail(registerForm.email, true);
+    if (!emailVal.isValid) {
+      setClientError(emailVal.error);
+      return;
+    }
+
+    if (registerForm.phone.trim()) {
+      const phoneVal = validatePhone(registerForm.phone, false);
+      if (!phoneVal.isValid) {
+        setClientError(phoneVal.error);
+        return;
+      }
+    }
+
+    const passVal = validatePassword(registerForm.password, true);
+    if (!passVal.isValid) {
+      setClientError(passVal.error);
+      return;
+    }
+
     try {
-      await register(registerForm);
+      await register({
+        ...registerForm,
+        email: registerForm.email.trim().toLowerCase(),
+        fullName: registerForm.fullName.trim(),
+        phone: registerForm.phone.trim()
+      });
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled by auth context
     }
   };
 
   const handleLoginChange = (field: keyof LoginFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginForm(prev => ({ ...prev, [field]: e.target.value }));
+    setClientError(null);
     clearError();
   };
 
   const handleRegisterChange = (field: keyof RegisterFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRegisterForm(prev => ({ ...prev, [field]: e.target.value }));
+    let val = e.target.value;
+    if (field === 'fullName') {
+      val = filterNameInput(val);
+    } else if (field === 'phone') {
+      val = filterPhoneInput(val);
+    }
+    setRegisterForm(prev => ({ ...prev, [field]: val }));
+    setClientError(null);
     clearError();
   };
 
   if (!isOpen) return null;
+
+  const displayError = clientError || error;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -85,15 +150,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
+          {displayError && (
             <Alert className="mb-4 border-red-200 bg-red-50">
               <AlertDescription className="text-red-800">
-                {error}
+                {displayError}
               </AlertDescription>
             </Alert>
           )}
           
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
+          <Tabs value={activeTab} onValueChange={(value) => {
+            setActiveTab(value as 'login' | 'register');
+            setClientError(null);
+            clearError();
+          }}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Sign Up</TabsTrigger>
@@ -187,7 +256,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="Enter your phone number"
+                      placeholder="0911..."
                       value={registerForm.phone}
                       onChange={handleRegisterChange('phone')}
                       className="pl-10"
@@ -202,12 +271,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <Input
                       id="regPassword"
                       type="password"
-                      placeholder="Create a password"
+                      placeholder="At least 8 chars with letter, digit & symbol"
                       value={registerForm.password}
                       onChange={handleRegisterChange('password')}
                       className="pl-10"
                       required
-                      minLength={6}
                     />
                   </div>
                 </div>

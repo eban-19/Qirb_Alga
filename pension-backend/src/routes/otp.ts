@@ -1,5 +1,6 @@
 import express from 'express';
 import { OTPService } from '../services/otp.service';
+import { validatePhone, validateOtpCode } from '../utils/validation';
 
 const router = express.Router();
 
@@ -7,8 +8,9 @@ const router = express.Router();
 router.post('/send', async (req, res) => {
   const { phone } = req.body;
 
-  if (!phone) {
-    return res.status(400).json({ success: false, message: 'Phone number is required' });
+  const phoneErr = validatePhone(phone, true, false, 'Phone number');
+  if (phoneErr) {
+    return res.status(400).json({ success: false, message: phoneErr });
   }
 
   try {
@@ -24,8 +26,14 @@ router.post('/send', async (req, res) => {
 router.post('/verify', async (req, res) => {
   const { phone, code } = req.body;
 
-  if (!phone || !code) {
-    return res.status(400).json({ success: false, message: 'Phone and code are required' });
+  const phoneErr = validatePhone(phone, true, false, 'Phone number');
+  if (phoneErr) {
+    return res.status(400).json({ success: false, message: phoneErr });
+  }
+
+  const codeErr = validateOtpCode(code);
+  if (codeErr) {
+    return res.status(400).json({ success: false, message: codeErr });
   }
 
   try {

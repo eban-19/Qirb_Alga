@@ -2,6 +2,7 @@ import * as express from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import { Prisma } from '@prisma/client';
+import { validatePrice, validateRequiredText } from '../utils/validation';
 
 const router = express.Router();
 
@@ -64,6 +65,17 @@ router.post('/pensions/:pensionId', authenticateToken as any, async (req: any, r
       return res.status(400).json({ success: false, message: 'Category, amount, and date are required' });
     }
 
+    const catErr = validateRequiredText(category, 'Expense category', 2, 50);
+    if (catErr) return res.status(400).json({ success: false, message: catErr });
+
+    const amtErr = validatePrice(amount, 'Expense amount', true, 1);
+    if (amtErr) return res.status(400).json({ success: false, message: amtErr });
+
+    const parsedDate = new Date(expense_date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid expense date' });
+    }
+
     // Verify ownership
     const pension = await prisma.pension.findUnique({
       where: { 
@@ -107,6 +119,17 @@ router.put('/:expenseId', authenticateToken as any, async (req: any, res: expres
 
     if (!category || !amount || !expense_date) {
       return res.status(400).json({ success: false, message: 'Category, amount, and date are required' });
+    }
+
+    const catErr = validateRequiredText(category, 'Expense category', 2, 50);
+    if (catErr) return res.status(400).json({ success: false, message: catErr });
+
+    const amtErr = validatePrice(amount, 'Expense amount', true, 1);
+    if (amtErr) return res.status(400).json({ success: false, message: amtErr });
+
+    const parsedDate = new Date(expense_date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid expense date' });
     }
 
     // Verify ownership via relationship

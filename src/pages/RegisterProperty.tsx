@@ -14,6 +14,15 @@ import apiService from "@/services/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  filterNameInput,
+  filterPhoneInput,
+  filterAlphaNumericInput,
+  validateName,
+  validatePhone,
+  validateEmail,
+  validatePassword
+} from "@/utils/validation";
 
 const RegisterProperty = () => {
   const { t } = useLanguage();
@@ -72,8 +81,15 @@ const RegisterProperty = () => {
       setFormData((prev) => ({ ...prev, [name]: file }));
       console.log('📄 File selected:', file.name, file.type, file.size);
     } else {
-      // Handle text inputs
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      let filteredValue = value;
+      if (name === 'fullName') {
+        filteredValue = filterNameInput(value);
+      } else if (name === 'phone' || name === 'businessPhone') {
+        filteredValue = filterPhoneInput(value);
+      } else if (name === 'licenseNumber') {
+        filteredValue = filterAlphaNumericInput(value, 30);
+      }
+      setFormData((prev) => ({ ...prev, [name]: filteredValue }));
     }
   };
 
@@ -94,7 +110,6 @@ const RegisterProperty = () => {
       };
 
       console.log('🏢 Adding property:', propertyData);
-      // Here you would make an API call to add the property
       alert('Property added successfully!');
     } catch (error) {
       console.error('❌ Error adding property:', error);
@@ -102,61 +117,7 @@ const RegisterProperty = () => {
   };
 
   const validateEthiopianPhone = (phone: string, isBusiness: boolean = false): string | null => {
-    const cleanPhone = phone.trim();
-    const label = isBusiness ? "Business phone number" : "Phone number";
-    
-    if (!cleanPhone) {
-      return `${label} is required`;
-    }
-
-    const digitsOnly = cleanPhone.replace('+', '');
-    if (!/^\d+$/.test(digitsOnly)) {
-      return `${label} must contain only numeric digits`;
-    }
-
-    if (cleanPhone.startsWith('+')) {
-      if (!cleanPhone.startsWith('+251')) {
-        return `${label} international format must start with country code +251`;
-      }
-      const afterCountryCode = cleanPhone.slice(4);
-      if (!afterCountryCode.startsWith('9') && !afterCountryCode.startsWith('7')) {
-        return `${label} must start with 9 (Ethio Telecom) or 7 (Safaricom) after +251`;
-      }
-      if (cleanPhone.length > 13) {
-        return `${label} is too long. International format with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`;
-      }
-      if (cleanPhone.length < 13) {
-        return `${label} is too short. International format with +251 must be exactly 13 characters. You entered ${cleanPhone.length} characters.`;
-      }
-    } else if (cleanPhone.startsWith('251')) {
-      const afterCountryCode = cleanPhone.slice(3);
-      if (!afterCountryCode.startsWith('9') && !afterCountryCode.startsWith('7')) {
-        return `${label} must start with 9 (Ethio Telecom) or 7 (Safaricom) after 251`;
-      }
-      if (cleanPhone.length > 12) {
-        return `${label} is too long. International format starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`;
-      }
-      if (cleanPhone.length < 12) {
-        return `${label} is too short. International format starting with 251 must be exactly 12 digits. You entered ${cleanPhone.length} digits.`;
-      }
-    } else {
-      const startsWithZero = cleanPhone.startsWith('0');
-      const normalizedLocal = startsWithZero ? cleanPhone : '0' + cleanPhone;
-      
-      if (!normalizedLocal.startsWith('09') && !normalizedLocal.startsWith('07')) {
-        return `${label} must start with 09 (Ethio Telecom) or 07 (Safaricom)`;
-      }
-      
-      const expectedLength = startsWithZero ? 10 : 9;
-      if (cleanPhone.length > expectedLength) {
-        return `${label} is too long. Local format starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`;
-      }
-      if (cleanPhone.length < expectedLength) {
-        return `${label} is too short. Local format starting with ${startsWithZero ? '0' : '9/7'} must be exactly ${expectedLength} digits. You entered ${cleanPhone.length} digits.`;
-      }
-    }
-
-    return null;
+    return validatePhone(phone, true, false, isBusiness ? 'Business phone number' : 'Phone number');
   };
 
   const nextStep = () => {
@@ -217,6 +178,33 @@ const RegisterProperty = () => {
       }
     } catch (e) {
       console.error("Error verifying phone uniqueness:", e);
+    }
+
+    nextStep();
+  };
+
+  const handleStep2Next = () => {
+    setError("");
+
+    if (!formData.businessName || formData.businessName.trim().length < 2) {
+      setError("Business Name must be at least 2 characters long");
+      return;
+    }
+
+    if (formData.businessEmail) {
+      const emailErr = validateEmail(formData.businessEmail, false, "Business email");
+      if (emailErr) {
+        setError(emailErr);
+        return;
+      }
+    }
+
+    if (formData.businessPhone) {
+      const phoneErr = validatePhone(formData.businessPhone, false, false, "Business phone");
+      if (phoneErr) {
+        setError(phoneErr);
+        return;
+      }
     }
 
     nextStep();
@@ -491,6 +479,12 @@ const RegisterProperty = () => {
                 <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
                   <h2 className="text-2xl font-bold text-foreground">{t.ownerRegistration.step2}</h2>
                   
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-4">
                     <div className="grid gap-2">
                       <Label htmlFor="businessName">Business Name *</Label>
@@ -505,7 +499,7 @@ const RegisterProperty = () => {
                       
                       <div className="grid gap-2">
                         <Label htmlFor="businessPhone">Business Phone</Label>
-                        <Input id="businessPhone" name="businessPhone" type="tel" value={formData.businessPhone} onChange={handleInputChange} className="h-12" placeholder="+1234567890" />
+                        <Input id="businessPhone" name="businessPhone" type="tel" value={formData.businessPhone} onChange={handleInputChange} className="h-12" placeholder="+251 ..." />
                       </div>
                     </div>
                     
@@ -525,7 +519,7 @@ const RegisterProperty = () => {
                     <Button variant="outline" onClick={prevStep} size="lg" className="px-6">
                       {t.ownerRegistration.back}
                     </Button>
-                    <Button onClick={nextStep} disabled={!formData.businessName} size="lg" className="w-full sm:w-auto px-8 gap-2">
+                    <Button onClick={handleStep2Next} disabled={!formData.businessName} size="lg" className="w-full sm:w-auto px-8 gap-2">
                       {t.ownerRegistration.next} <ArrowLeft className="w-4 h-4 rotate-180" />
                     </Button>
                   </div>
