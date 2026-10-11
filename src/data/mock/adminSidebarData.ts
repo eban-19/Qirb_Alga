@@ -47,12 +47,12 @@ export const adminSidebarLinks: SidebarLink[] = [
         icon: "Building",
         href: "/dashboard/admin/owners"
       },
-      {
-        id: "customers",
-        label: "Customers",
-        icon: "Users",
-        href: "/dashboard/admin/customers"
-      },
+      // {
+      //   id: "customers",
+      //   label: "Customers",
+      //   icon: "Users",
+      //   href: "/dashboard/admin/customers"
+      // },
       {
         id: "staffs",
         label: "Admin Staffs",

@@ -108,7 +108,7 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
     // Map each pension to include its real packages and counts
     const items = await Promise.all(pensionsResult.map(async (p: any) => {
       const pensionId = p.pension_id;
-      
+
       const packages = p.packages.map((pkg: any) => ({
         ...pkg,
         availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
@@ -123,11 +123,11 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
       const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
 
       // Get coordinates (use existing or geocode from address)
-      let coordinates = { 
-        lat: parseFloat(p.latitude?.toString()) || null, 
-        lng: parseFloat(p.longitude?.toString()) || null 
+      let coordinates = {
+        lat: parseFloat(p.latitude?.toString()) || null,
+        lng: parseFloat(p.longitude?.toString()) || null
       };
-      
+
       if (!coordinates.lat || !coordinates.lng || isNaN(coordinates.lat) || isNaN(coordinates.lng)) {
         try {
           coordinates = await geocodingService.geocodeAddress(p.address || '');
@@ -275,11 +275,11 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       : 0;
 
     // Get coordinates (use existing or geocode from address)
-    let coordinates = { 
-      lat: p.latitude ? parseFloat(p.latitude.toString()) : null, 
-      lng: p.longitude ? parseFloat(p.longitude.toString()) : null 
+    let coordinates = {
+      lat: p.latitude ? parseFloat(p.latitude.toString()) : null,
+      lng: p.longitude ? parseFloat(p.longitude.toString()) : null
     };
-    
+
     if (!coordinates.lat || !coordinates.lng || isNaN(coordinates.lat) || isNaN(coordinates.lng)) {
       try {
         coordinates = await geocodingService.geocodeAddress(p.address || '');
@@ -484,7 +484,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
 
     // 1. Find or Create Customer
     let user = null;
-    
+
     // Try to get user from token first
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -512,7 +512,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     if (!user) {
       // Generate a fallback email if none provided
       const userEmail = email || `${phone.replace(/\s+/g, '').replace(/\+/g, '')}@guest.qirbalga.com`;
-      
+
       user = await prisma.user.create({
         data: {
           full_name: fullName,
@@ -557,9 +557,9 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     });
 
     if (availableRooms.length < quantity) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Only ${availableRooms.length} room(s) available for these dates.` 
+      return res.status(400).json({
+        success: false,
+        message: `Only ${availableRooms.length} room(s) available for these dates.`
       });
     }
 
@@ -583,10 +583,10 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
             booking_source: BookingSource.App
           }
         });
-        
+
         await tx.room.update({
           where: { room_id: room.room_id },
-          data: { 
+          data: {
             availability_status: RoomStatus.Occupied,
             last_status_update: new Date()
           }
@@ -658,7 +658,7 @@ router.get('/bookings/:id/status', async (req: express.Request, res: express.Res
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -680,8 +680,8 @@ router.get('/bookings/:id/status', async (req: express.Request, res: express.Res
 // Walk-In Booking Endpoint
 router.post('/walk-in-bookings', async (req: express.Request, res: express.Response) => {
   try {
-    const { 
-      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut 
+    const {
+      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut
     } = req.body;
     const pId = parseInt(pensionId as string);
 
@@ -691,7 +691,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    
+
     if (checkInDate >= checkOutDate) {
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
@@ -755,7 +755,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
 
       await tx.room.update({
         where: { room_id: availableRoom.room_id },
-        data: { 
+        data: {
           availability_status: RoomStatus.Occupied,
           last_status_update: new Date()
         }
