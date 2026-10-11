@@ -11,11 +11,11 @@ const router = express.Router();
 // Register new user
 router.post('/register', async (req: any, res: any) => {
   try {
-    const { 
-      email, 
-      password, 
-      fullName, 
-      phone, 
+    const {
+      email,
+      password,
+      fullName,
+      phone,
       role = 'Owner',
       businessName,
       businessEmail,
@@ -190,11 +190,11 @@ router.post('/login', async (req: any, res: any) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        userId: user.user_id, 
-        email: user.email, 
+      {
+        userId: user.user_id,
+        email: user.email,
         role: user.role,
-        fullName: user.full_name 
+        fullName: user.full_name
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -232,11 +232,14 @@ router.get('/check-user', async (req: any, res: any) => {
     const { identifier } = req.query;
     if (!identifier) return res.status(400).json({ success: false });
 
+    const normalizedIdentifier = typeof identifier === 'string' ? OTPService.normalizePhone(identifier) : identifier;
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: identifier },
-          { phone: identifier }
+          { phone: identifier },
+          { phone: normalizedIdentifier }
         ]
       }
     });
@@ -273,12 +276,11 @@ router.post('/otp-login', async (req: any, res: any) => {
     }
 
     // 2. Normalize phone
-    const cleanPhone = phone.replace(/\D/g, '');
-    const normalizedPhone = cleanPhone.startsWith('0') ? '+251' + cleanPhone.substring(1) : (cleanPhone.startsWith('251') ? '+' + cleanPhone : '+251' + cleanPhone);
+    const normalizedPhone = OTPService.normalizePhone(phone);
 
     // 3. Find or Create user
     let user = await prisma.user.findFirst({
-      where: { 
+      where: {
         OR: [
           { phone: normalizedPhone },
           { phone: phone }
@@ -299,22 +301,36 @@ router.post('/otp-login', async (req: any, res: any) => {
         }
       });
     } else {
-        // If user exists but was pending, approve them since they verified phone
-        if (user.role === Role.Customer && user.approved === 0) {
-            user = await prisma.user.update({
-                where: { user_id: user.user_id },
-                data: { approved: 1, status: UserStatus.Approved }
-            });
-        }
+      // If user exists but was pending, approve them since they verified phone
+      if (user.role === Role.Customer && user.approved === 0) {
+        user = await prisma.user.update({
+          where: { user_id: user.user_id },
+          data: { approved: 1, status: UserStatus.Approved }
+        });
+      }
     }
+
+    // Auto-link any previous unlinked walk-in bookings matching this phone number
+    await prisma.booking.updateMany({
+      where: {
+        customer_id: null,
+        OR: [
+          { walk_in_guest_phone: normalizedPhone },
+          { walk_in_guest_phone: phone }
+        ]
+      },
+      data: {
+        customer_id: user.user_id
+      }
+    });
 
     // 4. Generate JWT
     const token = jwt.sign(
-      { 
-        userId: user.user_id, 
-        email: user.email, 
+      {
+        userId: user.user_id,
+        email: user.email,
         role: user.role,
-        fullName: user.full_name 
+        fullName: user.full_name
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '30d' } // Longer session for customers
@@ -394,9 +410,9 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
 router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
-    const { 
+    const {
       fullName, full_name,
-      phone, 
+      phone,
       businessName, business_name,
       businessEmail, business_email,
       businessPhone, business_phone,

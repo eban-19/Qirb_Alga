@@ -4,6 +4,7 @@ import { BookingStatus, BookingSource, RoomStatus, UserStatus, Role, Prisma } fr
 import * as jwt from 'jsonwebtoken';
 import pricingService from '../services/pricingService';
 import bookingValidationService from '../services/bookingValidationService';
+import { OTPService } from '../services/otp.service';
 
 const router = express.Router();
 
@@ -42,8 +43,8 @@ router.post('/calculate-price', async (req: express.Request, res: express.Respon
 // Create a new public booking
 router.post('/bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    const { 
-      pensionId, packageName, checkIn, checkOut, 
+    const {
+      pensionId, packageName, checkIn, checkOut,
       fullName, phone, email, specialRequests, totalPrice, rooms: quantity
     } = req.body;
 
@@ -57,7 +58,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
     // Validate dates
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    
+
     if (checkInDate >= checkOutDate) {
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
@@ -70,7 +71,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     // Check if pension exists and is approved (using status active in this context based on previous refactor)
     const pension = await prisma.pension.findFirst({
-      where: { 
+      where: {
         pension_id: pId,
         status: 'active'
       }
@@ -82,7 +83,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     // Check package exists for this pension
     const pkg = await prisma.package.findFirst({
-      where: { 
+      where: {
         pension_id: pId,
         name: packageName
       }
@@ -113,18 +114,15 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
       where: {
         room: { pension_id: pId },
         status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-        OR: [
-          { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
-          { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
-          { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
-        ]
+        check_in_date: { lt: checkOutDate },
+        check_out_date: { gt: checkInDate }
       }
     });
 
     const totalRooms = await prisma.room.count({
-      where: { 
+      where: {
         pension_id: pId,
-        availability_status: RoomStatus.Available
+        availability_status: { notIn: [RoomStatus.Maintenance, RoomStatus.Blocked] }
       }
     });
 
@@ -139,7 +137,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
 
     // Create or get user
     let userId: number | null = null;
-    
+
     // 1. Check for token in headers
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -155,10 +153,12 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
     // 2. If no valid token, lookup/upsert by email or phone
     if (!userId) {
       if (email || phone) {
+        const normalizedPhone = phone ? OTPService.normalizePhone(phone) : undefined;
         const user = await prisma.user.findFirst({
           where: {
             OR: [
               email ? { email } : undefined,
+              normalizedPhone ? { phone: normalizedPhone } : undefined,
               phone ? { phone } : undefined
             ].filter(Boolean) as any
           }
@@ -172,7 +172,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
             data: {
               email: email || undefined,
               full_name: fullName,
-              phone,
+              phone: normalizedPhone || phone,
               role: Role.Customer,
               status: UserStatus.Approved,
               approved: 1,
@@ -188,15 +188,12 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
     const availableRoom = await prisma.room.findFirst({
       where: {
         pension_id: pId,
-        availability_status: RoomStatus.Available,
+        availability_status: { notIn: [RoomStatus.Maintenance, RoomStatus.Blocked] },
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
-              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
-              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
-            ]
+            check_in_date: { lt: checkOutDate },
+            check_out_date: { gt: checkInDate }
           }
         }
       }
@@ -231,7 +228,7 @@ router.post('/bookings', async (req: express.Request, res: express.Response, nex
         check_out_date: checkOutDate,
         total_price: finalTotal,
         notes: specialRequests,
-        status: BookingStatus.Pending,
+        status: isInstant ? BookingStatus.Confirmed : BookingStatus.Pending,
         booking_source: BookingSource.App
       }
     });
@@ -289,7 +286,7 @@ router.get('/availability', async (req: express.Request, res: express.Response) 
     });
 
     const isWholePensionBlackedOut = blackoutDates.some(b => b.room_id === null);
-    
+
     if (isWholePensionBlackedOut) {
       return res.json({
         success: true,
@@ -302,16 +299,13 @@ router.get('/availability', async (req: express.Request, res: express.Response) 
     const availableRooms = await prisma.room.findMany({
       where: {
         pension_id: pId,
-        availability_status: RoomStatus.Available,
+        availability_status: { notIn: [RoomStatus.Maintenance, RoomStatus.Blocked] },
         ...(blackedOutRoomIds.length > 0 ? { room_id: { notIn: blackedOutRoomIds as number[] } } : {}),
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
-              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
-              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
-            ]
+            check_in_date: { lt: checkOutDate },
+            check_out_date: { gt: checkInDate }
           }
         }
       },
@@ -375,18 +369,18 @@ router.get('/bookings/:bookingId', async (req: express.Request, res: express.Res
 // Walk-In Booking Endpoint
 router.post('/walk-in-bookings', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    const { 
-      pensionId, packageName, guestName, phoneNumber, checkIn, checkOut 
+    const {
+      pensionId, packageName, packageId, guestName, phoneNumber, checkIn, checkOut
     } = req.body;
 
-    if (!pensionId || !packageName || !guestName || !phoneNumber || !checkIn || !checkOut) {
+    if (!pensionId || (!packageName && !packageId) || !guestName || !phoneNumber || !checkIn || !checkOut) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     const pId = parseInt(pensionId);
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    
+
     if (checkInDate >= checkOutDate) {
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
@@ -398,7 +392,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     }
 
     const pension = await prisma.pension.findUnique({
-      where: { 
+      where: {
         pension_id: pId,
         status: 'active'
       }
@@ -409,9 +403,12 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     }
 
     const pkg = await prisma.package.findFirst({
-      where: { 
+      where: {
         pension_id: pId,
-        name: packageName
+        OR: [
+          ...(packageName ? [{ name: packageName }] : []),
+          ...(packageId ? [{ package_id: parseInt(packageId) }] : [])
+        ]
       }
     });
 
@@ -429,22 +426,44 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     );
     const totalPrice = new Prisma.Decimal(pricingResult.finalTotal);
 
-    const availableRoom = await prisma.room.findFirst({
+    let availableRoom = await prisma.room.findFirst({
       where: {
         pension_id: pId,
-        availability_status: RoomStatus.Available,
+        NOT: {
+          availability_status: { in: [RoomStatus.Maintenance, RoomStatus.Blocked] }
+        },
+        OR: [
+          { package_id: pkg.package_id },
+          { package_id: null }
+        ],
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkInDate }, check_out_date: { gte: checkInDate } },
-              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkOutDate } },
-              { check_in_date: { gte: checkInDate }, check_out_date: { lte: checkOutDate } }
-            ]
+            check_in_date: { lt: checkOutDate },
+            check_out_date: { gt: checkInDate }
           }
         }
       }
     });
+
+    if (!availableRoom) {
+      // Fallback: search any room in the pension not blocked for these dates
+      availableRoom = await prisma.room.findFirst({
+        where: {
+          pension_id: pId,
+          NOT: {
+            availability_status: { in: [RoomStatus.Maintenance, RoomStatus.Blocked] }
+          },
+          bookings: {
+            none: {
+              status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+              check_in_date: { lt: checkOutDate },
+              check_out_date: { gt: checkInDate }
+            }
+          }
+        }
+      });
+    }
 
     if (!availableRoom) {
       return res.status(400).json({ success: false, message: 'No available rooms for the selected dates' });
@@ -452,8 +471,39 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
 
     const isToday = checkInDate.toDateString() === new Date().toDateString();
 
+    // 1. Normalize phone and find or create User account for walk-in guest
+    const normalizedPhone = OTPService.normalizePhone(phoneNumber);
+    let customerUser = await prisma.user.findFirst({
+      where: {
+        role: Role.Customer, // Ensure we match Customer role, not Owner/Admin
+        OR: [
+          { phone: normalizedPhone },
+          { phone: phoneNumber }
+        ]
+      }
+    });
+
+    if (!customerUser) {
+      customerUser = await prisma.user.create({
+        data: {
+          phone: normalizedPhone,
+          full_name: guestName,
+          role: Role.Customer,
+          status: UserStatus.Approved,
+          approved: 1,
+          password_hash: 'GUEST_USER'
+        }
+      });
+    } else if (guestName && (!customerUser.full_name || customerUser.full_name === 'Guest Customer')) {
+      customerUser = await prisma.user.update({
+        where: { user_id: customerUser.user_id },
+        data: { full_name: guestName }
+      });
+    }
+
     const newBooking = await prisma.booking.create({
       data: {
+        customer_id: customerUser.user_id,
         room_id: availableRoom.room_id,
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
@@ -461,7 +511,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
         status: BookingStatus.Confirmed,
         booking_source: BookingSource.Walk_In,
         walk_in_guest_name: guestName,
-        walk_in_guest_phone: phoneNumber,
+        walk_in_guest_phone: normalizedPhone,
         is_walk_in: true,
         actual_check_in: isToday ? new Date() : null
       }
@@ -471,7 +521,7 @@ router.post('/walk-in-bookings', async (req: express.Request, res: express.Respo
     if (isToday) {
       await prisma.room.update({
         where: { room_id: availableRoom.room_id },
-        data: { 
+        data: {
           availability_status: RoomStatus.Occupied,
           last_status_update: new Date()
         }

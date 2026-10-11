@@ -85,6 +85,8 @@ export interface Booking {
   total_price: number;
   room_number?: string;
   phone_number?: string;
+  created_at: string;
+  created_at_date: string;
 }
 
 export interface Staff {

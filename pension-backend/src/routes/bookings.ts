@@ -3,7 +3,8 @@ import prisma from '../lib/prisma';
 import { authenticateToken } from '../middleware/auth';
 import notificationService from '../services/notificationService';
 import bookingService from '../services/bookingService';
-import { BookingStatus, RoomStatus, Prisma } from '@prisma/client';
+import { OTPService } from '../services/otp.service';
+import { BookingStatus, RoomStatus, Prisma, Role, UserStatus } from '@prisma/client';
 
 const router = express.Router();
 
@@ -66,9 +67,9 @@ router.get('/', authenticateToken as any, async (req: any, res: any, next: any) 
 
     const formattedBookings = bookings.map(b => ({
       ...b,
-      user_name: b.customer?.full_name || b.walk_in_guest_name,
-      user_email: b.customer?.email || b.walk_in_guest_email,
-      user_phone: b.customer?.phone || b.walk_in_guest_phone,
+      user_name: b.is_walk_in && b.walk_in_guest_name ? b.walk_in_guest_name : (b.customer?.full_name || b.walk_in_guest_name || 'Walk-In Guest'),
+      user_email: b.is_walk_in && b.walk_in_guest_email ? b.walk_in_guest_email : (b.customer?.email || b.walk_in_guest_email),
+      user_phone: b.is_walk_in && b.walk_in_guest_phone ? b.walk_in_guest_phone : (b.customer?.phone || b.walk_in_guest_phone),
       pension_id: b.room?.pension_id,
       room_type: b.room?.room_type,
       price_per_night: b.room?.price_per_night,
@@ -182,18 +183,20 @@ router.post('/walk-in/check-availability', authenticateToken as any, async (req:
 
     if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
 
-    // Rooms are directly linked to a package via package_id
+    // Rooms are linked to package_id or available for all packages (package_id null)
     const availableRoomsCount = await prisma.room.count({
       where: {
         pension_id: pension.pension_id,
-        package_id: pkg.package_id,
-        availability_status: RoomStatus.Available,
+        availability_status: { notIn: [RoomStatus.Maintenance, RoomStatus.Blocked] },
+        OR: [
+          { package_id: pkg.package_id },
+          { package_id: null }
+        ],
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkInDate } }
-            ]
+            check_in_date: { lt: checkOutDate },
+            check_out_date: { gt: checkInDate }
           }
         }
       }
@@ -232,22 +235,45 @@ router.post('/walk-in', authenticateToken as any, async (req: any, res: any) => 
 
     if (!pkg) return res.status(404).json({ success: false, message: 'Package not found' });
 
-    // Find available room strictly matching the package via package_id
-    const availableRoom = await prisma.room.findFirst({
+    // Find available room for package or general room
+    let availableRoom = await prisma.room.findFirst({
       where: {
         pension_id: pension.pension_id,
-        package_id: pkg.package_id,
-        availability_status: RoomStatus.Available,
+        NOT: {
+          availability_status: { in: [RoomStatus.Maintenance, RoomStatus.Blocked] }
+        },
+        OR: [
+          { package_id: pkg.package_id },
+          { package_id: null }
+        ],
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
-            OR: [
-              { check_in_date: { lte: checkOutDate }, check_out_date: { gte: checkInDate } }
-            ]
+            check_in_date: { lt: checkOutDate },
+            check_out_date: { gt: checkInDate }
           }
         }
       }
     });
+
+    if (!availableRoom) {
+      // Fallback: search any room in the pension not blocked for these dates
+      availableRoom = await prisma.room.findFirst({
+        where: {
+          pension_id: pension.pension_id,
+          NOT: {
+            availability_status: { in: [RoomStatus.Maintenance, RoomStatus.Blocked] }
+          },
+          bookings: {
+            none: {
+              status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
+              check_in_date: { lt: checkOutDate },
+              check_out_date: { gt: checkInDate }
+            }
+          }
+        }
+      });
+    }
 
     if (!availableRoom) {
       return res.status(400).json({ success: false, message: 'No available rooms for the selected package and dates' });
@@ -257,8 +283,39 @@ router.post('/walk-in', authenticateToken as any, async (req: any, res: any) => 
     const totalPrice = parseFloat(pkg.price.toString()) * nights;
     const isToday = checkInDate.toDateString() === new Date().toDateString();
 
+    // Normalize phone and find or create User account for walk-in guest
+    const normalizedPhone = OTPService.normalizePhone(phoneNumber);
+    let customerUser = await prisma.user.findFirst({
+      where: {
+        role: Role.Customer, // Ensure we only match Customer accounts, not Owner/Admin
+        OR: [
+          { phone: normalizedPhone },
+          { phone: phoneNumber }
+        ]
+      }
+    });
+
+    if (!customerUser) {
+      customerUser = await prisma.user.create({
+        data: {
+          phone: normalizedPhone,
+          full_name: guestName,
+          role: Role.Customer,
+          status: UserStatus.Approved,
+          approved: 1,
+          password_hash: 'GUEST_USER'
+        }
+      });
+    } else if (guestName && (!customerUser.full_name || customerUser.full_name === 'Guest Customer')) {
+      customerUser = await prisma.user.update({
+        where: { user_id: customerUser.user_id },
+        data: { full_name: guestName }
+      });
+    }
+
     const booking = await prisma.booking.create({
       data: {
+        customer_id: customerUser.user_id,
         room_id: availableRoom.room_id,
         room_number: availableRoom.room_number,
         check_in_date: checkInDate,
@@ -266,7 +323,7 @@ router.post('/walk-in', authenticateToken as any, async (req: any, res: any) => 
         total_price: new Prisma.Decimal(totalPrice),
         status: BookingStatus.Confirmed,
         walk_in_guest_name: guestName,
-        walk_in_guest_phone: phoneNumber,
+        walk_in_guest_phone: normalizedPhone,
         booking_source: 'Walk_In' as any,
         is_walk_in: true,
         actual_check_in: isToday ? new Date() : null
@@ -304,7 +361,7 @@ router.post('/', authenticateToken as any, async (req: any, res: any) => {
 
     // Check if room exists and is available
     const room = await prisma.room.findUnique({
-      where: { 
+      where: {
         room_id: roomId,
         availability_status: RoomStatus.Available
       }

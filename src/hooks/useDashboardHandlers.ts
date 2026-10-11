@@ -302,6 +302,7 @@ export const useDashboardHandlers = (
       const payload = {
         pensionId: data.selectedPensionId,
         packageName: selectedPackage?.name,
+        packageId: ui.walkInForm.packageId,
         guestName: ui.walkInForm.guestName,
         phoneNumber: ui.walkInForm.phoneNumber,
         checkIn: ui.walkInForm.checkIn,
