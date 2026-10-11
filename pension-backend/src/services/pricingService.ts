@@ -18,7 +18,7 @@ export interface PricingCalculationResult {
 }
 
 class PricingService {
-  
+
   /**
    * Calculates the dynamic price of a booking based on active pricing policies
    */
@@ -30,11 +30,11 @@ class PricingService {
     checkOut: Date,
     basePricePerNight: number
   ): Promise<PricingCalculationResult> {
-    
+
     // Calculate nights
     const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
     const baseTotal = basePricePerNight * nights;
-    
+
     const result: PricingCalculationResult = {
       baseTotal,
       finalTotal: baseTotal,
@@ -71,42 +71,40 @@ class PricingService {
         if (p.max_nights && nights > p.max_nights) return false;
         return true;
       });
-      
+
       // Calculate nightly variations (Seasonal, Weekend)
       let currentTotal = 0;
       let nightlyBreakdownMap: Record<string, number> = {};
-      
+
       for (let i = 0; i < nights; i++) {
         const currentDate = new Date(checkIn);
         currentDate.setDate(currentDate.getDate() + i);
         let currentNightPrice = basePricePerNight;
-        
+
         // Find policies that apply to this specific date
         const datePolicies = applicablePolicies.filter(p => {
-          if (p.category !== PolicyCategory.SEASONAL && p.category !== PolicyCategory.WEEKEND) return false;
-          
+          // Weekend rules
+          if (p.category === 'WEEKEND' || (p.rules as any)?.days) {
+            const rules = p.rules as any || {};
+            const dayOfWeek = currentDate.getDay(); // 0 = Sun, 1 = Mon... 5 = Fri, 6 = Sat
+            const weekendDays = rules.days || [5, 6];
+            if (!weekendDays.includes(dayOfWeek)) return false;
+          }
+
           // Check date bounds
           if (p.start_date && currentDate < p.start_date) return false;
           if (p.end_date && currentDate > p.end_date) return false;
-          
-          // Check custom rules
-          const rules = p.rules as any || {};
-          if (p.category === PolicyCategory.WEEKEND) {
-             const dayOfWeek = currentDate.getDay(); // 0 = Sun, 1 = Mon... 5 = Fri, 6 = Sat
-             // Default weekend is Fri/Sat if not specified
-             const weekendDays = rules.days || [5, 6]; 
-             if (!weekendDays.includes(dayOfWeek)) return false;
-          }
+
           return true;
         });
-        
+
         // Apply nightly modifiers
         for (const p of datePolicies) {
           if (!p.adjustment_type || !p.adjustment_value) continue;
-          
+
           const val = Number(p.adjustment_value);
           let adjustmentAmount = 0;
-          
+
           if (p.adjustment_type === AdjustmentType.OVERRIDE) {
             adjustmentAmount = val - currentNightPrice;
             currentNightPrice = val;
@@ -117,18 +115,18 @@ class PricingService {
             adjustmentAmount = currentNightPrice * (val / 100);
             currentNightPrice += adjustmentAmount;
           }
-          
+
           if (!result.appliedPolicies.includes(p.policy_id)) {
             result.appliedPolicies.push(p.policy_id);
           }
-          
+
           const name = p.name || 'Nightly Adjustment';
           nightlyBreakdownMap[name] = (nightlyBreakdownMap[name] || 0) + adjustmentAmount;
         }
-        
+
         currentTotal += currentNightPrice;
       }
-      
+
       // Add nightly variations to breakdown
       for (const [name, amount] of Object.entries(nightlyBreakdownMap)) {
         if (amount !== 0) {
@@ -139,19 +137,19 @@ class PricingService {
           });
         }
       }
-      
+
       // Apply total-stay modifiers (Currently none left, but keeping structure for future additions)
       const stayPolicies = applicablePolicies.filter(p => false);
-      
+
       for (const p of stayPolicies) {
         let applies = false;
-        
 
-        
+
+
         if (applies && p.adjustment_type && p.adjustment_value) {
           const val = Number(p.adjustment_value);
           let adjustmentAmount = 0;
-          
+
           let multiplier = 1;
 
           if (p.adjustment_type === AdjustmentType.FIXED_AMOUNT) {
@@ -159,7 +157,7 @@ class PricingService {
           } else if (p.adjustment_type === AdjustmentType.PERCENTAGE) {
             adjustmentAmount = currentTotal * (val / 100) * multiplier;
           }
-          
+
           if (adjustmentAmount !== 0) {
             currentTotal += adjustmentAmount;
             result.breakdown.push({
@@ -173,19 +171,19 @@ class PricingService {
           }
         }
       }
-      
+
       // Final sanity check (price cannot be negative)
       if (currentTotal < 0) currentTotal = 0;
-      
+
       // Update result final total (base is removed from this total, it's already in the breakdown)
       // Actually breakdown should just be a list of modifications from Base Total
       result.finalTotal = currentTotal;
-      
+
     } catch (error) {
       console.error('Pricing engine error:', error);
       result.errors?.push('Failed to evaluate pricing policies');
     }
-    
+
     return result;
   }
 }

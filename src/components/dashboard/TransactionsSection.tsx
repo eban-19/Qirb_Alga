@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,6 +27,8 @@ interface TransactionsSectionProps {
   onExport?: () => void;
   selectedCategory?: string;
   onCategoryChange?: (category: string) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
@@ -39,14 +42,47 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
   totalItems = 0,
   onExport,
   selectedCategory,
-  onCategoryChange
+  onCategoryChange,
+  searchQuery,
+  onSearchChange
 }) => {
   const { t } = useLanguage();
-  const safeTransactions = (Array.isArray(transactions) ? transactions : []).filter(t => {
-    if (!selectedCategory || selectedCategory === 'all') return true;
-    return t.type === selectedCategory;
-  });
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+  const [internalSearch, setInternalSearch] = useState('');
+  const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+    onPageChange?.(1);
+  };
+
+  const filteredTransactions = useMemo(() => {
+    return (Array.isArray(transactions) ? transactions : []).filter(item => {
+      if (selectedCategory && selectedCategory !== 'all') {
+        if (item.type !== selectedCategory) return false;
+      }
+      if (currentSearch.trim()) {
+        const q = currentSearch.toLowerCase().trim();
+        const desc = String(item.description || '').toLowerCase();
+        const date = String(item.date || '').toLowerCase();
+        const type = String(item.type || '').toLowerCase();
+        const status = String(item.status || '').toLowerCase();
+        const amount = String(item.amount || '').toLowerCase();
+        return desc.includes(q) || date.includes(q) || type.includes(q) || status.includes(q) || amount.includes(q);
+      }
+      return true;
+    });
+  }, [transactions, selectedCategory, currentSearch]);
+
+  const effectiveTotalItems = filteredTransactions.length;
+  const totalPages = Math.ceil(effectiveTotalItems / pagination.limit) || 1;
+  const paginatedTransactions = filteredTransactions.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -65,10 +101,32 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
             {t.dashboard?.viewAllFinancialTransactions || "View all financial transactions."}
           </p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto flex-1 justify-end">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder={t.dashboard?.searchTransactionsPlaceholder || "Search transactions..."}
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 pr-8 bg-slate-50 border-slate-200 rounded-xl focus:bg-white transition-colors h-11 text-sm font-medium"
+            />
+            {currentSearch && (
+              <button
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
           <Select
             value={selectedCategory || "all"}
-            onValueChange={onCategoryChange}
+            onValueChange={(val) => {
+              onCategoryChange?.(val);
+              onPageChange?.(1);
+            }}
           >
             <SelectTrigger className="w-full sm:w-[180px] border-slate-200 bg-white h-11 font-bold text-slate-600 rounded-xl">
               <SelectValue placeholder="Category" />
@@ -129,10 +187,10 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                 <TableRow className="hover:bg-transparent border-slate-100 h-16">
                   <TableHead className="w-[50px] px-8">
                     <Checkbox
-                      checked={safeTransactions.length > 0 && selectedRows.length === safeTransactions.length}
+                      checked={paginatedTransactions.length > 0 && paginatedTransactions.every(t => selectedRows.includes(t.id))}
                       onCheckedChange={(checked) => {
-                        if (checked) onSelectAll?.(safeTransactions.map(t => t.id));
-                        else onSelectAll?.([]);
+                        if (checked) onSelectAll?.(Array.from(new Set([...selectedRows, ...paginatedTransactions.map(t => t.id)])));
+                        else onSelectAll?.(selectedRows.filter(id => !paginatedTransactions.some(t => t.id === id)));
                       }}
                     />
                   </TableHead>
@@ -144,14 +202,14 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {safeTransactions.length === 0 ? (
+                {paginatedTransactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-32 text-center text-slate-400">
                       {t.dashboard?.noTransactionsFound || "No transactions found."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  safeTransactions.map((transaction) => (
+                  paginatedTransactions.map((transaction) => (
                     <TableRow key={transaction.id} className={`hover:bg-slate-50/50 transition-all duration-200 h-20 group ${selectedRows.includes(transaction.id) ? 'bg-blue-50/30' : ''}`}>
                       <TableCell className="px-8">
                         <Checkbox checked={selectedRows.includes(transaction.id)} onCheckedChange={() => onToggleSelection?.(transaction.id)} />
@@ -185,12 +243,12 @@ export const TransactionsSection: React.FC<TransactionsSectionProps> = ({
             <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
               <span className="hidden sm:inline">
                 {t.dashboard?.showingTransactions ? (
-                  t.dashboard.showingTransactions.replace('{count}', String(safeTransactions.length)).replace('{total}', String(totalItems))
+                  t.dashboard.showingTransactions.replace('{count}', String(paginatedTransactions.length)).replace('{total}', String(effectiveTotalItems))
                 ) : (
-                  <>Showing <span className="text-slate-900">{safeTransactions.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                  <>Showing <span className="text-slate-900">{paginatedTransactions.length}</span> of <span className="text-slate-900">{effectiveTotalItems}</span></>
                 )}
               </span>
-              <span className="sm:hidden text-slate-900 font-extrabold">{safeTransactions.length}/{totalItems}</span>
+              <span className="sm:hidden text-slate-900 font-extrabold">{paginatedTransactions.length}/{effectiveTotalItems}</span>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">

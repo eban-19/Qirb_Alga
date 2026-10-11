@@ -752,7 +752,9 @@
     "adminPanel": "Paanelii Bulchaa",
     "managementSystem": "Sirna Bulchiinsaa",
     "backToHome": "Gara Fuula Duraatti Deebi'i",
-    "logout": "Bahi"
+    "logout": "Bahi",
+    "bookingPolicies": "Imaammata Qabannoo",
+    "reviews": "Ilaalchawwan & Madaalawwan"
   },
   "adminDetails": {
     "businessInfo": "Odeeffannoo Daldalaa",

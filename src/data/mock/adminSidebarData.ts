@@ -68,14 +68,6 @@ export const adminSidebarLinks: SidebarLink[] = [
     href: "/dashboard/admin/approvals",
     badge: null
   },
-  {
-    id: "bookings",
-    label: "Bookings",
-    icon: "CalendarCheck",
-    href: "/dashboard/admin/bookings",
-    badge: null
-  },
-
   // {
   //   id: "alerts",
   //   label: "Alerts",

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { useLanguage } from '../hooks/use-language';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../hooks/use-subscription';
@@ -143,18 +144,18 @@ const Dashboard: React.FC = () => {
                     ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
                       ui.activeTab === "room-calendar" ? "Availability Calendar" :
                         ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
-                        ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
-                          ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
-                            ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
-                              ui.activeTab === "pricing-policies" ? "Pricing Policies" :
-                                ui.activeTab === "booking-policies" ? "Booking Policies" :
-                                ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
-                                  ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
-                                  ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
-                                    ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
-                                      ui.activeTab === "reviews" ? "Reviews & Ratings" :
-                                        ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
-                                          "Dashboard Section"}
+                          ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
+                            ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
+                              ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
+                                ui.activeTab === "pricing-policies" ? "Pricing Policies" :
+                                  ui.activeTab === "booking-policies" ? "Booking Policies" :
+                                    ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                                      ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                                        ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
+                                          ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
+                                            ui.activeTab === "reviews" ? (t.dashboard?.review_and_ratings || "Reviews & Ratings") :
+                                              ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                                                "Dashboard Section"}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -230,7 +231,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {status?.trial?.isActive && !status.isRestricted && !status.hasActiveSubscription && (
+            {ui.activeTab === "overview" && status?.trial?.isActive && !status.isRestricted && !status.isSoftRestricted && !status.gracePeriod?.isActive && !status.hasActiveSubscription && (
               <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <Zap className="w-5 h-5 text-primary" />
@@ -260,9 +261,9 @@ const Dashboard: React.FC = () => {
                   ui.setShowCreatePension(true);
                 }}
                 onNavigateTab={(tab) => navigate(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`)}
-                onAddStaff={() => { 
+                onAddStaff={() => {
                   if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
-                  ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); 
+                  ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true);
                 }}
                 onAddRoom={() => {
                   if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
@@ -285,10 +286,7 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "staff" && !status?.isRestricted && (
               <StaffSection
-                staff={data.staffData.slice(
-                  (ui.pagination.staff.page - 1) * ui.pagination.staff.limit,
-                  ui.pagination.staff.page * ui.pagination.staff.limit
-                )}
+                staff={data.staffData}
                 viewMode={ui.viewModes.staff}
                 onToggleView={() => ui.toggleViewMode('staff')}
                 onEditStaff={handlers.handleEditStaff}
@@ -304,15 +302,14 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, staff: ids })}
                 totalItems={data.dataTotals.staff}
                 language={language}
+                searchQuery={ui.searchQuery}
+                onSearchChange={ui.setSearchQuery}
               />
             )}
 
             {ui.activeTab === "bookings" && !status?.isRestricted && (
               <BookingSection
-                bookings={data.bookings.slice(
-                  (ui.pagination.bookings.page - 1) * ui.pagination.bookings.limit,
-                  ui.pagination.bookings.page * ui.pagination.bookings.limit
-                )}
+                bookings={data.bookings}
                 viewMode={ui.viewModes.bookings}
                 onToggleView={() => ui.toggleViewMode('bookings')}
                 onUpdateStatus={handlers.handleUpdateBookingStatus}
@@ -325,15 +322,14 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, bookings: ids })}
                 totalItems={data.dataTotals.bookings}
                 onAddNewBooking={() => ui.setShowWalkInModal(true)}
+                searchQuery={ui.searchQuery}
+                onSearchChange={ui.setSearchQuery}
               />
             )}
 
             {ui.activeTab === "rooms" && !status?.isRestricted && (
               <RoomsSection
-                rooms={data.roomsData.slice(
-                  (ui.pagination.rooms.page - 1) * ui.pagination.rooms.limit,
-                  ui.pagination.rooms.page * ui.pagination.rooms.limit
-                )}
+                rooms={data.roomsData}
                 viewMode={ui.viewModes.rooms}
                 onToggleView={() => ui.toggleViewMode('rooms')}
                 onDeleteRoom={handlers.handleDeleteRoom}
@@ -346,6 +342,8 @@ const Dashboard: React.FC = () => {
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, rooms: ids })}
                 onUpdateStatus={handlers.handleUpdateRoomStatus}
                 totalItems={data.dataTotals.rooms}
+                searchQuery={ui.searchQuery}
+                onSearchChange={ui.setSearchQuery}
               />
             )}
 
@@ -355,10 +353,7 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "guests" && !status?.isRestricted && (
               <GuestsSection
-                guests={data.guestsData.slice(
-                  (ui.pagination.guests.page - 1) * ui.pagination.guests.limit,
-                  ui.pagination.guests.page * ui.pagination.guests.limit
-                )}
+                guests={data.guestsData}
                 viewMode={ui.viewModes.guests}
                 onToggleView={() => ui.toggleViewMode('guests')}
                 pagination={ui.pagination.guests}
@@ -368,15 +363,14 @@ const Dashboard: React.FC = () => {
                 onToggleSelection={(id) => ui.toggleSelection('guests', id)}
                 onSelectAll={(ids) => ui.setSelectedRows({ ...ui.selectedRows, guests: ids })}
                 totalItems={data.dataTotals.guests}
+                searchQuery={ui.searchQuery}
+                onSearchChange={ui.setSearchQuery}
               />
             )}
 
             {ui.activeTab === "transactions" && !status?.isRestricted && (
               <TransactionsSection
-                transactions={data.recentTransactions.slice(
-                  (ui.pagination.transactions.page - 1) * ui.pagination.transactions.limit,
-                  ui.pagination.transactions.page * ui.pagination.transactions.limit
-                )}
+                transactions={data.recentTransactions}
                 pagination={ui.pagination.transactions}
                 onPageChange={(page) => ui.setPagination({ ...ui.pagination, transactions: { ...ui.pagination.transactions, page } })}
                 onLimitChange={(limit) => ui.setPagination({ ...ui.pagination, transactions: { ...ui.pagination.transactions, limit, page: 1 } })}
@@ -387,6 +381,8 @@ const Dashboard: React.FC = () => {
                 onExport={handlers.handleExportTransactions}
                 selectedCategory={ui.transactionCategory}
                 onCategoryChange={ui.setTransactionCategory}
+                searchQuery={ui.searchQuery}
+                onSearchChange={ui.setSearchQuery}
               />
             )}
 
