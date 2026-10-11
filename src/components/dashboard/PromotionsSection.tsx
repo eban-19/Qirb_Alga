@@ -29,6 +29,8 @@ export const PromotionsSection: React.FC = () => {
     max_days: '',
     is_active: true
   });
+  const [isCustomType, setIsCustomType] = useState(false);
+  const [customTypeName, setCustomTypeName] = useState('');
 
   // ─── Fetch promotions ───────────────────────────────────────────────────────
   const fetchPromotions = async () => {
@@ -107,8 +109,13 @@ export const PromotionsSection: React.FC = () => {
       ? `http://localhost:3006/api/promotions/${formData.promo_id}`
       : 'http://localhost:3006/api/promotions';
 
+    const actualType = isCustomType
+      ? (customTypeName.trim().toUpperCase().replace(/\s+/g, '_') || 'SPECIAL_OFFER')
+      : formData.type;
+
     const payload = {
       ...formData,
+      type: actualType,
       package_id: formData.package_id || null   // send null when "All packages"
     };
 
@@ -146,11 +153,14 @@ export const PromotionsSection: React.FC = () => {
   // ─── Edit ────────────────────────────────────────────────────────────────────
   const handleEdit = async (promo: any) => {
     const pensionId = String(promo.pension_id);
+    const isCustom = !['EARLY_BIRD', 'LONG_STAY', 'LAST_MINUTE', 'SEASONAL'].includes(promo.type);
+    setIsCustomType(isCustom);
+    setCustomTypeName(isCustom ? promo.type : '');
     setFormData({
       promo_id: promo.promo_id,
       pension_id: pensionId,
       package_id: promo.package_id ? String(promo.package_id) : '',
-      type: promo.type,
+      type: isCustom ? 'CUSTOM' : promo.type,
       name: promo.name,
       description: promo.description || '',
       discount_percent: promo.discount_percent.toString(),
@@ -166,6 +176,8 @@ export const PromotionsSection: React.FC = () => {
   // ─── Add New ─────────────────────────────────────────────────────────────────
   const handleAddNew = () => {
     const firstPensionId = pensions.length > 0 ? String(pensions[0].pension_id) : '';
+    setIsCustomType(false);
+    setCustomTypeName('');
     setFormData({
       promo_id: '',
       pension_id: firstPensionId,
@@ -332,13 +344,22 @@ export const PromotionsSection: React.FC = () => {
                 <Label>{t.dashboard?.promotionType || "Promotion Type"}</Label>
                 <select
                   className={selectClass}
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                  value={isCustomType ? 'CUSTOM' : formData.type}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === 'CUSTOM') {
+                      setIsCustomType(true);
+                    } else {
+                      setIsCustomType(false);
+                      setFormData({ ...formData, type: val });
+                    }
+                  }}
                 >
                   <option value="EARLY_BIRD">{t.dashboard?.promoEarlyBird || "Early Bird (Advance)"}</option>
                   <option value="LONG_STAY">{t.dashboard?.promoLongStay || "Long Stay"}</option>
                   <option value="LAST_MINUTE">{t.dashboard?.promoLastMinute || "Last Minute"}</option>
                   <option value="SEASONAL">{t.dashboard?.promoSeasonal || "Seasonal"}</option>
+                  <option value="CUSTOM">+ Custom Promotion Type</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -347,6 +368,21 @@ export const PromotionsSection: React.FC = () => {
                   onChange={e => setFormData({ ...formData, discount_percent: e.target.value })} />
               </div>
             </div>
+
+            {/* Custom Type Name Input */}
+            {isCustomType && (
+              <div className="space-y-2 bg-orange-50 p-4 rounded-xl border border-orange-200">
+                <Label className="text-orange-900 font-semibold">Custom Type Name</Label>
+                <Input
+                  required
+                  placeholder="e.g. FLASH_SALE, WEEKEND_DEAL, HOLIDAY_OFFER"
+                  value={customTypeName}
+                  onChange={e => setCustomTypeName(e.target.value)}
+                  className="bg-white"
+                />
+                <p className="text-xs text-orange-700">Give your custom promotion type a unique name.</p>
+              </div>
+            )}
 
             {/* Name */}
             <div className="space-y-2">
@@ -362,15 +398,15 @@ export const PromotionsSection: React.FC = () => {
                 onChange={e => setFormData({ ...formData, description: e.target.value })} />
             </div>
 
-            {/* Day rule */}
+            {/* Day rule / Date conditions */}
             <div className="border-t pt-4 space-y-3">
-              {formData.type === 'LAST_MINUTE' ? (
+              {formData.type === 'LAST_MINUTE' && !isCustomType ? (
                 <div className="space-y-2">
                   <Label>{t.dashboard?.lastMinuteRuleLabel || "Must book within how many days of check-in?"}</Label>
                   <Input type="number" min="1" placeholder={t.dashboard?.egDaysPlaceholder || "e.g. 2"} required value={formData.max_days}
                     onChange={e => setFormData({ ...formData, max_days: e.target.value })} />
                 </div>
-              ) : formData.type !== 'SEASONAL' ? (
+              ) : (formData.type === 'LONG_STAY' || formData.type === 'EARLY_BIRD') && !isCustomType ? (
                 <div className="space-y-2">
                   <Label>{formData.type === 'LONG_STAY' ? (t.dashboard?.minNightsStay || 'Minimum nights stay') : (t.dashboard?.minDaysInAdvance || 'Minimum days in advance')}</Label>
                   <Input type="number" min="1" placeholder={formData.type === 'LONG_STAY' ? (t.dashboard?.egNightsPlaceholder || 'e.g. 5') : (t.dashboard?.egDaysAdvancePlaceholder || 'e.g. 30')} required
@@ -379,11 +415,11 @@ export const PromotionsSection: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{t.dashboard?.startDate || "Start Date"}</Label>
+                    <Label>{t.dashboard?.startDate || "Start Date (Optional)"}</Label>
                     <Input type="date" value={formData.min_days} onChange={e => setFormData({ ...formData, min_days: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t.dashboard?.endDate || "End Date"}</Label>
+                    <Label>{t.dashboard?.endDate || "End Date (Optional)"}</Label>
                     <Input type="date" value={formData.max_days} onChange={e => setFormData({ ...formData, max_days: e.target.value })} />
                   </div>
                 </div>
