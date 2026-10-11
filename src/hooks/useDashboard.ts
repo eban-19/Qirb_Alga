@@ -38,6 +38,7 @@ export const useDashboard = () => {
 
   useEffect(() => {
     setActiveTab(getActiveTabFromPath());
+    setSearchQuery('');
   }, [location.pathname]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [settingsExpanded, setSettingsExpanded] = useState(false);

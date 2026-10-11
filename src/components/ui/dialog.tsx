@@ -22,20 +22,21 @@ const useScrollLock = () => {
       if (isLocked) return;
       isLocked = true;
       savedScrollY = window.scrollY;
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${savedScrollY}px`;
-      document.body.style.width = '100%';
+      // Lock scroll on <html> element only — avoids the layout-shift / white-line
+      // that occurs when `position: fixed` is applied to <body>.
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.paddingRight = getScrollbarWidth() + 'px';
     };
 
     const enableScroll = () => {
       if (!isLocked) return;
       isLocked = false;
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, savedScrollY);
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.paddingRight = '';
+    };
+
+    const getScrollbarWidth = () => {
+      return window.innerWidth - document.documentElement.clientWidth;
     };
 
     const checkDialogState = () => {

@@ -774,7 +774,8 @@
     "managementSystem": "Management System",
     "backToHome": "Back to Home",
     "logout": "Logout",
-    "bookingPolicies": "Booking Policies"
+    "bookingPolicies": "Booking Policies",
+    "reviews": "Reviews & Ratings"
   },
   "adminDetails": {
     "businessInfo": "Business Information",
@@ -850,7 +851,12 @@
     "owners": {
       "title": "Owners Management",
       "subtitle": "Manage pension property owners and verify businesses",
-      "searchPlaceholder": "Search owners..."
+      "searchPlaceholder": "Search owners...",
+      "approving": "Approving...",
+      "rejecting": "Rejecting...",
+      "suspending": "Suspending...",
+      "reactivating": "Reactivating...",
+      "deleting": "Deleting..."
     },
     "customers": {
       "title": "Customers Management",

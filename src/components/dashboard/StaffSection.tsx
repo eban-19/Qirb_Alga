@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { LayoutDashboard, Edit, Trash2, MessageSquare, Phone, Mail, BarChart3, User, Building, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Edit, Trash2, MessageSquare, Phone, Mail, BarChart3, User, Building, DollarSign, Search, X } from 'lucide-react';
 import { Staff } from '../../types/dashboard';
 import { useLanguage } from '@/hooks/use-language';
 
@@ -43,6 +44,8 @@ interface StaffSectionProps {
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
   language?: any;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const StaffSection: React.FC<StaffSectionProps> = ({
@@ -61,13 +64,48 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
   onToggleSelection,
   onSelectAll,
   totalItems = 0,
-  language
+  language,
+  searchQuery,
+  onSearchChange
 }) => {
   const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [internalSearch, setInternalSearch] = useState('');
+  const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+    onPageChange?.(1);
+  };
+
   // Ensure staff is always an array
   const safeStaff = Array.isArray(staff) ? staff : [];
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const filteredStaff = useMemo(() => {
+    const q = currentSearch.toLowerCase().trim();
+    if (!q) return safeStaff;
+    return safeStaff.filter((member) => {
+      const name = (member.full_name || '').toLowerCase();
+      const role = (member.role || '').toLowerCase();
+      const phone = (member.phone || '').toLowerCase();
+      const email = (member.email || '').toLowerCase();
+      const dept = (member.department || '').toLowerCase();
+      const status = (member.status || '').toLowerCase();
+      const id = String(member.id || '').toLowerCase();
+      return name.includes(q) || role.includes(q) || phone.includes(q) || email.includes(q) || dept.includes(q) || status.includes(q) || id.includes(q);
+    });
+  }, [safeStaff, currentSearch]);
+
+  const effectiveTotalItems = filteredStaff.length;
+  const totalPages = Math.ceil(effectiveTotalItems / pagination.limit) || 1;
+  const paginatedStaff = filteredStaff.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -138,61 +176,82 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
           : (t.dashboard?.confirmDeleteStaffMultipleDescription ? t.dashboard.confirmDeleteStaffMultipleDescription.replace('{count}', selectedRows.length.toString()) : `Are you sure you want to permanently delete these ${selectedRows.length} staff members? This will remove all their records from the system.`)}
         itemCount={selectedRows.length}
       />
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {/* View Toggle */}
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
-              ? "bg-primary text-white shadow-lg shadow-primary/25"
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-              }`}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            {t.dashboard?.cards || "Cards"}
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
-              ? "bg-primary text-white shadow-lg shadow-primary/25"
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-              }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            {t.dashboard?.table || "Table"}
-          </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder={t.dashboard?.searchStaffPlaceholder || t.adminTabs?.staff?.searchPlaceholder || "Search staff by name, role, phone, email..."}
+            value={currentSearch}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 pr-8 bg-slate-50 border-slate-200 rounded-xl focus:bg-white transition-colors h-10 text-sm font-medium"
+          />
+          {currentSearch && (
+            <button
+              onClick={() => handleSearchChange('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            onClick={onBulkUpload}
-            className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
-          >
-            <LayoutDashboard className="h-4 w-4 rotate-180" />
-            {t.dashboard?.bulkUpload || "Bulk Upload"}
-          </Button>
-          <Button
-            onClick={onAddNewStaff}
-            className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
-          >
-            <User className="h-4 w-4" />
-            {t.dashboard?.addStaff || "Add Staff"}
-          </Button>
+        <div className="flex items-center gap-3 ml-auto flex-wrap sm:flex-nowrap">
+          {/* View Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={onToggleView}
+              className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
+                ? "bg-primary text-white shadow-lg shadow-primary/25"
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+                }`}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {t.dashboard?.cards || "Cards"}
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={onToggleView}
+              className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
+                ? "bg-primary text-white shadow-lg shadow-primary/25"
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+                }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {t.dashboard?.table || "Table"}
+            </Button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={onBulkUpload}
+              className="flex-1 sm:flex-none gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary font-bold transition-all duration-300"
+            >
+              <LayoutDashboard className="h-4 w-4 rotate-180" />
+              {t.dashboard?.bulkUpload || "Bulk Upload"}
+            </Button>
+            <Button
+              onClick={onAddNewStaff}
+              className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
+            >
+              <User className="h-4 w-4" />
+              {t.dashboard?.addStaff || "Add Staff"}
+            </Button>
+          </div>
         </div>
       </div>
-
-
 
       {/* Content */}
       {viewMode === 'card' ? (
         <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {safeStaff.map((member) => (
+          {paginatedStaff.map((member) => (
             <Card key={member.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden ${selectedRows.includes(member.id) ? 'ring-2 ring-primary' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <CardContent className="p-6 relative">
@@ -265,12 +324,12 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                         {t.dashboard?.editProfile || "Edit Profile"}
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem
+                      {/* <DropdownMenuItem
                         className="flex items-center gap-2 p-3 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
                       >
                         <Mail className="h-4 w-4" />
                         {t.dashboard?.sendMessage || "Send Message"}
-                      </DropdownMenuItem>
+                      </DropdownMenuItem> */}
 
                       <DropdownMenuSeparator className="bg-slate-100" />
 
@@ -288,6 +347,17 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
               </CardContent>
             </Card>
           ))}
+          {paginatedStaff.length === 0 && (
+            <div className="col-span-full py-16 text-center bg-white rounded-2xl border-2 border-dashed border-slate-100 p-6">
+              <User className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-slate-500 font-semibold">{currentSearch ? (t.dashboard?.noStaffMatchingSearch || "No staff members found matching your search.") : (t.dashboard?.noStaffFound || "No staff members found")}</p>
+              {currentSearch && (
+                <Button variant="ghost" size="sm" onClick={() => handleSearchChange('')} className="mt-2 text-primary font-bold">
+                  {t.adminTabs?.common?.clearSearch || "Clear Search"}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <Card className="border-none shadow-sm bg-white overflow-hidden">
@@ -298,10 +368,10 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
                       <Checkbox
-                        checked={safeStaff.length > 0 && selectedRows.length === safeStaff.length}
+                        checked={paginatedStaff.length > 0 && selectedRows.length === paginatedStaff.length}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            onSelectAll?.(safeStaff.map(s => s.id));
+                            onSelectAll?.(paginatedStaff.map(s => s.id));
                           } else {
                             onSelectAll?.([]);
                           }
@@ -318,83 +388,94 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {safeStaff.map((member) => (
-                    <TableRow key={member.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(member.id) ? 'bg-blue-50/30' : ''}`}>
-                      <TableCell className="px-4">
-                        <Checkbox
-                          checked={selectedRows.includes(member.id)}
-                          onCheckedChange={() => onToggleSelection?.(member.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-[140px] sm:min-w-[160px]">
-                          <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                            <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-[10px] sm:text-sm">
-                              {member.full_name ? member.full_name.split(" ").map((n) => n[0]).join("") : "S"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="hidden sm:block flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm">{member.full_name}</div>
-                            <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
-                              {member.role || (t.dashboard?.na || "N/A")}
-                            </Badge>
-                          </div>
+                  {paginatedStaff.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <p className="font-semibold text-slate-500">
+                            {currentSearch ? (t.dashboard?.noStaffMatchingSearch || "No staff members found matching your search.") : (t.dashboard?.noStaffFound || "No staff members found.")}
+                          </p>
+                          {currentSearch && (
+                            <Button variant="outline" size="sm" onClick={() => handleSearchChange('')} className="h-8 text-xs font-bold text-slate-600 rounded-lg">
+                              {t.adminTabs?.common?.clearSearch || "Clear Search"}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-sm">{member.id}</TableCell>
-                      <TableCell className="text-sm">{member.role || (t.dashboard?.na || "N/A")}</TableCell>
-
-
-                      <TableCell className="text-sm">ETB {member.salary.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge className={`${member.status === 'Active' ? 'bg-emerald-500' :
-                          member.status === 'On Leave' ? 'bg-amber-500' : 'bg-slate-400'
-                          } text-white text-[10px]`}>
-                          {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-4">
-                        <div className="flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
-                              >
-                                <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
-                                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
-                              <DropdownMenuItem
-                                onClick={() => onEditStaff(member)}
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
-                              >
-                                <Edit className="h-4 w-4" />
-                                {t.dashboard?.edit || "Edit"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-purple-50 focus:text-purple-600 transition-colors"
-                              >
-                                <Mail className="h-4 w-4" />
-                                {t.dashboard?.contact || "Contact"}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-slate-100" />
-                              <DropdownMenuItem
-                                onClick={() => onDeleteStaff(member.id)}
-                                className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                {t.dashboard?.delete || "Delete"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-
                     </TableRow>
-                  ))}
+                  ) : (
+                    paginatedStaff.map((member) => (
+                      <TableRow key={member.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(member.id) ? 'bg-blue-50/30' : ''}`}>
+                        <TableCell className="px-4">
+                          <Checkbox
+                            checked={selectedRows.includes(member.id)}
+                            onCheckedChange={() => onToggleSelection?.(member.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="pl-4">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-[140px] sm:min-w-[160px]">
+                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                              <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 font-bold text-[10px] sm:text-sm">
+                                {member.full_name ? member.full_name.split(" ").map((n) => n[0]).join("") : "S"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="hidden sm:block flex-1 min-w-0">
+                              <div className="font-medium text-slate-900 text-sm">{member.full_name}</div>
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
+                                {member.role || (t.dashboard?.na || "N/A")}
+                              </Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm">{member.id}</TableCell>
+                        <TableCell className="text-sm">{member.role || (t.dashboard?.na || "N/A")}</TableCell>
+
+
+                        <TableCell className="text-sm">ETB {member.salary.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge className={`${member.status === 'Active' ? 'bg-emerald-500' :
+                            member.status === 'On Leave' ? 'bg-amber-500' : 'bg-slate-400'
+                            } text-white text-[10px]`}>
+                            {member.status === 'Active' ? (t.dashboard?.active || 'Active') : member.status === 'On Leave' ? (t.dashboard?.onLeave || 'On Leave') : (member.status || 'Inactive')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-4">
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-9 px-3 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all duration-300 rounded-lg"
+                                >
+                                  <span className="text-xs font-bold">{t.dashboard?.actions || "Actions"}</span>
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-xl border-slate-200 animate-in fade-in zoom-in-95 duration-200 p-1">
+                                <DropdownMenuItem
+                                  onClick={() => onEditStaff(member)}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  {t.dashboard?.edit || "Edit"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-slate-100" />
+                                <DropdownMenuItem
+                                  onClick={() => onDeleteStaff(member.id)}
+                                  className="flex items-center gap-2 p-2.5 cursor-pointer rounded-lg focus:bg-red-50 focus:text-red-600 text-red-500 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t.dashboard?.delete || "Delete"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -403,11 +484,11 @@ export const StaffSection: React.FC<StaffSectionProps> = ({
             <div className="p-3 sm:p-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30 gap-2 overflow-hidden">
               <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
                 <span className="hidden sm:inline">
-                  {t.dashboard?.showingEmployees ? t.dashboard.showingEmployees.replace('{count}', safeStaff.length.toString()).replace('{total}', totalItems.toString()) : (
-                    <>Showing <span className="text-slate-900">{safeStaff.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                  {t.dashboard?.showingEmployees ? t.dashboard.showingEmployees.replace('{count}', paginatedStaff.length.toString()).replace('{total}', effectiveTotalItems.toString()) : (
+                    <>Showing <span className="text-slate-900">{paginatedStaff.length}</span> of <span className="text-slate-900">{effectiveTotalItems}</span></>
                   )}
                 </span>
-                <span className="sm:hidden text-slate-900 font-extrabold">{safeStaff.length}/{totalItems}</span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{paginatedStaff.length}/{effectiveTotalItems}</span>
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">

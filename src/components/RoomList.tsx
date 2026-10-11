@@ -19,6 +19,10 @@ const RoomList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") || "");
+  }, [searchParams]);
+
   const urlLat = searchParams.get("lat");
   const urlLng = searchParams.get("lng");
 
@@ -221,8 +225,14 @@ const RoomList = () => {
           <div className="bg-card border border-border rounded-xl p-12 text-center max-w-lg mx-auto shadow-sm">
             <h3 className="text-xl font-bold mb-2">{t.rooms.noPropertiesFound}</h3>
             <p className="text-muted-foreground">{searchQuery ? t.rooms.noMatchesQuery : t.rooms.noRooms}</p>
-            {activeFilter && (
-              <Button variant="outline" className="mt-4" onClick={() => setActiveFilter(null)}>
+            {(activeFilter || searchQuery) && (
+              <Button variant="outline" className="mt-4" onClick={() => {
+                setActiveFilter(null);
+                setSearchQuery('');
+                const params = new URLSearchParams(searchParams);
+                params.delete("q");
+                setSearchParams(params, { replace: true });
+              }}>
                 {t.rooms.clearFilters}
               </Button>
             )}

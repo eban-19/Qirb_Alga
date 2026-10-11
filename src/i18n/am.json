@@ -765,7 +765,9 @@
     "adminPanel": "አስተዳዳሪ ፓነል",
     "managementSystem": "የአስተዳደር ስርዓት",
     "backToHome": "ወደ ዋናው ገጽ ተመለስ",
-    "logout": "ውጣ"
+    "logout": "ውጣ",
+    "bookingPolicies": "የቦታ ማስያዣ ፖሊሲዎች",
+    "reviews": "ግምገማዎች እና ደረጃዎች"
   },
   "adminDetails": {
     "businessInfo": "የንግድ መረጃ",

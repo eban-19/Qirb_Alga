@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   LayoutDashboard,
@@ -19,7 +20,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Plus
+  Plus,
+  Search
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,6 +54,8 @@ interface BookingSectionProps {
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
   onAddNewBooking?: () => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 interface WalkInForm {
@@ -203,9 +207,23 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onToggleSelection,
   onSelectAll,
   totalItems = 0,
-  onAddNewBooking
+  onAddNewBooking,
+  searchQuery,
+  onSearchChange
 }) => {
   const { t } = useLanguage();
+  const [internalSearch, setInternalSearch] = useState('');
+  const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+    onPageChange?.(1);
+  };
+
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState<WalkInForm>({
     guestName: '',
@@ -225,47 +243,67 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'upcoming' | 'specific'>('all');
   const [specificDate, setSpecificDate] = useState<string>('');
 
-  const filteredBookings = bookings.filter(b => {
-    // 1. Status Filter
-    let passStatus = true;
-    if (activeFilter === 'active') {
-      passStatus = ['confirmed', 'pending'].includes(b.status?.toLowerCase());
-    } else if (activeFilter !== 'all') {
-      passStatus = b.status?.toLowerCase() === activeFilter;
-    }
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(b => {
+      // 1. Text Search Filter
+      if (currentSearch.trim()) {
+        const q = currentSearch.toLowerCase().trim();
+        const guestName = (b.user_name || '').toLowerCase();
+        const guestPhone = (b.user_phone || b.phone || '').toLowerCase();
+        const roomNum = (b.room_number || b.room_name || b.room_type || '').toLowerCase();
+        const bookingCode = String(b.id || b.booking_id || '').toLowerCase();
+        const statusText = (b.status || '').toLowerCase();
+        const matches = guestName.includes(q) ||
+          guestPhone.includes(q) ||
+          roomNum.includes(q) ||
+          bookingCode.includes(q) ||
+          statusText.includes(q);
+        if (!matches) return false;
+      }
 
-    if (!passStatus) return false;
+      // 2. Status Filter
+      let passStatus = true;
+      if (activeFilter === 'active') {
+        passStatus = ['confirmed', 'pending'].includes(b.status?.toLowerCase());
+      } else if (activeFilter !== 'all') {
+        passStatus = b.status?.toLowerCase() === activeFilter;
+      }
 
-    // 2. Date Filter
-    if (dateFilter === 'all') return true;
+      if (!passStatus) return false;
 
-    // Normalize check in/out dates to YYYY-MM-DD local
-    const checkInDate = new Date(b.check_in_date);
-    const checkOutDate = new Date(b.check_out_date);
-    // Use local timezone strings
-    const bCheckIn = `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}`;
-    const bCheckOut = `${checkOutDate.getFullYear()}-${String(checkOutDate.getMonth() + 1).padStart(2, '0')}-${String(checkOutDate.getDate()).padStart(2, '0')}`;
-    
-    const todayObj = new Date();
-    const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+      // 3. Date Filter
+      if (dateFilter === 'all') return true;
 
-    if (dateFilter === 'today') {
-      // Booking overlaps with today
-      return bCheckIn <= today && bCheckOut >= today;
-    }
-    if (dateFilter === 'upcoming') {
-      // Booking check-in is after today
-      return bCheckIn > today;
-    }
-    if (dateFilter === 'specific' && specificDate) {
-      // Booking overlaps with the specific date
-      return bCheckIn <= specificDate && bCheckOut >= specificDate;
-    }
+      // Normalize check in/out dates to YYYY-MM-DD local
+      const checkInDate = new Date(b.check_in_date);
+      const checkOutDate = new Date(b.check_out_date);
+      // Use local timezone strings
+      const bCheckIn = `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}`;
+      const bCheckOut = `${checkOutDate.getFullYear()}-${String(checkOutDate.getMonth() + 1).padStart(2, '0')}-${String(checkOutDate.getDate()).padStart(2, '0')}`;
+      
+      const todayObj = new Date();
+      const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
-    return true;
-  });
+      if (dateFilter === 'today') {
+        return bCheckIn <= today && bCheckOut >= today;
+      }
+      if (dateFilter === 'upcoming') {
+        return bCheckIn > today;
+      }
+      if (dateFilter === 'specific' && specificDate) {
+        return bCheckIn <= specificDate && bCheckOut >= specificDate;
+      }
 
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+      return true;
+    });
+  }, [bookings, currentSearch, activeFilter, dateFilter, specificDate]);
+
+  const effectiveTotalItems = filteredBookings.length;
+  const totalPages = Math.ceil(effectiveTotalItems / pagination.limit) || 1;
+  const paginatedBookings = filteredBookings.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -480,7 +518,28 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       />
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mt-6">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 flex-wrap sm:flex-nowrap">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder={t.dashboard?.searchBookingsPlaceholder || t.adminTabs?.bookings?.searchPlaceholder || "Search guest, phone, room #..."}
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 pr-8 bg-slate-100 border-slate-200 rounded-xl h-10 focus:bg-white text-sm"
+            />
+            {currentSearch && (
+              <button
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-initial">
             <Filter className="h-4 w-4 text-slate-500 shrink-0" />
 
@@ -588,7 +647,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
       {
         viewMode === "card" && (
           <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredBookings.map((booking) => (
+            {paginatedBookings.map((booking) => (
               <BookingCard
                 key={booking.id || booking.booking_id}
                 booking={booking}
@@ -599,9 +658,16 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                 onUpdateStatus={onUpdateStatus}
               />
             ))}
-            {filteredBookings.length === 0 && (
-              <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100">
-                <p className="text-slate-400 font-medium italic">{t.dashboard?.noBookingsFilter || "No bookings found for this filter."}</p>
+            {paginatedBookings.length === 0 && (
+              <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100 p-6">
+                <p className="text-slate-400 font-medium italic">
+                  {currentSearch ? (t.dashboard?.noBookingsMatchingSearch || "No bookings found matching your search.") : (t.dashboard?.noBookingsFilter || "No bookings found for this filter.")}
+                </p>
+                {currentSearch && (
+                  <Button variant="ghost" size="sm" onClick={() => handleSearchChange('')} className="mt-2 text-primary font-bold">
+                    {t.adminTabs?.common?.clearSearch || "Clear Search"}
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -619,9 +685,9 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     <TableRow className="hover:bg-transparent border-slate-200">
                       <TableHead className="w-[50px] px-4">
                         <Checkbox
-                          checked={bookings.length > 0 && selectedRows.length === bookings.length}
+                          checked={paginatedBookings.length > 0 && selectedRows.length === paginatedBookings.length}
                           onCheckedChange={(checked) => {
-                            if (checked) onSelectAll?.(bookings.map(b => b.id || b.booking_id));
+                            if (checked) onSelectAll?.(paginatedBookings.map(b => b.id || b.booking_id));
                             else onSelectAll?.([]);
                           }}
                         />
@@ -636,7 +702,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredBookings.map((booking) => {
+                    {paginatedBookings.map((booking) => {
                       const bookingId = booking.id || booking.booking_id;
                       const roomInfo = booking.room_number || booking.room_name || booking.room_type || `${t.dashboard?.room || 'Room'} ${booking.room_id || 'N/A'}`;
                       return (
@@ -705,8 +771,17 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                   </TableBody>
                 </Table>
               </div>
-              {filteredBookings.length === 0 && (
-                <div className="py-20 text-center bg-white"><p className="text-slate-400 font-medium italic">{t.dashboard?.noBookingsFilter || "No bookings found for this filter."}</p></div>
+              {paginatedBookings.length === 0 && (
+                <div className="py-20 text-center bg-white p-6">
+                  <p className="text-slate-400 font-medium italic">
+                    {currentSearch ? (t.dashboard?.noBookingsMatchingSearch || "No bookings found matching your search.") : (t.dashboard?.noBookingsFilter || "No bookings found for this filter.")}
+                  </p>
+                  {currentSearch && (
+                    <Button variant="ghost" size="sm" onClick={() => handleSearchChange('')} className="mt-2 text-primary font-bold">
+                      {t.adminTabs?.common?.clearSearch || "Clear Search"}
+                    </Button>
+                  )}
+                </div>
               )}
 
               {/* Unified Pagination Footer */}
@@ -714,12 +789,12 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
                 <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
                   <span className="hidden sm:inline">
                     {t.dashboard?.showingBookings ? (
-                      t.dashboard.showingBookings.replace('{count}', String(bookings.length)).replace('{total}', String(totalItems))
+                      t.dashboard.showingBookings.replace('{count}', String(paginatedBookings.length)).replace('{total}', String(effectiveTotalItems))
                     ) : (
-                      <>Showing <span className="text-slate-900">{bookings.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                      <>Showing <span className="text-slate-900">{paginatedBookings.length}</span> of <span className="text-slate-900">{effectiveTotalItems}</span></>
                     )}
                   </span>
-                  <span className="sm:hidden text-slate-900 font-extrabold">{bookings.length}/{totalItems}</span>
+                  <span className="sm:hidden text-slate-900 font-extrabold">{paginatedBookings.length}/{effectiveTotalItems}</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
