@@ -38,6 +38,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
   const handleSave = () => {
     setError(null);
     const pkgName = (language === 'en' ? newPackage.name_en : language === 'am' ? newPackage.name_am : newPackage.name_om) || newPackage.name || '';
+    const pkgDesc = (language === 'en' ? newPackage.description_en : language === 'am' ? newPackage.description_am : newPackage.description_om) || newPackage.description || '';
     const nameVal = validateRequiredText(pkgName, 'Package Name', 2, 80);
     if (!nameVal.isValid) {
       setError(nameVal.error);
@@ -48,6 +49,11 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
       setError(priceVal.error);
       return;
     }
+    setNewPackage({
+      ...newPackage,
+      name: pkgName,
+      description: pkgDesc
+    });
     onAddPackage();
   };
 
@@ -106,8 +112,8 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                       const value = e.target.value;
                       if (error) setError(null);
                       if (language === 'en') setNewPackage({ ...newPackage, name_en: value, name: value });
-                      else if (language === 'am') setNewPackage({ ...newPackage, name_am: value });
-                      else setNewPackage({ ...newPackage, name_om: value });
+                      else if (language === 'am') setNewPackage({ ...newPackage, name_am: value, name: value });
+                      else setNewPackage({ ...newPackage, name_om: value, name: value });
                     }}
                     placeholder="e.g., Luxury Double"
                     className="h-12 border-slate-200 bg-slate-50/30 rounded-xl focus:ring-purple-500/20"
@@ -137,8 +143,8 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                     onChange={(e) => {
                       const value = e.target.value;
                       if (language === 'en') setNewPackage({ ...newPackage, description_en: value, description: value });
-                      else if (language === 'am') setNewPackage({ ...newPackage, description_am: value });
-                      else setNewPackage({ ...newPackage, description_om: value });
+                      else if (language === 'am') setNewPackage({ ...newPackage, description_am: value, description: value });
+                      else setNewPackage({ ...newPackage, description_om: value, description: value });
                     }}
                     rows={4}
                     placeholder={t.dashboard?.descriptionPlaceholder || "Provide a detailed description of what this package offers..."}

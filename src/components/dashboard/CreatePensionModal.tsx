@@ -49,8 +49,8 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
       setError(nameVal.error);
       return;
     }
-    if (!newPension.address) {
-      setError('Pension address is required');
+    if (!newPension.address || !newPension.address.trim()) {
+      setError('Pension address is required. Please select a location on the map or type an address below.');
       return;
     }
     if (newPension.phone && newPension.phone.trim()) {
@@ -132,10 +132,25 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
                     const value = e.target.value;
                     if (error) setError(null);
                     if (language === 'en') setNewPension({ ...newPension, name_en: value, name: value });
-                    else if (language === 'am') setNewPension({ ...newPension, name_am: value });
-                    else setNewPension({ ...newPension, name_om: value });
+                    else if (language === 'am') setNewPension({ ...newPension, name_am: value, name: value });
+                    else setNewPension({ ...newPension, name_om: value, name: value });
                   }}
                   placeholder={t.dashboard?.enterPensionName || "Enter pension name"}
+                  className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="address" className="text-sm font-bold text-slate-700">{t.dashboard?.address || "Address *"}</Label>
+                <Input
+                  id="address"
+                  value={newPension.address || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNewPension({ ...newPension, address: value, address_en: value });
+                    if (error) setError(null);
+                  }}
+                  placeholder={t.dashboard?.enterAddress || "Select on map or enter address"}
                   className="mt-1.5 h-11 border-slate-200 bg-slate-50/30 focus:bg-white transition-colors"
                 />
               </div>
@@ -271,7 +286,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
             <div className="flex gap-3 pt-2">
               <Button
                 onClick={handleCreate}
-                disabled={(!newPension.name && !newPension.name_en && !newPension.name_am && !newPension.name_om) || !newPension.address}
+                disabled={!newPension.name && !newPension.name_en && !newPension.name_am && !newPension.name_om}
                 className="flex-1 h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl"
               >
                 {t.dashboard?.createPension || "Create Pension"}

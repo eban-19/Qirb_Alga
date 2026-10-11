@@ -18,9 +18,9 @@ const ForgotPassword: React.FC = () => {
     e.preventDefault();
     setEmailError(null);
 
-    const errMsg = validateEmail(email.trim(), true, "Email address");
-    if (errMsg) {
-      setEmailError(errMsg);
+    const emailVal = validateEmail(email.trim(), true, "Email address");
+    if (!emailVal.isValid) {
+      setEmailError(emailVal.error || "Please enter a valid email address");
       return;
     }
 

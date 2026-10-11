@@ -22,34 +22,73 @@ export const useDashboardHandlers = (
   // --- PENSION HANDLERS ---
   const handleCreatePension = async () => {
     try {
-      const pensionName = ui.newPension.name || ui.newPension.name_en || '';
+      const pensionName = (language === 'en' ? ui.newPension.name_en : language === 'am' ? ui.newPension.name_am : ui.newPension.name_om) || ui.newPension.name || '';
       const nameVal = validateRequiredText(pensionName, 'Pension name', 2, 100);
       if (!nameVal.isValid) {
-        alert(nameVal.error);
+        toast.error(nameVal.error || 'Invalid pension name');
+        return;
+      }
+      if (!ui.newPension.address || !ui.newPension.address.trim()) {
+        toast.error('Pension address is required');
         return;
       }
       if (ui.newPension.phone) {
         const phoneVal = validatePhone(ui.newPension.phone, false);
         if (!phoneVal.isValid) {
-          alert(phoneVal.error);
+          toast.error(phoneVal.error || 'Invalid phone number');
           return;
         }
       }
       if (ui.newPension.email) {
         const emailVal = validateEmail(ui.newPension.email, false);
         if (!emailVal.isValid) {
-          alert(emailVal.error);
+          toast.error(emailVal.error || 'Invalid email address');
+          return;
+        }
+      }
+      if (ui.newPension.capacity !== undefined && ui.newPension.capacity !== '') {
+        const capVal = validatePositiveInteger(ui.newPension.capacity, 'Total capacity', false, 1, 1000);
+        if (!capVal.isValid) {
+          toast.error(capVal.error || 'Invalid capacity');
           return;
         }
       }
 
-      const response = await apiService.createPension(ui.newPension);
-      if (response.success) {
-        ui.setShowCreatePension(false);
-        await loadRealData();
+      let pensionData = {
+        ...ui.newPension,
+        name: pensionName,
+        capacity: parseInt(ui.newPension.capacity) || 0
+      };
+
+      // Upload image if selected
+      if (ui.pensionImageFile) {
+        const uploadResp = await apiService.uploadImage(ui.pensionImageFile);
+        if (uploadResp.success && uploadResp.data) {
+          pensionData.image_url = uploadResp.data.url;
+          ui.setPensionImageFile(null);
+        }
       }
-    } catch (error) {
+
+      const response = await apiService.createPension(pensionData);
+      if (response.success) {
+        toast.success('Pension created successfully!');
+        ui.setShowCreatePension(false);
+        ui.setNewPension({
+          name: '', name_en: '', name_am: '', name_om: '',
+          description: '', description_en: '', description_am: '', description_om: '',
+          address: '', address_en: '', address_am: '', address_om: '',
+          phone: '', email: '', capacity: '', image_url: '',
+          owner_info: '', owner_info_en: '', owner_info_am: '', owner_info_om: '',
+          room_details: '', room_details_en: '', room_details_am: '', room_details_om: '',
+          latitude: undefined, longitude: undefined
+        });
+        await loadRealData();
+      } else {
+        toast.error(response.message || 'Failed to create pension');
+      }
+    } catch (error: any) {
       console.error('Create pension error:', error);
+      toast.error(error.message || 'Failed to create pension');
     }
   };
 
@@ -95,8 +134,10 @@ export const useDashboardHandlers = (
       if (ui.editingStaff) {
         const staffId = ui.editingStaff.id || ui.editingStaff.staff_id;
         await apiService.updateStaff(staffId, ui.newStaff);
+        toast.success('Staff member updated successfully!');
       } else {
         await apiService.addStaff(pensionId, ui.newStaff);
+        toast.success('Staff member added successfully!');
       }
       ui.setShowAddStaffModal(false);
       ui.setEditingStaff(null);
@@ -104,7 +145,7 @@ export const useDashboardHandlers = (
     } catch (error: any) {
       console.error('Save staff error:', error);
       const msg = error?.originalResponse?.message || error?.message || 'Failed to save staff member.';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
@@ -239,10 +280,12 @@ export const useDashboardHandlers = (
           availability_status: ui.newRoom.status
         });
       }
+      toast.success(`Created ${finalRoomNumbers.length} room(s) successfully!`);
       ui.setShowAddRoomModal(false);
       await loadRealData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Add room error:', error);
+      toast.error(error.message || 'Failed to add room(s)');
     }
   };
 
@@ -289,34 +332,45 @@ export const useDashboardHandlers = (
 
   const handleAddPackage = async () => {
     try {
-      const pkgName = (language === 'en' ? ui.newPackage.name_en : language === 'am' ? ui.newPackage.name_am : ui.newPackage.name_om) || ui.newPackage.name || '';
-      const nameVal = validateRequiredText(pkgName, 'Package Name', 2, 80);
-      if (!nameVal.isValid) {
-        alert(nameVal.error);
+      const pensionId = parseInt(data.selectedPensionId);
+      if (!pensionId) {
+        toast.error('No pension selected. Please select a pension first.');
         return;
       }
-      const priceVal = validatePrice(ui.newPackage.price, 'Price per night', 1);
+      const pkgName = (language === 'en' ? ui.newPackage.name_en : language === 'am' ? ui.newPackage.name_am : ui.newPackage.name_om) || ui.newPackage.name || '';
+      const pkgDesc = (language === 'en' ? ui.newPackage.description_en : language === 'am' ? ui.newPackage.description_am : ui.newPackage.description_om) || ui.newPackage.description || '';
+      const nameVal = validateRequiredText(pkgName, 'Package Name', 2, 80);
+      if (!nameVal.isValid) {
+        toast.error(nameVal.error || 'Invalid package name');
+        return;
+      }
+      const priceVal = validatePrice(ui.newPackage.price, 'Price per night', true, 1);
       if (!priceVal.isValid) {
-        alert(priceVal.error);
+        toast.error(priceVal.error || 'Invalid price');
         return;
       }
 
       let packageData = {
         ...ui.newPackage,
+        name: pkgName,
+        description: pkgDesc,
         price: parseFloat(ui.newPackage.price) || 0
       };
 
       if (ui.editingPackage) {
         const pkgId = ui.editingPackage.id || ui.editingPackage.package_id;
-        await apiService.updatePackage(data.selectedPensionId, pkgId, packageData);
+        await apiService.updatePackage(pensionId, pkgId, packageData);
+        toast.success('Package updated successfully!');
       } else {
-        await apiService.createPackage(data.selectedPensionId, packageData);
+        await apiService.createPackage(pensionId, packageData);
+        toast.success('Package created successfully!');
       }
       ui.setShowAddPackageModal(false);
+      ui.setEditingPackage(null);
       await loadRealData();
     } catch (error: any) {
       console.error('Save package error:', error);
-      alert(error.message || 'Failed to save package.');
+      toast.error(error.message || 'Failed to save package.');
     }
   };
 
@@ -423,6 +477,12 @@ export const useDashboardHandlers = (
   const handleSavePropertySettings = async () => {
     ui.setIsUpdating(true);
     try {
+      const pensionId = parseInt(data.selectedPensionId);
+      if (!pensionId) {
+        toast.error('No pension selected to update.');
+        return;
+      }
+
       let finalSettings: any = {
         name: ui.propertySettings.name,
         description: ui.propertySettings.description,
@@ -446,12 +506,13 @@ export const useDashboardHandlers = (
         }
       }
 
-      await apiService.updatePension(data.selectedPensionId, finalSettings);
+      await apiService.updatePension(pensionId, finalSettings);
       ui.showSuccess();
+      toast.success('Pension profile updated successfully!');
       await loadRealData();
     } catch (error: any) {
       console.error('Save property settings error:', error);
-      alert(error.message || 'Failed to update property settings.');
+      toast.error(error.message || 'Failed to update property settings.');
     } finally {
       ui.setIsUpdating(false);
     }
@@ -608,28 +669,7 @@ export const useDashboardHandlers = (
   };
 
   return {
-    handleCreatePension: async () => {
-      try {
-        let pensionData = { ...ui.newPension };
-
-        // Upload image if selected
-        if (ui.pensionImageFile) {
-          const uploadResp = await apiService.uploadImage(ui.pensionImageFile);
-          if (uploadResp.success && uploadResp.data) {
-            pensionData.image_url = uploadResp.data.url;
-            ui.setPensionImageFile(null);
-          }
-        }
-
-        const response = await apiService.createPension(pensionData);
-        if (response.success) {
-          ui.setShowCreatePension(false);
-          await loadRealData();
-        }
-      } catch (error) {
-        console.error('Create pension error:', error);
-      }
-    },
+    handleCreatePension,
     handlePensionSelectionChange,
     handleEditStaff,
     handleSaveStaff,

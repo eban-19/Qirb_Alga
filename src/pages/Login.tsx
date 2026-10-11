@@ -89,15 +89,15 @@ const Login = () => {
     }
 
     if (method === 'phone') {
-      const phoneErr = validatePhone(identifier, true, false, 'Phone number');
-      if (phoneErr) {
-        toast.error(phoneErr);
+      const phoneVal = validatePhone(identifier, true, false, 'Phone number');
+      if (!phoneVal.isValid) {
+        toast.error(phoneVal.error || 'Invalid phone number');
         return;
       }
     } else {
-      const emailErr = validateEmail(identifier, true, 'Email address');
-      if (emailErr) {
-        toast.error(emailErr);
+      const emailVal = validateEmail(identifier, true, 'Email address');
+      if (!emailVal.isValid) {
+        toast.error(emailVal.error || 'Invalid email address');
         return;
       }
     }
@@ -144,37 +144,37 @@ const Login = () => {
     e.preventDefault();
 
     if (method === 'email' && isNewUser) {
-      const nameErr = validateName(fullName, 'Full name', true);
-      if (nameErr) {
-        toast.error(nameErr);
+      const nameVal = validateName(fullName, 'Full name', true);
+      if (!nameVal.isValid) {
+        toast.error(nameVal.error || 'Invalid full name');
         return;
       }
 
-      const phoneErr = validatePhone(phoneNumber, true, false, 'Phone number');
-      if (phoneErr) {
-        toast.error(phoneErr);
+      const phoneVal = validatePhone(phoneNumber, true, false, 'Phone number');
+      if (!phoneVal.isValid) {
+        toast.error(phoneVal.error || 'Invalid phone number');
         return;
       }
 
-      const passErr = validatePassword(password, true, 'Password');
-      if (passErr) {
-        toast.error(passErr);
+      const passVal = validatePassword(password, true, 'Password');
+      if (!passVal.isValid) {
+        toast.error(passVal.error || 'Invalid password');
         return;
       }
     }
 
     if (step === 'otp') {
-      const otpErr = validateOtpCode(otpCode);
-      if (otpErr) {
-        toast.error(otpErr);
+      const otpVal = validateOtpCode(otpCode);
+      if (!otpVal.isValid) {
+        toast.error(otpVal.error || 'Invalid OTP code');
         return;
       }
     }
 
     if (step === 'register_details') {
-      const nameErr = validateName(fullName, 'Full name', true);
-      if (nameErr) {
-        toast.error(nameErr);
+      const nameVal = validateName(fullName, 'Full name', true);
+      if (!nameVal.isValid) {
+        toast.error(nameVal.error || 'Invalid full name');
         return;
       }
     }

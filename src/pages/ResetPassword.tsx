@@ -152,8 +152,8 @@ const ResetPassword: React.FC = () => {
     setPasswordError(null);
     setError(null);
 
-    const passErr = validatePassword(newPassword, true, "Password");
-    if (passErr) { setPasswordError(passErr); return; }
+    const passVal = validatePassword(newPassword, true, "Password");
+    if (!passVal.isValid) { setPasswordError(passVal.error || "Password is invalid"); return; }
 
     if (newPassword !== confirmPassword) {
       setPasswordError("Passwords do not match.");

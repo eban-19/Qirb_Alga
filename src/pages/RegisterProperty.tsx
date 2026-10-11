@@ -117,7 +117,8 @@ const RegisterProperty = () => {
   };
 
   const validateEthiopianPhone = (phone: string, isBusiness: boolean = false): string | null => {
-    return validatePhone(phone, true, false, isBusiness ? 'Business phone number' : 'Phone number');
+    const val = validatePhone(phone, true, false, isBusiness ? 'Business phone number' : 'Phone number');
+    return val.error;
   };
 
   const nextStep = () => {
@@ -192,17 +193,17 @@ const RegisterProperty = () => {
     }
 
     if (formData.businessEmail) {
-      const emailErr = validateEmail(formData.businessEmail, false, "Business email");
-      if (emailErr) {
-        setError(emailErr);
+      const emailVal = validateEmail(formData.businessEmail, false, "Business email");
+      if (!emailVal.isValid) {
+        setError(emailVal.error || "Invalid business email");
         return;
       }
     }
 
     if (formData.businessPhone) {
-      const phoneErr = validatePhone(formData.businessPhone, false, false, "Business phone");
-      if (phoneErr) {
-        setError(phoneErr);
+      const phoneVal = validatePhone(formData.businessPhone, false, false, "Business phone");
+      if (!phoneVal.isValid) {
+        setError(phoneVal.error || "Invalid business phone");
         return;
       }
     }
