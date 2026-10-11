@@ -68,7 +68,7 @@ export const CreatePensionModal: React.FC<CreatePensionModalProps> = ({
       }
     }
     if (newPension.capacity !== undefined && newPension.capacity !== '') {
-      const capVal = validatePositiveInteger(newPension.capacity, 'Total Capacity', 1, 1000);
+      const capVal = validatePositiveInteger(newPension.capacity, 'Total Capacity', false, 1);
       if (!capVal.isValid) {
         setError(capVal.error);
         return;

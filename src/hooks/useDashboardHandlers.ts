@@ -47,7 +47,7 @@ export const useDashboardHandlers = (
         }
       }
       if (ui.newPension.capacity !== undefined && ui.newPension.capacity !== '') {
-        const capVal = validatePositiveInteger(ui.newPension.capacity, 'Total capacity', false, 1, 1000);
+        const capVal = validatePositiveInteger(ui.newPension.capacity, 'Total capacity', false, 1);
         if (!capVal.isValid) {
           toast.error(capVal.error || 'Invalid capacity');
           return;

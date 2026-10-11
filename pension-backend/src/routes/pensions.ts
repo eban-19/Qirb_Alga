@@ -310,7 +310,7 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
     }
 
     if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
-      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000000);
       if (capErr) return res.status(400).json({ success: false, message: capErr });
     }
 
@@ -413,7 +413,7 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
     }
 
     if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
-      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000000);
       if (capErr) return res.status(400).json({ success: false, message: capErr });
     }
 
