@@ -71,7 +71,7 @@ export const PensionProfileSection: React.FC<PensionProfileSectionProps> = ({
       }
     }
     if (propertySettings.capacity !== undefined && propertySettings.capacity !== '') {
-      const capVal = validatePositiveInteger(propertySettings.capacity, 'Total Capacity', 1, 1000);
+      const capVal = validatePositiveInteger(propertySettings.capacity, 'Total Capacity', false, 1);
       if (!capVal.isValid) {
         setError(capVal.error);
         return;

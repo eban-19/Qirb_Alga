@@ -310,7 +310,7 @@ router.post('/', authenticateToken as any, requireSubscription as any, async (re
     }
 
     if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
-      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000000);
       if (capErr) return res.status(400).json({ success: false, message: capErr });
     }
 
@@ -413,7 +413,7 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
     }
 
     if (capacity !== undefined && capacity !== null && (capacity as any) !== '') {
-      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000);
+      const capErr = validatePositiveInteger(capacity, 'Pension capacity', false, 0, 10000000);
       if (capErr) return res.status(400).json({ success: false, message: capErr });
     }
 
@@ -458,9 +458,9 @@ router.put('/:id', authenticateToken as any, requireSubscription as any, async (
         address: address || undefined,
         phone: phone || undefined,
         email: email || undefined,
-        capacity: capacity !== undefined ? parseInt(capacity as any) : undefined,
-        latitude: new Prisma.Decimal(coordinates.lat),
-        longitude: new Prisma.Decimal(coordinates.lng),
+        capacity: (capacity !== undefined && !isNaN(parseInt(capacity as any))) ? parseInt(capacity as any) : undefined,
+        latitude: (coordinates.lat !== undefined && !isNaN(Number(coordinates.lat))) ? new Prisma.Decimal(coordinates.lat) : undefined,
+        longitude: (coordinates.lng !== undefined && !isNaN(Number(coordinates.lng))) ? new Prisma.Decimal(coordinates.lng) : undefined,
         image_url: image_url || undefined,
         name_ml: name_ml || undefined,
         description_ml: description_ml || undefined,

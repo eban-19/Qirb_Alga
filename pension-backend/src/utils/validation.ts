@@ -200,10 +200,13 @@ export const validatePrice = (
 export const validatePositiveInteger = (
   val: any,
   fieldLabel = 'Value',
-  required = true,
-  min = 1,
-  max = 10000
+  requiredOrMin: boolean | number = true,
+  minVal = 1,
+  maxVal = 10000000
 ): string | null => {
+  const required = typeof requiredOrMin === 'boolean' ? requiredOrMin : true;
+  const min = typeof requiredOrMin === 'number' ? requiredOrMin : minVal;
+  const max = maxVal;
   if (val === undefined || val === null || val === '') {
     return required ? `${fieldLabel} is required` : null;
   }

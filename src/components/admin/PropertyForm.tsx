@@ -106,7 +106,7 @@ export function PropertyForm({ property, isOpen, onClose, onSave }: PropertyForm
     }
 
     if (formData.availableRooms !== undefined && formData.availableRooms !== '') {
-      const roomsVal = validatePositiveInteger(formData.availableRooms, "Available Rooms", 0);
+      const roomsVal = validatePositiveInteger(formData.availableRooms, "Available Rooms", false, 0);
       if (!roomsVal.isValid) {
         setError(roomsVal.error);
         return;
