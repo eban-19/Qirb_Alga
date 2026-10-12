@@ -84,7 +84,7 @@ class SubscriptionEnforcementService {
     const activeSub = await prisma.subscription.findFirst({
       where: {
         owner_id: ownerId,
-        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED] } // Check expired for grace period
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED] }
       },
       include: { plan: true },
       orderBy: { end_date: 'desc' }
@@ -102,74 +102,63 @@ class SubscriptionEnforcementService {
       warnings: []
     };
 
-    // Auto-grant access in development environment to avoid developer lockout
-    if (process.env.NODE_ENV !== 'production') {
-      result.trial.isActive = true;
-      result.trial.daysLeft = 999;
+    // ── 1. Active paid subscription takes priority over everything ───────────
+    if (activeSub && now < activeSub.end_date && activeSub.status === SubscriptionStatus.ACTIVE) {
+      result.hasActiveSubscription = true;
+
+      const daysUntilExpiry = Math.ceil((activeSub.end_date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const warningDays = policy.warning_days_before as number[];
+      if (warningDays && Array.isArray(warningDays) && warningDays.includes(daysUntilExpiry)) {
+        result.warnings.push(`Your subscription expires in ${daysUntilExpiry} days.`);
+      }
       return result;
     }
 
-    // 1. Evaluate Trial
+    // ── 2. Evaluate Trial ─────────────────────────────────────────────────────
     if (policy.trial_enabled && user.created_at) {
       const trialExpiry = new Date(user.created_at.getTime() + policy.trial_duration_days * 24 * 60 * 60 * 1000);
       const isTrialActive = now < trialExpiry;
 
-      if (isTrialActive && (!activeSub || activeSub.status === SubscriptionStatus.EXPIRED)) {
+      if (isTrialActive) {
         result.trial.isActive = true;
         result.trial.expiryDate = trialExpiry;
         result.trial.daysLeft = Math.max(0, Math.ceil((trialExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-        return result; // If trial is active, they are essentially "active"
+        return result;
       }
     }
 
-    // 2. Evaluate Subscription & Grace Period
+    // ── 3. Expired subscription → grace period / restrictions ─────────────────
     if (activeSub) {
-      if (now < activeSub.end_date && activeSub.status === SubscriptionStatus.ACTIVE) {
-        result.hasActiveSubscription = true;
+      const expiryDate = activeSub.end_date;
+      const gracePeriodEnd = new Date(expiryDate.getTime() + policy.grace_period_days * 24 * 60 * 60 * 1000);
+      const softRestrictionStart = gracePeriodEnd; // soft restriction begins right after grace
+      const hardRestrictionStart = new Date(softRestrictionStart.getTime() + policy.hard_restriction_days * 24 * 60 * 60 * 1000);
 
-        // Check for warnings
-        const daysUntilExpiry = Math.ceil((activeSub.end_date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const warningDays = policy.warning_days_before as number[];
-        if (warningDays && Array.isArray(warningDays)) {
-          if (warningDays.includes(daysUntilExpiry)) {
-            result.warnings.push(`Your subscription expires in ${daysUntilExpiry} days.`);
-          }
-        }
-      } else {
-        // Subscription expired. Check grace period.
-        const expiryDate = activeSub.end_date;
-        const gracePeriodEnd = new Date(expiryDate.getTime() + policy.grace_period_days * 24 * 60 * 60 * 1000);
-        const softRestrictionStart = new Date(gracePeriodEnd.getTime() + policy.soft_restriction_days * 24 * 60 * 60 * 1000);
-        const hardRestrictionStart = new Date(softRestrictionStart.getTime() + policy.hard_restriction_days * 24 * 60 * 60 * 1000);
-
-        if (now < gracePeriodEnd) {
-          // In grace period
-          result.gracePeriod.isActive = true;
-          result.gracePeriod.expiryDate = gracePeriodEnd;
-          result.gracePeriod.daysLeft = Math.max(0, Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-          result.warnings.push(`Grace period active. You have ${result.gracePeriod.daysLeft} days to renew.`);
-        } else if (now < softRestrictionStart) {
-          // Past grace period, but not yet soft restricted (if soft_restriction_days > 0)
-          // Wait, soft restriction usually starts immediately after grace period.
-          // The calculation above: softRestrictionStart = gracePeriodEnd + soft_restriction_days
-          // If soft_restriction_days is 0, softRestrictionStart == gracePeriodEnd
-        } else if (now >= softRestrictionStart && now < hardRestrictionStart) {
-          // Soft Restricted
+      if (now < gracePeriodEnd) {
+        result.gracePeriod.isActive = true;
+        result.gracePeriod.expiryDate = gracePeriodEnd;
+        result.gracePeriod.daysLeft = Math.max(0, Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        result.warnings.push(`Grace period active. You have ${result.gracePeriod.daysLeft} days to renew.`);
+      } else if (now >= softRestrictionStart && now < hardRestrictionStart) {
+        result.isSoftRestricted = true;
+        result.warnings.push(`Your account is restricted. Please renew to restore full access.`);
+      } else if (now >= hardRestrictionStart) {
+        if (process.env.NODE_ENV !== 'production') {
+          // Dev fallback: soft restriction so owner can still view dashboard
           result.isSoftRestricted = true;
-          result.warnings.push(`Your account is restricted. Please renew to restore full access.`);
-        } else if (now >= hardRestrictionStart) {
-          // Hard Restricted
+        } else {
           result.isRestricted = true;
-          result.warnings.push(`Your account has been suspended due to an expired subscription.`);
         }
-
-        // If they are past grace period and soft_restriction_days is 0, they are soft restricted
-        if (now >= gracePeriodEnd && now < hardRestrictionStart) {
-          result.isSoftRestricted = true;
-        }
+        result.warnings.push(`Your account has been suspended due to an expired subscription.`);
       }
     } else {
-      // No active sub and trial expired
+      // No subscription and trial expired/disabled
+      // In development: keep the owner unblocked to avoid total lockout,
+      // but do NOT fake an active trial — just skip restriction.
+      if (process.env.NODE_ENV !== 'production') {
+        // Dev fallback: unrestricted, but no fake trial banner
+        return result;
+      }
       result.isRestricted = true;
     }
 

@@ -732,7 +732,11 @@
     "pensionApproval": "Pension Approvals",
     "alerts": "Alerts",
     "adminPanel": "Admin Panel",
-    "managementSystem": "Management System"
+    "managementSystem": "Management System",
+    "backToHome": "Back to Home",
+    "logout": "Log Out",
+    "bookingPolicies": "Booking Policies",
+    "reviews": "Reviews & Ratings"
   },
   "adminDetails": {
     "businessInfo": "Business Information",

@@ -39,20 +39,23 @@ const SubscriptionPlans = () => {
     setIsInitializing(planId);
 
     try {
+      const ownerId = user.id || (user as any).user_id;
+      const nameParts = (user.full_name || 'Owner User').trim().split(/\s+/);
       const response = await fetch('http://localhost:3006/api/subscriptions/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ownerId: user.id,
+          ownerId,
+          userId: ownerId,
           planId,
-          email: user.email,
-          firstName: user.full_name?.split(' ')[0] || 'Owner',
-          lastName: user.full_name?.split(' ')[1] || 'User'
+          email: user.email || `owner_${ownerId}@gmail.com`,
+          firstName: nameParts[0] || 'Owner',
+          lastName: nameParts.slice(1).join(' ') || 'User'
         })
       });
 
       const data = await response.json();
-      if (data.success && data.data.checkout_url) {
+      if (data.success && data.data?.checkout_url) {
         window.location.href = data.data.checkout_url;
       } else {
         toast.error(data.message || "Failed to initialize payment.");
@@ -73,7 +76,7 @@ const SubscriptionPlans = () => {
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Scale your pension business with professional tools and unlimited bookings.
         </p>
-        
+
         {status?.trial.isActive && !status.hasActiveSubscription && (
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-primary/10 text-primary rounded-full border border-primary/20 animate-pulse">
             <Zap className="w-5 h-5" />
@@ -84,13 +87,12 @@ const SubscriptionPlans = () => {
 
       <div className="grid md:grid-cols-2 gap-8">
         {plans.map((plan) => (
-          <div 
-            key={plan.plan_id} 
-            className={`relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col ${
-              plan.promotion_banner 
-                ? 'border-rose-400 bg-rose-50/30 shadow-xl shadow-rose-500/10' 
+          <div
+            key={plan.plan_id}
+            className={`relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col ${plan.promotion_banner
+                ? 'border-rose-400 bg-rose-50/30 shadow-xl shadow-rose-500/10'
                 : 'border-border bg-card'
-            }`}
+              }`}
           >
             {plan.promotion_banner && (
               <div className="mb-6 bg-gradient-to-br from-pink-500 to-rose-500 text-white p-4 rounded-2xl shadow-md">
@@ -117,7 +119,7 @@ const SubscriptionPlans = () => {
               <div className="space-y-4 pt-6 border-t border-border">
                 {(() => {
                   try {
-                    const features = typeof plan.features === 'string' 
+                    const features = typeof plan.features === 'string'
                       ? (plan.features.startsWith('[') ? JSON.parse(plan.features) : [plan.features])
                       : (Array.isArray(plan.features) ? plan.features : []);
                     return features.map((feature: string, idx: number) => (
@@ -135,19 +137,18 @@ const SubscriptionPlans = () => {
               </div>
             </div>
 
-            <Button 
-              className={`mt-10 h-14 rounded-2xl text-lg font-bold w-full shadow-lg transition-all duration-300 ${
-                status?.subscription?.plan_id === plan.plan_id
+            <Button
+              className={`mt-10 h-14 rounded-2xl text-lg font-bold w-full shadow-lg transition-all duration-300 ${status?.subscription?.plan_id === plan.plan_id
                   ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
                   : plan.promotion_banner ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20' : ''
-              }`}
+                }`}
               onClick={() => handleSubscribe(plan.plan_id)}
               disabled={isInitializing === plan.plan_id || status?.subscription?.plan_id === plan.plan_id}
             >
-              {isInitializing === plan.plan_id 
-                ? "Initializing..." 
-                : status?.subscription?.plan_id === plan.plan_id 
-                  ? "Current Plan" 
+              {isInitializing === plan.plan_id
+                ? "Initializing..."
+                : status?.subscription?.plan_id === plan.plan_id
+                  ? "Current Plan"
                   : `Upgrade to ${plan.name}`
               }
             </Button>

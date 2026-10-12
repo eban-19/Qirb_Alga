@@ -735,7 +735,9 @@
     "adminPanel": "Admin Panel",
     "managementSystem": "Management System",
     "backToHome": "Ku Noqo Bogga Hore",
-    "logout": "Ka Bax"
+    "logout": "Ka Bax",
+    "bookingPolicies": "Siyaasadaha Buukinta",
+    "reviews": "Dib-u-eegista & Dhibcaha"
   },
   "adminDetails": {
     "businessInfo": "Business Information",

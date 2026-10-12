@@ -62,27 +62,56 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               autoFocus
-              type="search"
+              type="text"
               placeholder={t.dashboard?.searchPlaceholder || "Search bookings, rooms, guests..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border-slate-100 pl-10 h-10 rounded-full focus-visible:ring-primary focus-visible:bg-white transition-colors duration-200 shadow-none"
+              className="w-full bg-slate-50 border-slate-100 pl-10 pr-9 h-10 rounded-full focus-visible:ring-primary focus-visible:bg-white transition-colors duration-200 shadow-none"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       ) : (
         <>
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 flex-1 lg:flex-1 min-w-0">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50 flex-shrink-0"
-                onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              >
-                {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50 flex-shrink-0"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            >
+              {mobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
 
+            {/* Desktop search input */}
+            <div className="hidden md:flex relative flex-1 max-w-md items-center">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={t.dashboard?.searchPlaceholder || "Search bookings, rooms, guests, staff..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border-slate-200/80 pl-10 pr-9 h-10 rounded-xl focus-visible:ring-primary focus-visible:bg-white text-sm font-medium transition-all shadow-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -90,8 +119,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50"
+              className="md:hidden flex h-9 w-9 text-slate-500 hover:text-primary transition-colors rounded-full bg-slate-50"
               onClick={() => setIsSearchOpenMobile(true)}
+              aria-label="Open search"
             >
               <Search className="h-4 w-4" />
             </Button>

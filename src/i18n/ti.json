@@ -735,7 +735,9 @@
     "adminPanel": "Admin Panel",
     "managementSystem": "Management System",
     "backToHome": "ናብ ቀንዲ ገጽ ተመለስ",
-    "logout": "ውጻእ"
+    "logout": "ውጻእ",
+    "bookingPolicies": "ፖሊሲታት ምቕራብ",
+    "reviews": "ገምጋማት & ደረጃታት"
   },
   "adminDetails": {
     "businessInfo": "Business Information",

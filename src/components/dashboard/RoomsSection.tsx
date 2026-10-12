@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   LayoutDashboard,
@@ -14,7 +15,10 @@ import {
   CheckCircle2,
   XCircle,
   ChevronDown,
-  CalendarDays
+  CalendarDays,
+  Search,
+  X,
+  Filter
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,6 +53,8 @@ interface RoomsSectionProps {
   onUpdateStatus?: (roomId: string | number, currentStatus: string) => void;
   totalItems?: number;
   onEditRoom?: (room: any) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
@@ -65,14 +71,56 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   onSelectAll,
   totalItems = 0,
   onEditRoom,
-  onUpdateStatus
+  onUpdateStatus,
+  searchQuery,
+  onSearchChange
 }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [internalSearch, setInternalSearch] = useState('');
+  const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Available' | 'Occupied' | 'Maintenance'>('all');
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+    onPageChange?.(1);
+  };
 
   const safeRooms = Array.isArray(rooms) ? rooms : [];
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const filteredRooms = useMemo(() => {
+    return safeRooms.filter((r) => {
+      if (statusFilter !== 'all') {
+        const rStatus = (r.status || '').toLowerCase();
+        if (statusFilter === 'Available' && !rStatus.includes('available')) return false;
+        if (statusFilter === 'Occupied' && !rStatus.includes('occupied')) return false;
+        if (statusFilter === 'Maintenance' && !rStatus.includes('maintenance')) return false;
+      }
+      if (currentSearch.trim()) {
+        const q = currentSearch.toLowerCase().trim();
+        const num = String(r.room_number || r.room_id || r.id || '').toLowerCase();
+        const type = String(r.type || r.name || '').toLowerCase();
+        const status = String(r.status || '').toLowerCase();
+        const floor = String(r.floor || '').toLowerCase();
+        const price = String(r.price || r.daily_rate || '').toLowerCase();
+        const capacity = String(r.capacity || '').toLowerCase();
+        return num.includes(q) || type.includes(q) || status.includes(q) || floor.includes(q) || price.includes(q) || capacity.includes(q);
+      }
+      return true;
+    });
+  }, [safeRooms, currentSearch, statusFilter]);
+
+  const effectiveTotalItems = filteredRooms.length;
+  const totalPages = Math.ceil(effectiveTotalItems / pagination.limit) || 1;
+  const paginatedRooms = filteredRooms.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -143,65 +191,110 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
         itemCount={selectedRows.length}
       />
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {/* View Toggle */}
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
-              ? "bg-primary text-white shadow-lg shadow-primary/25"
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-              }`}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            {t.dashboard?.cards || "Cards"}
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={onToggleView}
-            className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
-              ? "bg-primary text-white shadow-lg shadow-primary/25"
-              : "hover:bg-white hover:text-primary hover:shadow-md"
-              }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            {t.dashboard?.table || "Table"}
-          </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* Search and Status Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder={t.dashboard?.searchRoomsPlaceholder || t.adminTabs?.pensions?.searchPlaceholder || "Search room #, type, price..."}
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 pr-8 bg-slate-50 border-slate-200 rounded-xl focus:bg-white transition-colors h-10 text-sm font-medium"
+            />
+            {currentSearch && (
+              <button
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-initial">
+            <Filter className="h-4 w-4 text-slate-500 shrink-0" />
+            <Select value={statusFilter} onValueChange={(val: any) => { setStatusFilter(val); onPageChange?.(1); }}>
+              <SelectTrigger className="w-full sm:w-[150px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Available">Available</SelectItem>
+                <SelectItem value="Occupied">Occupied</SelectItem>
+                <SelectItem value="Maintenance">Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button
-            onClick={onAddNewRoom}
-            className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            {t.dashboard?.addRoom || "Add Room"}
-          </Button>
+        <div className="flex items-center gap-3 ml-auto flex-wrap sm:flex-nowrap">
+          {/* View Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={onToggleView}
+              className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "card"
+                ? "bg-primary text-white shadow-lg shadow-primary/25"
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+                }`}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {t.dashboard?.cards || "Cards"}
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={onToggleView}
+              className={`gap-2 rounded-lg transition-all duration-300 ${viewMode === "table"
+                ? "bg-primary text-white shadow-lg shadow-primary/25"
+                : "hover:bg-white hover:text-primary hover:shadow-md"
+                }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {t.dashboard?.table || "Table"}
+            </Button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button
+              onClick={onAddNewRoom}
+              className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-300"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {t.dashboard?.addRoom || "Add Room"}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Cards View */}
       {viewMode === "card" && (
         <>
-          {safeRooms.length === 0 ? (
-            <div className="text-center py-12">
+          {paginatedRooms.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-100 p-6">
               <div className="mx-auto w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <LayoutDashboard className="h-12 w-12 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                {t.dashboard?.noRoomsFound || "No rooms found"}
+                {currentSearch || statusFilter !== 'all' ? (t.dashboard?.noRoomsMatchingSearch || "No rooms match your search or filter") : (t.dashboard?.noRoomsFound || "No rooms found")}
               </h3>
               <p className="text-slate-500 mb-4">
-                {t.dashboard?.getStartedAddRoom || "Get started by adding your first room to this pension."}
+                {currentSearch || statusFilter !== 'all' ? (t.adminTabs?.common?.adjustSearch || "Try adjusting your search query or filter.") : (t.dashboard?.getStartedAddRoom || "Get started by adding your first room to this pension.")}
               </p>
+              {(currentSearch || statusFilter !== 'all') && (
+                <Button variant="outline" size="sm" onClick={() => { handleSearchChange(''); setStatusFilter('all'); }} className="rounded-xl font-bold">
+                  {t.adminTabs?.common?.clearSearch || "Clear Filters"}
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid gap-6 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {safeRooms.map((room) => (
+              {paginatedRooms.map((room) => (
                 <Card key={room.id} className={`group border-none shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white ${selectedRows.includes(room.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className={`h-3 w-full ${room.status === "Available" ? "bg-emerald-500" :
                     room.status === "Available (Future Bookings)" ? "bg-teal-500" :
@@ -305,10 +398,10 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
                       <Checkbox
-                        checked={safeRooms.length > 0 && selectedRows.length === safeRooms.length}
+                        checked={paginatedRooms.length > 0 && selectedRows.length === paginatedRooms.length}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            onSelectAll?.(safeRooms.map(r => r.id));
+                            onSelectAll?.(paginatedRooms.map(r => r.id));
                           } else {
                             onSelectAll?.([]);
                           }
@@ -316,7 +409,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       />
                     </TableHead>
                     <TableHead className="font-bold">
-                      {t.dashboard?.roomNumber || "Room Number"}
+                      {t.dashboard?.roomNumber || "Room #"}
                     </TableHead>
                     <TableHead className="font-bold">
                       {t.dashboard?.type || "Type"}
@@ -336,19 +429,24 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {safeRooms.length === 0 ? (
+                  {paginatedRooms.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-12">
                         <div className="flex flex-col items-center">
-                          <LayoutDashboard className="h-12 w-12 text-slate-400 mb-2" />
-                          <p className="text-slate-500">
-                            {t.dashboard?.noRoomsFound || "No rooms found"}
+                          <LayoutDashboard className="h-10 w-10 text-slate-300 mb-2" />
+                          <p className="text-slate-500 font-semibold">
+                            {currentSearch || statusFilter !== 'all' ? (t.dashboard?.noRoomsMatchingSearch || "No rooms match your search or filter") : (t.dashboard?.noRoomsFound || "No rooms found")}
                           </p>
+                          {(currentSearch || statusFilter !== 'all') && (
+                            <Button variant="outline" size="sm" onClick={() => { handleSearchChange(''); setStatusFilter('all'); }} className="mt-2 text-xs font-bold rounded-lg">
+                              {t.adminTabs?.common?.clearSearch || "Clear Filters"}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    safeRooms.map((room) => (
+                    paginatedRooms.map((room) => (
                       <TableRow key={room.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(room.id) ? 'bg-blue-50/30' : ''}`}>
                         <TableCell className="px-4">
                           <Checkbox
@@ -416,12 +514,12 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
               <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
                 <span className="hidden sm:inline">
                   {t.dashboard?.showingRooms ? (
-                    t.dashboard.showingRooms.replace('{count}', String(safeRooms.length)).replace('{total}', String(totalItems))
+                    t.dashboard.showingRooms.replace('{count}', String(paginatedRooms.length)).replace('{total}', String(effectiveTotalItems))
                   ) : (
-                    <>Showing <span className="text-slate-900">{safeRooms.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                    <>Showing <span className="text-slate-900">{paginatedRooms.length}</span> of <span className="text-slate-900">{effectiveTotalItems}</span></>
                   )}
                 </span>
-                <span className="sm:hidden text-slate-900 font-extrabold">{safeRooms.length}/{totalItems}</span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{paginatedRooms.length}/{effectiveTotalItems}</span>
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">

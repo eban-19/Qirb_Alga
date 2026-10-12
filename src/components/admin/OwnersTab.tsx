@@ -534,7 +534,7 @@ export function OwnersTab({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="hover:bg-blue-50 hover:border-blue-300 flex items-center gap-2 px-3 py-1.5 text-sm"
+                                className="text-slate-700 hover:text-slate-900 hover:bg-blue-50 hover:border-blue-300 flex items-center gap-2 px-3 py-1.5 text-sm"
                               >
                                 <span>{t.adminTabs?.common?.actions || "Actions"}</span>
                                 <ChevronDown className="w-3 h-3" />

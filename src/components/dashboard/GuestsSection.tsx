@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -15,7 +16,11 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Search,
+  X,
+  Filter,
+  Users
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +44,8 @@ interface GuestsSectionProps {
   onToggleSelection?: (id: string | number) => void;
   onSelectAll?: (ids: (string | number)[]) => void;
   totalItems?: number;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const GuestsSection: React.FC<GuestsSectionProps> = ({
@@ -51,12 +58,52 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
   selectedRows = [],
   onToggleSelection,
   onSelectAll,
-  totalItems = 0
+  totalItems = 0,
+  searchQuery,
+  onSearchChange
 }) => {
   const { t } = useLanguage();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [internalSearch, setInternalSearch] = useState('');
+  const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Checked In' | 'Checked Out' | 'Active'>('all');
+
+  const handleSearchChange = (val: string) => {
+    if (onSearchChange) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+    onPageChange?.(1);
+  };
+
   const safeGuests = Array.isArray(guests) ? guests : [];
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
+
+  const filteredGuests = useMemo(() => {
+    return safeGuests.filter((g) => {
+      if (statusFilter !== 'all') {
+        const gStatus = (g.status || '').toLowerCase();
+        if (!gStatus.includes(statusFilter.toLowerCase())) return false;
+      }
+      if (currentSearch.trim()) {
+        const q = currentSearch.toLowerCase().trim();
+        const name = String(g.name || '').toLowerCase();
+        const phone = String(g.phone || '').toLowerCase();
+        const nationality = String(g.nationality || '').toLowerCase();
+        const room = String(g.room_number || g.roomId || g.room || '').toLowerCase();
+        const status = String(g.status || '').toLowerCase();
+        return name.includes(q) || phone.includes(q) || nationality.includes(q) || room.includes(q) || status.includes(q);
+      }
+      return true;
+    });
+  }, [safeGuests, currentSearch, statusFilter]);
+
+  const effectiveTotalItems = filteredGuests.length;
+  const totalPages = Math.ceil(effectiveTotalItems / pagination.limit) || 1;
+  const paginatedGuests = filteredGuests.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  );
 
   const getPageNumbers = () => {
     const pages = [];
@@ -66,8 +113,46 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* Search and Status Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder={t.dashboard?.searchGuestsPlaceholder || t.adminTabs?.customers?.searchPlaceholder || "Search by name, phone, nationality..."}
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 pr-8 bg-slate-50 border-slate-200 rounded-xl focus:bg-white transition-colors h-10 text-sm font-medium"
+            />
+            {currentSearch && (
+              <button
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-initial">
+            <Filter className="h-4 w-4 text-slate-500 shrink-0" />
+            <Select value={statusFilter} onValueChange={(val: any) => { setStatusFilter(val); onPageChange?.(1); }}>
+              <SelectTrigger className="w-full sm:w-[150px] h-9 rounded-lg border-none bg-transparent focus:ring-0 focus:ring-offset-0 font-semibold text-slate-700">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Checked In">Checked In</SelectItem>
+                <SelectItem value="Checked Out">Checked Out</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shadow-inner w-fit ml-auto">
           <Button
             variant={viewMode === "card" ? "default" : "ghost"}
             size="sm"
@@ -138,56 +223,64 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
 
       {/* Cards View */}
       {viewMode === "card" && (
-        <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {safeGuests.map((guest) => (
-            <Card key={guest.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden ${selectedRows.includes(guest.id) ? 'ring-2 ring-primary' : ''}`}>
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <CardContent className="p-6 relative">
-                <div className="absolute top-4 right-4">
-                  <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
-                </div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold shadow-lg group-hover:shadow-purple-500/25 group-hover:scale-110 transition-all duration-300">
-                      {guest.name.charAt(0)}
-                    </Avatar>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-purple-600 transition-colors">{guest.name}</h3>
-                      <p className="text-sm text-slate-600 flex items-center gap-1"><Phone className="h-3 w-3" />{guest.phone}</p>
+        paginatedGuests.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-100 shadow-sm">
+            <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-slate-800">No guests found</h3>
+            <p className="text-sm text-slate-500 mt-1">Try adjusting your search query or status filter.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedGuests.map((guest) => (
+              <Card key={guest.id} className={`group border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 relative overflow-hidden ${selectedRows.includes(guest.id) ? 'ring-2 ring-primary' : ''}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <CardContent className="p-6 relative">
+                  <div className="absolute top-4 right-4">
+                    <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
+                  </div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white text-sm font-bold shadow-lg group-hover:shadow-purple-500/25 group-hover:scale-110 transition-all duration-300">
+                        {guest.name.charAt(0)}
+                      </Avatar>
+                      <div className="space-y-1">
+                        <h3 className="font-bold text-slate-900 text-lg group-hover:text-purple-600 transition-colors">{guest.name}</h3>
+                        <p className="text-sm text-slate-600 flex items-center gap-1"><Phone className="h-3 w-3" />{guest.phone}</p>
+                      </div>
+                    </div>
+                    <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
+                      guest.status === 'Checked Out' ? 'bg-slate-500' :
+                        guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
+                      } text-white text-xs shadow-sm shadow-black/5`}>
+                      {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
+                        guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                          guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
+                            (guest.status || 'N/A')}
+                    </Badge>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><Building className="h-4 w-4 text-purple-600" />{t.dashboard?.nationality || "Nationality"}</span>
+                      <span className="font-bold text-slate-900">{guest.nationality}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><BedDouble className="h-4 w-4 text-purple-600" />{t.dashboard?.room || "Room"}</span>
+                      <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><CalendarCheck className="h-4 w-4 text-purple-600" />{t.dashboard?.totalBookings || "Total Bookings"}</span>
+                      <span className="font-bold text-slate-900">{guest.totalBookings}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 shadow-sm">
+                      <span className="text-sm font-bold text-emerald-700 flex items-center gap-2"><DollarSign className="h-4 w-4" />{t.dashboard?.totalSpent || "Total Spent"}</span>
+                      <span className="font-bold text-emerald-700 text-lg">ETB {guest.totalSpent.toLocaleString()}</span>
                     </div>
                   </div>
-                  <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
-                    guest.status === 'Checked Out' ? 'bg-slate-500' :
-                      guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
-                    } text-white text-xs shadow-sm shadow-black/5`}>
-                    {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
-                      guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
-                        guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
-                          (guest.status || 'N/A')}
-                  </Badge>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><Building className="h-4 w-4 text-purple-600" />{t.dashboard?.nationality || "Nationality"}</span>
-                    <span className="font-bold text-slate-900">{guest.nationality}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><BedDouble className="h-4 w-4 text-purple-600" />{t.dashboard?.room || "Room"}</span>
-                    <span className="font-bold text-slate-900">{guest.room_number || guest.roomId || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="text-sm text-slate-600 flex items-center gap-2 font-medium"><CalendarCheck className="h-4 w-4 text-purple-600" />{t.dashboard?.totalBookings || "Total Bookings"}</span>
-                    <span className="font-bold text-slate-900">{guest.totalBookings}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 shadow-sm">
-                    <span className="text-sm font-bold text-emerald-700 flex items-center gap-2"><DollarSign className="h-4 w-4" />{t.dashboard?.totalSpent || "Total Spent"}</span>
-                    <span className="font-bold text-emerald-700 text-lg">ETB {guest.totalSpent.toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       )}
 
       {/* Table View */}
@@ -200,10 +293,10 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                   <TableRow className="hover:bg-transparent border-slate-100">
                     <TableHead className="w-[50px] px-4">
                       <Checkbox
-                        checked={safeGuests.length > 0 && selectedRows.length === safeGuests.length}
+                        checked={paginatedGuests.length > 0 && paginatedGuests.every(g => selectedRows.includes(g.id))}
                         onCheckedChange={(checked) => {
-                          if (checked) onSelectAll?.(safeGuests.map(g => g.id));
-                          else onSelectAll?.([]);
+                          if (checked) onSelectAll?.(Array.from(new Set([...selectedRows, ...paginatedGuests.map(g => g.id)])));
+                          else onSelectAll?.(selectedRows.filter(id => !paginatedGuests.some(g => g.id === id)));
                         }}
                       />
                     </TableHead>
@@ -217,30 +310,40 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {safeGuests.map((guest) => (
-                    <TableRow key={guest.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(guest.id) ? 'bg-blue-50/30' : ''}`}>
-                      <TableCell className="px-4">
-                        <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
+                  {paginatedGuests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-slate-500">
+                        <Users className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                        <p className="font-semibold text-slate-700">No guests found</p>
+                        <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or status filter.</p>
                       </TableCell>
-                      <TableCell><p className="font-bold text-slate-900">{guest.name}</p></TableCell>
-                      <TableCell className="font-medium">{guest.phone}</TableCell>
-                      <TableCell>{guest.nationality}</TableCell>
-                      <TableCell className="font-bold text-purple-700">{guest.room_number || guest.roomId || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
-                          guest.status === 'Checked Out' ? 'bg-slate-500' :
-                            guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
-                          } text-white text-xs shadow-sm`}>
-                          {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
-                            guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
-                              guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
-                                (guest.status || 'N/A')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600">ETB {guest.totalSpent.toLocaleString()}</TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    paginatedGuests.map((guest) => (
+                      <TableRow key={guest.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRows.includes(guest.id) ? 'bg-blue-50/30' : ''}`}>
+                        <TableCell className="px-4">
+                          <Checkbox checked={selectedRows.includes(guest.id)} onCheckedChange={() => onToggleSelection?.(guest.id)} />
+                        </TableCell>
+                        <TableCell><p className="font-bold text-slate-900">{guest.name}</p></TableCell>
+                        <TableCell className="font-medium">{guest.phone}</TableCell>
+                        <TableCell>{guest.nationality}</TableCell>
+                        <TableCell className="font-bold text-purple-700">{guest.room_number || guest.roomId || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge className={`${guest.status === 'Checked In' ? 'bg-emerald-500' :
+                            guest.status === 'Checked Out' ? 'bg-slate-500' :
+                              guest.status === 'Active' ? 'bg-blue-500' : 'bg-amber-500'
+                            } text-white text-xs shadow-sm`}>
+                            {guest.status === 'Checked In' ? (t.dashboard?.checkedIn || 'Checked In') :
+                              guest.status === 'Checked Out' ? (t.dashboard?.checkedOut || 'Checked Out') :
+                                guest.status === 'Active' ? (t.dashboard?.active || 'Active') :
+                                  (guest.status || 'N/A')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">{guest.totalBookings}</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600">ETB {guest.totalSpent.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -250,12 +353,12 @@ export const GuestsSection: React.FC<GuestsSectionProps> = ({
               <div className="text-[10px] sm:text-sm font-bold text-slate-500 shrink-0">
                 <span className="hidden sm:inline">
                   {t.dashboard?.showingGuests ? (
-                    t.dashboard.showingGuests.replace('{count}', String(safeGuests.length)).replace('{total}', String(totalItems))
+                    t.dashboard.showingGuests.replace('{count}', String(paginatedGuests.length)).replace('{total}', String(effectiveTotalItems))
                   ) : (
-                    <>Showing <span className="text-slate-900">{safeGuests.length}</span> of <span className="text-slate-900">{totalItems}</span></>
+                    <>Showing <span className="text-slate-900">{paginatedGuests.length}</span> of <span className="text-slate-900">{effectiveTotalItems}</span></>
                   )}
                 </span>
-                <span className="sm:hidden text-slate-900 font-extrabold">{safeGuests.length}/{totalItems}</span>
+                <span className="sm:hidden text-slate-900 font-extrabold">{paginatedGuests.length}/{effectiveTotalItems}</span>
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
