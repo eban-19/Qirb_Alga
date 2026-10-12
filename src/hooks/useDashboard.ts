@@ -136,7 +136,7 @@ export const useDashboard = () => {
     longitude: undefined as number | undefined
   });
   const [businessProfile, setBusinessProfile] = useState({
-    businessName: '', businessEmail: '', businessPhone: ''
+    businessName: '', businessEmail: '', businessPhone: '', approvalStatus: 'Pending', licenseNumber: '', idDocumentUrl: ''
   });
   const [bankSettings, setBankSettings] = useState({
     bankId: '', bankName: '', accountName: '', accountNumber: '', chapaSubaccountId: ''

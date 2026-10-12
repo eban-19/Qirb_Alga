@@ -42,6 +42,7 @@ import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 import { Button } from '../components/ui/button';
 import {
   Calendar,
+  Clock,
   AlertCircle,
   Zap,
   Bed,
@@ -72,12 +73,6 @@ const Dashboard: React.FC = () => {
   // Initialize Hooks
   const ui = useDashboard();
   const data = useDashboardData(ui);
-
-  React.useEffect(() => {
-    if (status?.isRestricted && ui.activeTab !== "subscription") {
-      navigate("/dashboard/subscription");
-    }
-  }, [status, ui.activeTab]);
   const handlers = useDashboardHandlers(data, ui, data.loadRealData);
 
   // Derived State
@@ -245,7 +240,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {ui.activeTab === "overview" && !status?.isRestricted && (
+            {ui.activeTab === "overview" && (
               <OverviewSection
                 stats={{
                   staffCount: data.staffData.length,
@@ -284,7 +279,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "staff" && !status?.isRestricted && (
+            {ui.activeTab === "staff" && (
               <StaffSection
                 staff={data.staffData}
                 viewMode={ui.viewModes.staff}
@@ -307,7 +302,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "bookings" && !status?.isRestricted && (
+            {ui.activeTab === "bookings" && (
               <BookingSection
                 bookings={data.bookings}
                 viewMode={ui.viewModes.bookings}
@@ -327,7 +322,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "rooms" && !status?.isRestricted && (
+            {ui.activeTab === "rooms" && (
               <RoomsSection
                 rooms={data.roomsData}
                 viewMode={ui.viewModes.rooms}
@@ -347,11 +342,11 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "room-calendar" && !status?.isRestricted && (
+            {ui.activeTab === "room-calendar" && (
               <RoomCalendarSection />
             )}
 
-            {ui.activeTab === "guests" && !status?.isRestricted && (
+            {ui.activeTab === "guests" && (
               <GuestsSection
                 guests={data.guestsData}
                 viewMode={ui.viewModes.guests}
@@ -368,7 +363,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "transactions" && !status?.isRestricted && (
+            {ui.activeTab === "transactions" && (
               <TransactionsSection
                 transactions={data.recentTransactions}
                 pagination={ui.pagination.transactions}
@@ -386,7 +381,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "pension-profile" && !status?.isRestricted && (
+            {ui.activeTab === "pension-profile" && (
               <PensionProfileSection
                 propertySettings={ui.propertySettings}
                 setPropertySettings={ui.setPropertySettings}
@@ -398,7 +393,7 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "packages" && !status?.isRestricted && (
+            {ui.activeTab === "packages" && (
               <PackageTierSection
                 packages={data.packages.slice(
                   (ui.pagination.packages.page - 1) * ui.pagination.packages.limit,
@@ -429,19 +424,19 @@ const Dashboard: React.FC = () => {
               />
             )}
 
-            {ui.activeTab === "pricing-policies" && !status?.isRestricted && (
-              <PricingPoliciesSection pensionId={data.selectedPensionId as number} />
+            {ui.activeTab === "pricing-policies" && (
+              <PricingPoliciesSection pensionId={Number(data.selectedPensionId)} />
             )}
 
-            {ui.activeTab === "booking-policies" && !status?.isRestricted && (
-              <BookingPoliciesModule pensionId={data.selectedPensionId as number} />
+            {ui.activeTab === "booking-policies" && (
+              <BookingPoliciesModule pensionId={Number(data.selectedPensionId)} />
             )}
 
-            {ui.activeTab === "promotions" && !status?.isRestricted && (
+            {ui.activeTab === "promotions" && (
               <PromotionsSection />
             )}
 
-            {ui.activeTab === "reports" && !status?.isRestricted && (
+            {ui.activeTab === "reports" && (
               <ReportsSection
                 totalRevenue={data.totalRevenue}
                 totalExpenses={data.totalExpenses}
@@ -465,7 +460,7 @@ const Dashboard: React.FC = () => {
 
             {ui.activeTab === "subscription" && <SubscriptionPlans />}
 
-            {ui.activeTab === "reviews" && !status?.isRestricted && (
+            {ui.activeTab === "reviews" && (
               <OwnerReviewsSection pensionId={data.selectedPensionId} />
             )}
 
@@ -478,10 +473,10 @@ const Dashboard: React.FC = () => {
                 setBankSettings={ui.setBankSettings}
                 securitySettings={ui.securitySettings}
                 setSecuritySettings={ui.setSecuritySettings}
-                approvalStatus="Approved"
+                approvalStatus={ui.businessProfile?.approvalStatus || (user?.approved ? 'Approved' : 'Pending')}
                 isUpdating={ui.isUpdating}
                 setIsUpdating={ui.setIsUpdating}
-                onSaveBusinessProfile={() => { }}
+                onSaveBusinessProfile={handlers.handleSaveBusinessProfile}
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => { }}
                 showSaveSuccess={ui.showSaveSuccess}

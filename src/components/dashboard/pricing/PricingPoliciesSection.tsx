@@ -25,6 +25,7 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
   const [policies, setPolicies] = useState<PricingPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<PricingPolicy | null>(null);
 
   useEffect(() => {
     fetchPolicies();
@@ -33,9 +34,9 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
   const fetchPolicies = async () => {
     try {
       setLoading(true);
-      const res = await apiService.request('/pricing-policies');
-      if (res.success) {
-        setPolicies(res.policies);
+      const res: any = await (apiService as any).request('/pricing-policies');
+      if (res && res.success) {
+        setPolicies(res.policies || []);
       }
     } catch (error) {
       console.error('Failed to fetch pricing policies', error);
@@ -47,8 +48,8 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this policy?')) return;
     try {
-      const res = await apiService.request(`/pricing-policies/${id}`, { method: 'DELETE' });
-      if (res.success) {
+      const res: any = await (apiService as any).request(`/pricing-policies/${id}`, { method: 'DELETE' });
+      if (res && res.success) {
         setPolicies(prev => prev.filter(p => p.policy_id !== id));
       }
     } catch (error) {
@@ -58,11 +59,11 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
 
   const toggleActive = async (policy: PricingPolicy) => {
     try {
-      const res = await apiService.request(`/pricing-policies/${policy.policy_id}`, {
+      const res: any = await (apiService as any).request(`/pricing-policies/${policy.policy_id}`, {
         method: 'PUT',
         body: JSON.stringify({ is_active: !policy.is_active })
       });
-      if (res.success) {
+      if (res && res.success) {
         setPolicies(prev => prev.map(p => p.policy_id === policy.policy_id ? { ...p, is_active: !p.is_active } : p));
       }
     } catch (error) {
@@ -103,15 +104,21 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
     return <div className="p-8 text-center text-slate-500">Loading pricing policies...</div>;
   }
 
-  if (isCreating) {
+  if (isCreating || editingPolicy) {
     return (
-      <PolicyBuilder 
-        pensionId={pensionId} 
-        onBack={() => setIsCreating(false)} 
+      <PolicyBuilder
+        pensionId={pensionId}
+        initialPolicy={editingPolicy}
+        existingCategories={Array.from(new Set(policies.map(p => p.category).filter(Boolean)))}
+        onBack={() => {
+          setIsCreating(false);
+          setEditingPolicy(null);
+        }}
         onSaved={() => {
           setIsCreating(false);
+          setEditingPolicy(null);
           fetchPolicies();
-        }} 
+        }}
       />
     );
   }
@@ -151,7 +158,7 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
             <Card key={policy.policy_id} className={`transition-all duration-200 border-2 ${policy.is_active ? 'border-primary/20 shadow-md shadow-primary/5' : 'border-slate-100 opacity-75'}`}>
               <CardHeader className="pb-3 relative">
                 <div className="absolute top-4 right-4 flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary">
+                  <Button variant="ghost" size="icon" onClick={() => setEditingPolicy(policy)} className="h-8 w-8 text-slate-400 hover:text-primary">
                     <Edit2 className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDelete(policy.policy_id)} className="h-8 w-8 text-slate-400 hover:text-red-600">
@@ -182,8 +189,8 @@ export const PricingPoliciesSection: React.FC<{ pensionId: number }> = ({ pensio
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant={policy.is_active ? "outline" : "default"} 
+                  <Button
+                    variant={policy.is_active ? "outline" : "default"}
                     className={`w-full gap-2 ${policy.is_active ? 'border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300' : ''}`}
                     onClick={() => toggleActive(policy)}
                   >

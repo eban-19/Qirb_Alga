@@ -143,7 +143,12 @@ class SubscriptionEnforcementService {
         result.isSoftRestricted = true;
         result.warnings.push(`Your account is restricted. Please renew to restore full access.`);
       } else if (now >= hardRestrictionStart) {
-        result.isRestricted = true;
+        if (process.env.NODE_ENV !== 'production') {
+          // Dev fallback: soft restriction so owner can still view dashboard
+          result.isSoftRestricted = true;
+        } else {
+          result.isRestricted = true;
+        }
         result.warnings.push(`Your account has been suspended due to an expired subscription.`);
       }
     } else {

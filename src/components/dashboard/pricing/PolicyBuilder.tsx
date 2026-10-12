@@ -6,15 +6,47 @@ import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import apiService from '../../../services/api';
 
+const STANDARD_CATEGORIES = [
+  { value: 'SEASONAL', label: 'Seasonal' },
+  { value: 'WEEKEND', label: 'Weekend Rate' },
+  { value: 'MINIMUM_STAY', label: 'Minimum Stay' },
+  { value: 'LONG_STAY', label: 'Long Stay Discount' },
+  { value: 'OCCUPANCY', label: 'Occupancy Based' },
+  { value: 'CHILD', label: 'Child Policy' },
+  { value: 'EXTRA_BED', label: 'Extra Bed Charge' },
+  { value: 'CANCELLATION', label: 'Cancellation Fee' },
+  { value: 'REFUND', label: 'Refund Policy' },
+];
+
 interface PolicyBuilderProps {
   onBack: () => void;
   onSaved: () => void;
   pensionId: number;
+  initialPolicy?: any;
+  existingCategories?: string[];
 }
 
-export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, pensionId }) => {
+export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({
+  onBack,
+  onSaved,
+  pensionId,
+  initialPolicy,
+  existingCategories = []
+}) => {
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<any[]>([]);
+
+  // Load custom categories from existing policies and localStorage
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    const standardValues = STANDARD_CATEGORIES.map(s => s.value);
+    const fromProps = (existingCategories || []).filter(c => c && !standardValues.includes(c));
+    let fromStorage: string[] = [];
+    try {
+      const stored = localStorage.getItem(`custom_policy_categories_${pensionId}`);
+      if (stored) fromStorage = JSON.parse(stored);
+    } catch (e) { }
+    return Array.from(new Set([...fromProps, ...fromStorage]));
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +66,58 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
   });
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
+
+  // Sync external custom categories if passed in
+  useEffect(() => {
+    if (existingCategories && existingCategories.length > 0) {
+      const standardValues = STANDARD_CATEGORIES.map(s => s.value);
+      const fromProps = existingCategories.filter(c => c && !standardValues.includes(c));
+      if (fromProps.length > 0) {
+        setCustomCategories(prev => {
+          const merged = Array.from(new Set([...prev, ...fromProps]));
+          try {
+            localStorage.setItem(`custom_policy_categories_${pensionId}`, JSON.stringify(merged));
+          } catch (e) { }
+          return merged;
+        });
+      }
+    }
+  }, [existingCategories, pensionId]);
+
+  // Pre-fill form if editing
+  useEffect(() => {
+    if (initialPolicy) {
+      const standardValues = STANDARD_CATEGORIES.map(s => s.value);
+      const isCustom = initialPolicy.category && !standardValues.includes(initialPolicy.category);
+      if (isCustom) {
+        setCustomCategories(prev => {
+          const merged = Array.from(new Set([...prev, initialPolicy.category]));
+          try {
+            localStorage.setItem(`custom_policy_categories_${pensionId}`, JSON.stringify(merged));
+          } catch (e) { }
+          return merged;
+        });
+      }
+      setFormData({
+        name: initialPolicy.name || '',
+        category: initialPolicy.category || 'SEASONAL',
+        description: initialPolicy.description || '',
+        package_id: initialPolicy.package_id ? String(initialPolicy.package_id) : '',
+        start_date: initialPolicy.start_date ? initialPolicy.start_date.substring(0, 10) : '',
+        end_date: initialPolicy.end_date ? initialPolicy.end_date.substring(0, 10) : '',
+        min_nights: initialPolicy.min_nights !== null && initialPolicy.min_nights !== undefined ? String(initialPolicy.min_nights) : '',
+        max_nights: initialPolicy.max_nights !== null && initialPolicy.max_nights !== undefined ? String(initialPolicy.max_nights) : '',
+        min_guests: initialPolicy.min_guests !== null && initialPolicy.min_guests !== undefined ? String(initialPolicy.min_guests) : '',
+        max_guests: initialPolicy.max_guests !== null && initialPolicy.max_guests !== undefined ? String(initialPolicy.max_guests) : '',
+        adjustment_type: initialPolicy.adjustment_type || 'PERCENTAGE',
+        adjustment_value: initialPolicy.adjustment_value !== null && initialPolicy.adjustment_value !== undefined ? String(initialPolicy.adjustment_value) : '',
+        priority: initialPolicy.priority !== null && initialPolicy.priority !== undefined ? String(initialPolicy.priority) : '0',
+        rules: initialPolicy.rules || {}
+      });
+      setIsCustomCategory(false);
+      setCustomCategoryName('');
+    }
+  }, [initialPolicy, pensionId]);
 
   useEffect(() => {
     // Fetch packages to populate dropdown
@@ -60,6 +144,24 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
     }));
   };
 
+  // Explicitly add custom category to the dropdown list
+  const handleAddCustomCategory = () => {
+    if (!customCategoryName.trim()) {
+      alert("Please enter a category name.");
+      return;
+    }
+    const formatted = customCategoryName.trim().toUpperCase().replace(/\s+/g, '_');
+    const updated = Array.from(new Set([...customCategories, formatted]));
+    setCustomCategories(updated);
+    try {
+      localStorage.setItem(`custom_policy_categories_${pensionId}`, JSON.stringify(updated));
+    } catch (e) { }
+
+    setFormData(prev => ({ ...prev, category: formatted }));
+    setIsCustomCategory(false);
+    setCustomCategoryName('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -69,14 +171,19 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
       return;
     }
 
-    if (isCustomCategory && !customCategoryName.trim()) {
-      alert("Please provide a name for your custom category.");
-      return;
+    let actualCategory = formData.category;
+    if (isCustomCategory) {
+      if (!customCategoryName.trim()) {
+        alert("Please provide a name for your custom category.");
+        return;
+      }
+      actualCategory = customCategoryName.trim().toUpperCase().replace(/\s+/g, '_');
+      const updated = Array.from(new Set([...customCategories, actualCategory]));
+      setCustomCategories(updated);
+      try {
+        localStorage.setItem(`custom_policy_categories_${pensionId}`, JSON.stringify(updated));
+      } catch (e) { }
     }
-
-    const actualCategory = isCustomCategory
-      ? (customCategoryName.trim().toUpperCase().replace(/\s+/g, '_') || 'CUSTOM')
-      : formData.category;
 
     if ((actualCategory === 'LONG_STAY' || actualCategory === 'MINIMUM_STAY') && !formData.min_nights) {
       alert("Please specify the Minimum Nights required for this policy.");
@@ -106,8 +213,12 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
         is_active: true
       };
 
-      const res: any = await (apiService as any).request('/pricing-policies', {
-        method: 'POST',
+      const isEditing = Boolean(initialPolicy?.policy_id);
+      const endpoint = isEditing ? `/pricing-policies/${initialPolicy.policy_id}` : '/pricing-policies';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res: any = await (apiService as any).request(endpoint, {
+        method,
         body: JSON.stringify(payload)
       });
 
@@ -131,7 +242,9 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Create Pricing Policy</h2>
+          <h2 className="text-2xl font-bold text-slate-900">
+            {initialPolicy ? 'Edit Pricing Policy' : 'Create Pricing Policy'}
+          </h2>
           <p className="text-slate-500">Define automated rules to adjust your prices dynamically.</p>
         </div>
       </div>
@@ -168,31 +281,52 @@ export const PolicyBuilder: React.FC<PolicyBuilderProps> = ({ onBack, onSaved, p
                 }}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="SEASONAL">Seasonal</option>
-                <option value="WEEKEND">Weekend Rate</option>
-                <option value="MINIMUM_STAY">Minimum Stay</option>
-                <option value="LONG_STAY">Long Stay Discount</option>
-                <option value="OCCUPANCY">Occupancy Based</option>
-                <option value="CHILD">Child Policy</option>
-                <option value="EXTRA_BED">Extra Bed Charge</option>
-                <option value="CANCELLATION">Cancellation Fee</option>
-                <option value="REFUND">Refund Policy</option>
-                <option value="CUSTOM">+ Custom Category</option>
+                <optgroup label="Standard Categories">
+                  {STANDARD_CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </optgroup>
+
+                {customCategories.length > 0 && (
+                  <optgroup label="Custom Categories">
+                    {customCategories.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                <option value="CUSTOM">+ Add New Custom Category...</option>
               </select>
             </div>
 
-            {/* Custom Category Input */}
+            {/* Custom Category Input & Add to Dropdown button */}
             {isCustomCategory && (
-              <div className="space-y-2 md:col-span-2 bg-purple-50 p-4 rounded-xl border border-purple-200">
-                <Label className="text-purple-900 font-semibold">Custom Category Name <span className="text-red-500">*</span></Label>
-                <Input
-                  required
-                  placeholder="e.g. HOLIDAY_SURGE, VIP_RATE, CORPORATE_DEAL"
-                  value={customCategoryName}
-                  onChange={e => setCustomCategoryName(e.target.value)}
-                  className="bg-white"
-                />
-                <p className="text-xs text-purple-700">Give your custom policy category a unique identifier (letters, numbers, underscores).</p>
+              <div className="space-y-3 md:col-span-2 bg-purple-50 p-4 rounded-xl border border-purple-200">
+                <Label className="text-purple-900 font-semibold">New Category Name <span className="text-red-500">*</span></Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. HOLIDAY_SURGE, VIP_RATE, CORPORATE_DEAL"
+                    value={customCategoryName}
+                    onChange={e => setCustomCategoryName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomCategory();
+                      }
+                    }}
+                    className="bg-white flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddCustomCategory}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 shrink-0"
+                  >
+                    Add to Dropdown
+                  </Button>
+                </div>
+                <p className="text-xs text-purple-700">Type a category name and click "Add to Dropdown" to add it to your category list.</p>
               </div>
             )}
 

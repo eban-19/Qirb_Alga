@@ -498,6 +498,7 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
           phone: user.phone,
           role: user.role,
           status: user.status,
+          approved: user.approved,
           created_at: user.created_at
         },
         ownerProfile: user.ownerProfile
@@ -580,11 +581,8 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
         });
 
         if (existingProfile) {
-          // Check for critical changes
+          // Check for critical verification changes (license documents)
           if (
-            (finalBusinessName && finalBusinessName !== existingProfile.business_name) ||
-            (finalBusinessEmail && finalBusinessEmail !== existingProfile.business_email) ||
-            (finalBusinessPhone && finalBusinessPhone !== existingProfile.business_phone) ||
             (finalLicenseNumber && finalLicenseNumber !== existingProfile.license_number) ||
             (finalLicenseDocument && finalLicenseDocument !== existingProfile.id_document_url)
           ) {
@@ -598,15 +596,18 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
           await tx.ownerProfile.update({
             where: { owner_id: userId },
             data: {
-              business_name: finalBusinessName || undefined,
-              business_email: finalBusinessEmail || undefined,
-              business_phone: finalBusinessPhone || undefined,
-              license_number: finalLicenseNumber || undefined,
-              id_document_url: finalLicenseDocument || undefined,
+              business_name: finalBusinessName !== undefined ? finalBusinessName : undefined,
+              business_email: finalBusinessEmail !== undefined ? finalBusinessEmail : undefined,
+              business_phone: finalBusinessPhone !== undefined ? finalBusinessPhone : undefined,
+              license_number: finalLicenseNumber !== undefined ? finalLicenseNumber : undefined,
+              id_document_url: finalLicenseDocument !== undefined ? finalLicenseDocument : undefined,
               approval_status: statusChanged ? ApprovalStatus.Pending : undefined
             }
           });
         } else if (finalBusinessName || finalBusinessEmail || finalBusinessPhone || finalLicenseNumber || finalLicenseDocument) {
+          const userRecord = await tx.user.findUnique({ where: { user_id: userId } });
+          const isUserApproved = userRecord?.status === UserStatus.Approved || userRecord?.approved === 1;
+
           await tx.ownerProfile.create({
             data: {
               owner_id: userId,
@@ -615,10 +616,9 @@ router.put('/profile', authenticateToken as any, async (req: any, res: any) => {
               business_phone: finalBusinessPhone || '',
               license_number: finalLicenseNumber || '',
               id_document_url: finalLicenseDocument || '',
-              approval_status: ApprovalStatus.Pending
+              approval_status: isUserApproved ? ApprovalStatus.Approved : ApprovalStatus.Pending
             }
           });
-          statusChanged = true;
         }
       }
       return { statusChanged };
