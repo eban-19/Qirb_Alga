@@ -254,7 +254,7 @@ model Promotion {
   promo_id         Int       @id @default(autoincrement())
   pension_id       Int
   package_id       Int?      // null = applies to all packages in the pension
-  type             PromoType
+  type             String    @db.VarChar(50)
   name             String    @db.VarChar(100)
   description      String?   @db.Text
   discount_percent Int
@@ -296,7 +296,7 @@ model PricingPolicy {
   room_id         Int?      // Null = applies to all rooms
   package_id      Int?      // Null = applies to all packages
   name            String    @db.VarChar(100)
-  category        PolicyCategory
+  category        String    @db.VarChar(50)
   description     String?   @db.Text
   
   // Rule Definitions (Flexible JSON for complex conditions like days of week)
