@@ -43,7 +43,18 @@ export const useDashboardData = (ui?: any) => {
     try {
       console.log('🔄 Loading Dashboard Data for user:', user.id);
 
-      // 1. Fetch Pensions
+      // 1. Fetch Profile (Business Profile & Owner info)
+      let profileData: any = null;
+      try {
+        const profileResp = await apiService.getProfile();
+        if (profileResp.success && profileResp.data) {
+          profileData = profileResp.data;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user profile:', err);
+      }
+
+      // 2. Fetch Pensions
       let pensionsResp;
       try {
         pensionsResp = await apiService.getPensions();
@@ -336,6 +347,24 @@ export const useDashboardData = (ui?: any) => {
         } else {
           console.warn('⚠️ No active pension found');
         }
+      }
+
+      // Update business profile state
+      if (ui?.setBusinessProfile) {
+        const ownerProf = profileData?.ownerProfile;
+        const u = profileData?.user || user;
+        const activeP = (pensionsResp?.success && Array.isArray(pensionsResp.data))
+          ? pensionsResp.data.find((p: any) => String(p.pension_id || p.id) === String(selectedPensionId || pensionIdOverride)) || pensionsResp.data[0]
+          : null;
+
+        ui.setBusinessProfile({
+          businessName: ownerProf?.business_name || activeP?.name || u?.full_name || '',
+          businessEmail: ownerProf?.business_email || activeP?.email || u?.email || '',
+          businessPhone: ownerProf?.business_phone || activeP?.phone || u?.phone || '',
+          approvalStatus: ownerProf?.approval_status || (u?.approved === 1 || u?.status === 'Approved' ? 'Approved' : 'Pending'),
+          licenseNumber: ownerProf?.license_number || '',
+          idDocumentUrl: ownerProf?.id_document_url || ''
+        });
       }
     } catch (err: any) {
       console.error('❌ Error loading dashboard data:', err);

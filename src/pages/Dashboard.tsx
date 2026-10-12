@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '../hooks/use-language';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../hooks/use-subscription';
+import { toast } from 'sonner';
 
 // Hooks
 import { useDashboard } from '../hooks/useDashboard';
@@ -41,6 +42,7 @@ import { BulkUploadModal } from '../components/dashboard/BulkUploadModal';
 import { Button } from '../components/ui/button';
 import {
   Calendar,
+  Clock,
   AlertCircle,
   Zap,
   Bed,
@@ -143,18 +145,18 @@ const Dashboard: React.FC = () => {
                     ui.activeTab === "rooms" ? (t.dashboard?.header_rooms || "Rooms Management") :
                       ui.activeTab === "room-calendar" ? "Availability Calendar" :
                         ui.activeTab === "guests" ? (t.dashboard?.header_guests || "Guests Management") :
-                        ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
-                          ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
-                            ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
-                              ui.activeTab === "pricing-policies" ? "Pricing Policies" :
-                                ui.activeTab === "booking-policies" ? "Booking Policies" :
-                                ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
-                                  ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
-                                  ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
-                                    ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
-                                      ui.activeTab === "reviews" ? "Reviews & Ratings" :
-                                        ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
-                                          "Dashboard Section"}
+                          ui.activeTab === "staff" ? (t.dashboard?.header_staff || "Staff & HR Management") :
+                            ui.activeTab === "pension-profile" ? (t.dashboard?.header_pensionProfile || "Pension Profile") :
+                              ui.activeTab === "packages" ? (t.dashboard?.header_packages || "Package Tiers") :
+                                ui.activeTab === "pricing-policies" ? "Pricing Policies" :
+                                  ui.activeTab === "booking-policies" ? "Booking Policies" :
+                                    ui.activeTab === "promotions" ? (t.dashboard?.header_promotions || "Promotions & Offers") :
+                                      ui.activeTab === "transactions" ? (t.dashboard?.header_transactions || "Financial Transactions") :
+                                        ui.activeTab === "reports" ? (t.dashboard?.header_reports || "Reports & Analytics") :
+                                          ui.activeTab === "subscription" ? (t.dashboard?.header_subscription || "Subscription Plans") :
+                                            ui.activeTab === "reviews" ? "Reviews & Ratings" :
+                                              ui.activeTab.startsWith("settings-") ? (t.dashboard?.header_settings || "Settings") :
+                                                "Dashboard Section"}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -260,9 +262,9 @@ const Dashboard: React.FC = () => {
                   ui.setShowCreatePension(true);
                 }}
                 onNavigateTab={(tab) => navigate(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`)}
-                onAddStaff={() => { 
+                onAddStaff={() => {
                   if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
-                  ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true); 
+                  ui.setEditingStaff(null); ui.setNewStaff({ full_name: '', role: '', phone: '', salary: '', pension_id: '', owner_id: '', department: '', email: '', status: 'active' }); ui.setShowAddStaffModal(true);
                 }}
                 onAddRoom={() => {
                   if (status?.isSoftRestricted) return toast.error("Action restricted. Please renew your subscription.");
@@ -434,11 +436,11 @@ const Dashboard: React.FC = () => {
             )}
 
             {ui.activeTab === "pricing-policies" && !status?.isRestricted && (
-              <PricingPoliciesSection pensionId={data.selectedPensionId as number} />
+              <PricingPoliciesSection pensionId={Number(data.selectedPensionId)} />
             )}
 
             {ui.activeTab === "booking-policies" && !status?.isRestricted && (
-              <BookingPoliciesModule pensionId={data.selectedPensionId as number} />
+              <BookingPoliciesModule pensionId={Number(data.selectedPensionId)} />
             )}
 
             {ui.activeTab === "promotions" && !status?.isRestricted && (
@@ -482,10 +484,10 @@ const Dashboard: React.FC = () => {
                 setBankSettings={ui.setBankSettings}
                 securitySettings={ui.securitySettings}
                 setSecuritySettings={ui.setSecuritySettings}
-                approvalStatus="Approved"
+                approvalStatus={ui.businessProfile?.approvalStatus || (user?.approved ? 'Approved' : 'Pending')}
                 isUpdating={ui.isUpdating}
                 setIsUpdating={ui.setIsUpdating}
-                onSaveBusinessProfile={() => { }}
+                onSaveBusinessProfile={handlers.handleSaveBusinessProfile}
                 onSaveSecuritySettings={handlers.handleSaveSecuritySettings}
                 onToggleTwoFactor={() => { }}
                 showSaveSuccess={ui.showSaveSuccess}

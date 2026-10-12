@@ -32,6 +32,16 @@ export const PromotionsSection: React.FC = () => {
   const [isCustomType, setIsCustomType] = useState(false);
   const [customTypeName, setCustomTypeName] = useState('');
 
+  const standardPromoTypes = ['EARLY_BIRD', 'LONG_STAY', 'LAST_MINUTE', 'SEASONAL'];
+  const [customPromoTypes, setCustomPromoTypes] = useState<string[]>(() => {
+    let fromStorage: string[] = [];
+    try {
+      const stored = localStorage.getItem('custom_promo_types');
+      if (stored) fromStorage = JSON.parse(stored);
+    } catch (e) { }
+    return fromStorage;
+  });
+
   // ─── Fetch promotions ───────────────────────────────────────────────────────
   const fetchPromotions = async () => {
     try {
@@ -39,7 +49,23 @@ export const PromotionsSection: React.FC = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.success) setPromotions(data.data);
+      if (data.success) {
+        setPromotions(data.data);
+        if (Array.isArray(data.data)) {
+          const fromPromos = data.data
+            .map((p: any) => p.type)
+            .filter((t: string) => t && !standardPromoTypes.includes(t));
+          if (fromPromos.length > 0) {
+            setCustomPromoTypes(prev => {
+              const merged = Array.from(new Set([...prev, ...fromPromos]));
+              try {
+                localStorage.setItem('custom_promo_types', JSON.stringify(merged));
+              } catch (e) { }
+              return merged;
+            });
+          }
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -102,6 +128,19 @@ export const PromotionsSection: React.FC = () => {
     }
   }, [formData.pension_id]);
 
+  const handleAddCustomPromoType = () => {
+    if (!customTypeName.trim()) return;
+    const formatted = customTypeName.trim().toUpperCase().replace(/\s+/g, '_');
+    const updated = Array.from(new Set([...customPromoTypes, formatted]));
+    setCustomPromoTypes(updated);
+    try {
+      localStorage.setItem('custom_promo_types', JSON.stringify(updated));
+    } catch (e) { }
+    setFormData(prev => ({ ...prev, type: formatted }));
+    setIsCustomType(false);
+    setCustomTypeName('');
+  };
+
   // ─── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,9 +148,19 @@ export const PromotionsSection: React.FC = () => {
       ? `http://localhost:3006/api/promotions/${formData.promo_id}`
       : 'http://localhost:3006/api/promotions';
 
-    const actualType = isCustomType
-      ? (customTypeName.trim().toUpperCase().replace(/\s+/g, '_') || 'SPECIAL_OFFER')
-      : formData.type;
+    let actualType = formData.type;
+    if (isCustomType) {
+      if (!customTypeName.trim()) {
+        alert("Please provide a name for your custom promotion type.");
+        return;
+      }
+      actualType = customTypeName.trim().toUpperCase().replace(/\s+/g, '_');
+      const updated = Array.from(new Set([...customPromoTypes, actualType]));
+      setCustomPromoTypes(updated);
+      try {
+        localStorage.setItem('custom_promo_types', JSON.stringify(updated));
+      } catch (e) { }
+    }
 
     const payload = {
       ...formData,
@@ -355,11 +404,22 @@ export const PromotionsSection: React.FC = () => {
                     }
                   }}
                 >
-                  <option value="EARLY_BIRD">{t.dashboard?.promoEarlyBird || "Early Bird (Advance)"}</option>
-                  <option value="LONG_STAY">{t.dashboard?.promoLongStay || "Long Stay"}</option>
-                  <option value="LAST_MINUTE">{t.dashboard?.promoLastMinute || "Last Minute"}</option>
-                  <option value="SEASONAL">{t.dashboard?.promoSeasonal || "Seasonal"}</option>
-                  <option value="CUSTOM">+ Custom Promotion Type</option>
+                  <optgroup label="Standard Types">
+                    <option value="EARLY_BIRD">{t.dashboard?.promoEarlyBird || "Early Bird (Advance)"}</option>
+                    <option value="LONG_STAY">{t.dashboard?.promoLongStay || "Long Stay"}</option>
+                    <option value="LAST_MINUTE">{t.dashboard?.promoLastMinute || "Last Minute"}</option>
+                    <option value="SEASONAL">{t.dashboard?.promoSeasonal || "Seasonal"}</option>
+                  </optgroup>
+                  {customPromoTypes.length > 0 && (
+                    <optgroup label="Custom Types">
+                      {customPromoTypes.map(c => (
+                        <option key={c} value={c}>
+                          {c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <option value="CUSTOM">+ Add New Custom Promotion Type...</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -369,18 +429,32 @@ export const PromotionsSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Custom Type Name Input */}
+            {/* Custom Type Name Input & Add to Dropdown */}
             {isCustomType && (
-              <div className="space-y-2 bg-orange-50 p-4 rounded-xl border border-orange-200">
-                <Label className="text-orange-900 font-semibold">Custom Type Name</Label>
-                <Input
-                  required
-                  placeholder="e.g. FLASH_SALE, WEEKEND_DEAL, HOLIDAY_OFFER"
-                  value={customTypeName}
-                  onChange={e => setCustomTypeName(e.target.value)}
-                  className="bg-white"
-                />
-                <p className="text-xs text-orange-700">Give your custom promotion type a unique name.</p>
+              <div className="space-y-3 bg-orange-50 p-4 rounded-xl border border-orange-200">
+                <Label className="text-orange-900 font-semibold">New Promotion Type Name</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. FLASH_SALE, WEEKEND_DEAL, HOLIDAY_OFFER"
+                    value={customTypeName}
+                    onChange={e => setCustomTypeName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomPromoType();
+                      }
+                    }}
+                    className="bg-white flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddCustomPromoType}
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 shrink-0"
+                  >
+                    Add to Dropdown
+                  </Button>
+                </div>
+                <p className="text-xs text-orange-700">Type a promotion type name and click "Add to Dropdown" to register it.</p>
               </div>
             )}
 

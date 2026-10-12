@@ -13,12 +13,15 @@ import {
   validatePositiveInteger
 } from '../utils/validation';
 
+import { useAuth } from '../contexts/AuthContext';
+
 export const useDashboardHandlers = (
   data: any,
   ui: any,
-  loadRealData: () => Promise<void>
+  loadRealData: (pensionIdOverride?: string) => Promise<void>
 ) => {
   const { language } = useLanguage();
+  const { user } = useAuth() as { user: any };
 
   // --- PENSION HANDLERS ---
   const handleCreatePension = async () => {
@@ -152,7 +155,7 @@ export const useDashboardHandlers = (
 
   const handleDeleteStaff = async (id: string | number) => {
     try {
-      await apiService.deleteStaff(id);
+      await apiService.deleteStaff(Number(id));
       await loadRealData();
     } catch (error) {
       console.error('Delete staff error:', error);
@@ -292,7 +295,7 @@ export const useDashboardHandlers = (
 
   const handleDeleteRoom = async (roomId: string | number) => {
     try {
-      await apiService.deleteRoom(roomId);
+      await apiService.deleteRoom(Number(roomId));
       await loadRealData();
     } catch (error) {
       console.error('Delete room error:', error);
@@ -391,7 +394,7 @@ export const useDashboardHandlers = (
 
   const handleDeletePackage = async (id: string | number) => {
     try {
-      await apiService.deletePackage(data.selectedPensionId, id);
+      await apiService.deletePackage(Number(data.selectedPensionId), Number(id));
       await loadRealData();
     } catch (error) {
       console.error('Delete package error:', error);
@@ -519,6 +522,35 @@ export const useDashboardHandlers = (
     }
   };
 
+  const handleSaveBusinessProfile = async () => {
+    if (!ui.businessProfile?.businessName) {
+      toast.error('Business name is required');
+      return;
+    }
+
+    ui.setIsUpdating(true);
+    try {
+      const response = await apiService.updateUserProfile(user.id, {
+        businessName: ui.businessProfile.businessName,
+        businessEmail: ui.businessProfile.businessEmail,
+        businessPhone: ui.businessProfile.businessPhone
+      });
+
+      if (response.success) {
+        ui.showSuccess();
+        toast.success('Business profile updated successfully!');
+        await loadRealData();
+      } else {
+        toast.error(response.message || 'Failed to update business profile.');
+      }
+    } catch (error: any) {
+      console.error('Save business profile error:', error);
+      toast.error(error.message || 'Failed to update business profile.');
+    } finally {
+      ui.setIsUpdating(false);
+    }
+  };
+
   const handleSaveSecuritySettings = async () => {
     if (!ui.securitySettings.currentPassword) {
       alert('Current password is required');
@@ -571,7 +603,7 @@ export const useDashboardHandlers = (
       return;
     }
 
-    const priceVal = validatePrice(amountStr, 'Expense amount', 0.01);
+    const priceVal = validatePrice(amountStr, 'Expense amount', true, 0.01);
     if (!priceVal.isValid) {
       toast.error(priceVal.error);
       return;
@@ -689,6 +721,7 @@ export const useDashboardHandlers = (
     handleCompleteEarly,
     handleWalkInSubmit,
     handleSavePropertySettings,
+    handleSaveBusinessProfile,
     handleSaveSecuritySettings,
     handleAddExpense,
     handleUpdateExpense,

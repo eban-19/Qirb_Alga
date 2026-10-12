@@ -119,6 +119,7 @@ class ApiService {
       description?: string;
       features?: string[];
     }>;
+    policies?: any[];
     owner: {
       id: string;
       name: string;
@@ -712,6 +713,13 @@ class ApiService {
   async addExpense(pensionId: number, expenseData: any): Promise<ApiResponse<any>> {
     return this.request(`/expenses/pensions/${pensionId}`, {
       method: 'POST',
+      body: JSON.stringify(expenseData),
+    });
+  }
+
+  async updateExpense(expenseId: number, expenseData: any): Promise<ApiResponse<any>> {
+    return this.request(`/expenses/${expenseId}`, {
+      method: 'PUT',
       body: JSON.stringify(expenseData),
     });
   }

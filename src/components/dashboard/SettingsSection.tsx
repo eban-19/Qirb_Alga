@@ -85,9 +85,13 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   </div>
                   <span>{t.dashboard?.businessProfile || "Business Profile"}</span>
                 </CardTitle>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${approvalStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${approvalStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                  approvalStatus === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                    'bg-amber-100 text-amber-700'
                   }`}>
-                  {approvalStatus === 'Approved' ? (t.dashboard?.approved || '✓ Approved') : (t.dashboard?.pendingReview || '⏳ Pending Review')}
+                  {approvalStatus === 'Approved' ? (t.dashboard?.approved || '✓ Approved') :
+                    approvalStatus === 'Rejected' ? (t.dashboard?.rejected || '✕ Rejected') :
+                      (t.dashboard?.pendingReview || '⏳ Pending Review')}
                 </span>
               </div>
             </CardHeader>
@@ -96,7 +100,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessName || "Business Name"}</Label>
                   <Input
-                    value={businessProfile.businessName}
+                    value={businessProfile?.businessName || ''}
                     onChange={(e) => setBusinessProfile({ ...businessProfile, businessName: e.target.value })}
                     placeholder={t.dashboard?.enterBusinessName || "Enter your business name"}
                     className="h-11 border-slate-200 bg-slate-50/30"
@@ -106,7 +110,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessEmail || "Business Email"}</Label>
                   <Input
                     type="email"
-                    value={businessProfile.businessEmail}
+                    value={businessProfile?.businessEmail || ''}
                     onChange={(e) => setBusinessProfile({ ...businessProfile, businessEmail: e.target.value })}
                     placeholder="business@example.com"
                     className="h-11 border-slate-200 bg-slate-50/30"
@@ -115,7 +119,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700">{t.dashboard?.businessPhone || "Business Phone"}</Label>
                   <Input
-                    value={businessProfile.businessPhone}
+                    value={businessProfile?.businessPhone || ''}
                     onChange={(e) => setBusinessProfile({ ...businessProfile, businessPhone: e.target.value })}
                     placeholder="+251 ..."
                     className="h-11 border-slate-200 bg-slate-50/30"
@@ -170,7 +174,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
         <TabsContent value="settings-bank-settings" className="mt-0">
           <BankSettingsSection
             isUpdating={isUpdating}
-            setIsUpdating={setIsUpdating || (() => {})}
+            setIsUpdating={setIsUpdating || (() => { })}
             showSuccess={() => { }}
           />
         </TabsContent>
