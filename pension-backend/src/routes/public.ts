@@ -260,11 +260,16 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       return res.status(404).json({ success: false, message: 'Pension not found' });
     }
 
-    // Fetch active pricing policies for this pension
+    // Fetch active pricing policies for this pension (exclude expired date-based ones)
+    const now = new Date();
     const policies = await prisma.pricingPolicy.findMany({
       where: {
         pension_id: pId,
-        is_active: true
+        is_active: true,
+        OR: [
+          { end_date: null },          // no expiry date — always valid
+          { end_date: { gte: now } }   // has expiry but hasn't passed yet
+        ]
       },
       orderBy: { priority: 'desc' }
     });

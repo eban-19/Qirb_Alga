@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Phone, Mail, Lock, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
+import { Phone, Mail, Lock, ShieldCheck, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import {
   validatePhone,
   validateEmail,
   validatePassword,
+  validateConfirmPassword,
   validateName,
   validateOtpCode,
   filterPhoneInput,
@@ -33,6 +34,10 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
   const [otpCode, setOtpCode] = useState('');
   const [fullName, setFullName] = useState(defaultFullName || '');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [confirmRegisterPassword, setConfirmRegisterPassword] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -49,6 +54,25 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setStep('input');
+      setIdentifier('');
+      setPassword('');
+      setOtpCode('');
+      setFullName(defaultFullName || '');
+      setPhoneNumber('');
+      setRegisterPassword('');
+      setConfirmRegisterPassword('');
+      setShowRegisterPassword(false);
+      setShowConfirmPassword(false);
+      setError(null);
+      setIsLoading(false);
+      setOtpSent(false);
+      setIsNewUser(false);
+    }
+  }, [isOpen, defaultFullName]);
 
   const handleNext = async () => {
     setError(null);
@@ -177,14 +201,16 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           throw new Error(verifyData.message || 'Invalid or expired OTP code');
         }
 
-        if (isNewUser) {
+        if (isNewUser && method === 'email') {
+          // Email new users must create a password
           setStep('register_details');
           setIsLoading(false);
           return;
         } else {
+          // Phone new users (and all returning users) log in directly via OTP
           const res = await otpLogin(identifier.trim(), otpCode.trim());
           if (res.success) {
-            toast.success('Login successful!');
+            toast.success(isNewUser ? 'Account created successfully!' : 'Login successful!');
             const role = res.data?.user?.role?.toLowerCase() || '';
             if (role === 'owner') window.location.href = '/dashboard';
             else if (role === 'admin') window.location.href = '/dashboard/admin';
@@ -194,15 +220,31 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           }
         }
       } else if (step === 'register_details') {
+        // Only reached for email new users
         const nameValidation = validateName(fullName, 'Full name', true);
         if (!nameValidation.isValid) {
           setError(nameValidation.error);
           setIsLoading(false);
           return;
         }
-        const res = await otpLogin(identifier.trim(), otpCode.trim(), fullName.trim());
+
+        const passValidation = validatePassword(registerPassword, true, 'Password');
+        if (!passValidation.isValid) {
+          setError(passValidation.error);
+          setIsLoading(false);
+          return;
+        }
+
+        const confirmValidation = validateConfirmPassword(registerPassword, confirmRegisterPassword);
+        if (!confirmValidation.isValid) {
+          setError(confirmValidation.error);
+          setIsLoading(false);
+          return;
+        }
+
+        const res = await otpLogin(identifier.trim(), otpCode.trim(), fullName.trim(), registerPassword);
         if (res.success) {
-          toast.success('Account created and verified successfully!');
+          toast.success('Account created successfully! Welcome to Qirb Alga 🎉');
           const role = res.data?.user?.role?.toLowerCase() || '';
           if (role === 'owner') window.location.href = '/dashboard';
           else if (role === 'admin') window.location.href = '/dashboard/admin';
@@ -231,7 +273,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px] rounded-[2rem] p-8">
+      <DialogContent className="sm:max-w-[400px] rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center space-y-3">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-2">
             <ShieldCheck className="w-8 h-8" />
@@ -243,7 +285,9 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               : step === 'otp' 
                 ? `Enter the 6-digit code sent to ${identifier}`
                 : step === 'register_details'
-                  ? `Almost there! Please provide your full name to complete registration`
+                  ? (method === 'email'
+                      ? `Almost there! Enter your name and create a password to complete your account.`
+                      : `Just one more step — enter your name to complete registration.`)
                   : "Enter your password to continue."}
           </DialogDescription>
         </DialogHeader>
@@ -371,8 +415,8 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
           )}
 
           {step === 'register_details' && (
-            <div className="space-y-6">
-              <div className="space-y-2">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
                 <Label htmlFor="fullName">Your Full Name</Label>
                 <Input
                   id="fullName"
@@ -382,18 +426,100 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                     setFullName(filterNameInput(e.target.value));
                     if (error) setError(null);
                   }}
-                  className="h-14 rounded-xl"
+                  className="h-12 rounded-xl"
                   required
                   disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full h-14 rounded-xl text-lg font-bold" disabled={isLoading || !fullName.trim()}>
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
-              </Button>
+
+              {/* Password fields — only shown for email registrations */}
+              {method === 'email' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="registerPassword">Create Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="registerPassword"
+                        type={showRegisterPassword ? "text" : "password"}
+                        placeholder="Min 8 chars (upper, lower, num, symbol)"
+                        value={registerPassword}
+                        onChange={(e) => {
+                          setRegisterPassword(e.target.value);
+                          if (error) setError(null);
+                        }}
+                        className="h-12 rounded-xl pl-11 pr-11"
+                        required
+                        disabled={isLoading}
+                      />
+                      <div className="absolute left-3.5 top-3.5 text-muted-foreground">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                        className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showRegisterPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirmRegisterPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmRegisterPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Repeat your password"
+                        value={confirmRegisterPassword}
+                        onChange={(e) => {
+                          setConfirmRegisterPassword(e.target.value);
+                          if (error) setError(null);
+                        }}
+                        className="h-12 rounded-xl pl-11 pr-11"
+                        required
+                        disabled={isLoading}
+                      />
+                      <div className="absolute left-3.5 top-3.5 text-muted-foreground">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="pt-2">
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 rounded-xl text-base font-bold shadow-md shadow-primary/20" 
+                  disabled={
+                    isLoading ||
+                    !fullName.trim() ||
+                    (method === 'email' && (!registerPassword || !confirmRegisterPassword))
+                  }
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+                </Button>
+              </div>
+
               <button 
                 type="button" 
-                className="w-full text-sm text-primary font-medium hover:underline"
-                onClick={() => { setStep('input'); setError(null); setOtpCode(''); setFullName(''); }}
+                className="w-full text-sm text-primary font-medium hover:underline text-center"
+                onClick={() => {
+                  setStep('input');
+                  setError(null);
+                  setOtpCode('');
+                  setFullName('');
+                  setRegisterPassword('');
+                  setConfirmRegisterPassword('');
+                }}
               >
                 Start Over
               </button>

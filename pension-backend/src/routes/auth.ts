@@ -291,7 +291,7 @@ router.get('/check-user', async (req: any, res: any) => {
 // OTP Login/Register for Customers
 router.post('/otp-login', async (req: any, res: any) => {
   try {
-    const { phone, email, identifier, fullName } = req.body;
+    const { phone, email, identifier, fullName, password } = req.body;
     const code = req.body.code || req.body.otp;
 
     const isEmail = Boolean(email || (identifier && identifier.includes('@')) || (phone && phone.includes('@')));
@@ -316,6 +316,11 @@ router.post('/otp-login', async (req: any, res: any) => {
       if (nameErr) errors.fullName = nameErr;
     }
 
+    if (password) {
+      const passErr = validatePassword(password, true, 'Password');
+      if (passErr) errors.password = passErr;
+    }
+
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         success: false,
@@ -325,6 +330,7 @@ router.post('/otp-login', async (req: any, res: any) => {
     }
 
     let user: any = null;
+    const hashedPassword = password ? await bcrypt.hash(password, 12) : null;
 
     if (isEmail && targetEmail) {
       // 1. Verify Email OTP
@@ -349,14 +355,24 @@ router.post('/otp-login', async (req: any, res: any) => {
             role: Role.Customer,
             status: UserStatus.Approved,
             approved: 1,
-            email_verified: 1
+            email_verified: 1,
+            ...(hashedPassword && { password_hash: hashedPassword })
           }
         });
       } else {
+        const updateData: any = {};
         if (user.role === Role.Customer && (user.approved === 0 || user.email_verified === 0)) {
+          updateData.approved = 1;
+          updateData.status = UserStatus.Approved;
+          updateData.email_verified = 1;
+        }
+        if (hashedPassword && !user.password_hash) {
+          updateData.password_hash = hashedPassword;
+        }
+        if (Object.keys(updateData).length > 0) {
           user = await prisma.user.update({
             where: { user_id: user.user_id },
-            data: { approved: 1, status: UserStatus.Approved, email_verified: 1 }
+            data: updateData
           });
         }
       }
@@ -403,15 +419,24 @@ router.post('/otp-login', async (req: any, res: any) => {
             role: Role.Customer,
             status: UserStatus.Approved, // Auto-approve phone-verified customers
             approved: 1,
-            email_verified: 0
+            email_verified: 0,
+            ...(hashedPassword && { password_hash: hashedPassword })
           }
         });
       } else {
         // If user exists but was pending, approve them since they verified phone
+        const updateData: any = {};
         if (user.role === Role.Customer && user.approved === 0) {
+          updateData.approved = 1;
+          updateData.status = UserStatus.Approved;
+        }
+        if (hashedPassword && !user.password_hash) {
+          updateData.password_hash = hashedPassword;
+        }
+        if (Object.keys(updateData).length > 0) {
           user = await prisma.user.update({
             where: { user_id: user.user_id },
-            data: { approved: 1, status: UserStatus.Approved }
+            data: updateData
           });
         }
       }

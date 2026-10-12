@@ -60,7 +60,6 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
   const [showPoliciesModal, setShowPoliciesModal] = useState(false);
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | undefined>(room.videoUrl || room.images[0]);
   
-  console.log("DEBUG: RoomProfile Rendered. room.policies =", room.policies);
   const [activeMediaType, setActiveMediaType] = useState<'video'|'image'>(room.videoUrl ? 'video' : 'image');
   const mapsUrl = getGoogleMapsNavigationUrl(room);
   
@@ -131,10 +130,15 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="lg" variant="outline" className="gap-2 shrink-0 shadow-sm border-primary/20 hover:bg-primary/5" onClick={() => setShowPoliciesModal(true)}>
-              <Tag className="w-4 h-4" />
-              View Price Policy
-            </Button>
+            {room.policies && room.policies.length > 0 && (
+              <Button size="lg" variant="outline" className="gap-2 shrink-0 shadow-sm border-primary/20 hover:bg-primary/5" onClick={() => setShowPoliciesModal(true)}>
+                <Tag className="w-4 h-4" />
+                View Price Policy
+                <span className="ml-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {room.policies.length}
+                </span>
+              </Button>
+            )}
             <Button size="lg" className="gap-2 shrink-0 shadow-sm" onClick={() => setShowContactModal(true)}>
               <PhoneCall className="w-4 h-4" />
               {t.rooms.contactHost}
@@ -597,10 +601,7 @@ const RoomProfile = ({ room }: RoomProfileProps) => {
             <p className="text-sm text-muted-foreground">
               These automated pricing rules will apply dynamically during your booking based on dates and guests.
             </p>
-            <div className="text-xs font-mono bg-muted p-2 rounded">
-              DEBUG: policies length = {room.policies ? room.policies.length : 'undefined'}
-            </div>
-            
+
             <div className="grid grid-cols-1 gap-4">
               {(!room.policies || room.policies.length === 0) ? (
                 <div className="text-center p-8 border border-dashed border-border rounded-2xl bg-muted/20">

@@ -198,7 +198,7 @@ export class OTPService {
             },
             data: { is_used: true }
           });
-        } catch (e) {}
+        } catch (e) { }
         return true;
       }
 

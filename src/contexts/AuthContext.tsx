@@ -22,7 +22,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<any>;
-  otpLogin: (phone: string, code: string, fullName?: string) => Promise<any>;
+  otpLogin: (phone: string, code: string, fullName?: string, password?: string) => Promise<any>;
   register: (userData: RegisterData) => Promise<any>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -271,11 +271,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // OTP Login action
-  const otpLogin = async (phone: string, code: string, fullName?: string): Promise<ApiResponse> => {
+  const otpLogin = async (phone: string, code: string, fullName?: string, password?: string): Promise<ApiResponse> => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
-      const response: ApiResponse = await apiService.otpLogin(phone, code, fullName);
+      const response: ApiResponse = await apiService.otpLogin(phone, code, fullName, password);
 
       if (response.success && response.data) {
         dispatch({

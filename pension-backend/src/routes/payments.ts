@@ -34,21 +34,14 @@ router.post('/initialize-booking', async (req: any, res) => {
     const cleanAmount = parseFloat(String(amount).replace(/,/g, '')).toString();
     
     // Improved email sanitization for Chapa
-    let cleanEmail = (email || 'guest@example.com')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9@._-]/g, ''); // Remove any weird characters
-    
-    // If the email uses our custom internal domain, Chapa might reject it.
-    // Let's ensure it looks like a very standard email for Chapa's validator.
-    if (cleanEmail.includes('@guest.qirbalga.com')) {
-      cleanEmail = cleanEmail.replace('@guest.qirbalga.com', '@gmail.com');
-    }
-    
-    // Final fallback if email is still weird
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      cleanEmail = 'customer@gmail.com';
-    }
+    let rawEmail = (email || 'guest@gmail.com').trim().toLowerCase();
+    let [localPart, domainPart] = rawEmail.split('@');
+    localPart = (localPart || 'guest').replace(/[^a-z0-9._-]/g, '') || 'guest';
+
+    const trustedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com'];
+    let cleanEmail = trustedDomains.includes(domainPart)
+      ? `${localPart}@${domainPart}`
+      : `${localPart}@gmail.com`;
 
     const cleanFirstName = (firstName || 'Guest').trim().replace(/[^a-zA-Z]/g, '');
     const cleanLastName = (lastName || 'User').trim().replace(/[^a-zA-Z]/g, '');

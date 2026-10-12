@@ -64,7 +64,7 @@ class ApiService {
     });
   }
 
-  async otpLogin(phoneOrEmail: string, code: string, fullName?: string): Promise<ApiResponse<{ user: any; token: string }>> {
+  async otpLogin(phoneOrEmail: string, code: string, fullName?: string, password?: string): Promise<ApiResponse<{ user: any; token: string }>> {
     const isEmail = phoneOrEmail.includes('@');
     return this.request('/auth/otp-login', {
       method: 'POST',
@@ -72,7 +72,8 @@ class ApiService {
         ...(isEmail ? { email: phoneOrEmail } : { phone: phoneOrEmail }),
         identifier: phoneOrEmail,
         code,
-        fullName
+        fullName,
+        password
       }),
     });
   }

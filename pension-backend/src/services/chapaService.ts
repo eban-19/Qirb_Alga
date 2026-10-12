@@ -30,6 +30,25 @@ export interface ChapaSubaccountData {
   split_value: number;
 }
 
+export const formatChapaError = (error: any, defaultMsg: string): string => {
+  const errData = error.response?.data;
+  if (errData?.message) {
+    if (typeof errData.message === 'string') {
+      return errData.message;
+    }
+    if (typeof errData.message === 'object') {
+      const entries = Object.entries(errData.message);
+      if (entries.length > 0) {
+        return entries
+          .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join('; ');
+      }
+      return JSON.stringify(errData.message);
+    }
+  }
+  return error.message || defaultMsg;
+};
+
 export const initializePayment = async (data: ChapaInitializeData) => {
   try {
     const authHeader = `Bearer ${process.env.CHAPA_SECRET_KEY}`;
@@ -42,7 +61,7 @@ export const initializePayment = async (data: ChapaInitializeData) => {
     return response.data;
   } catch (error: any) {
     console.error('Chapa Initialization Error Details:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || error.message || 'Failed to initialize Chapa payment');
+    throw new Error(formatChapaError(error, 'Failed to initialize Chapa payment'));
   }
 };
 
@@ -57,7 +76,7 @@ export const verifyPayment = async (txRef: string) => {
     return response.data;
   } catch (error: any) {
     console.error('Chapa Verification Error Details:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || error.message || 'Failed to verify Chapa payment');
+    throw new Error(formatChapaError(error, 'Failed to verify Chapa payment'));
   }
 };
 
@@ -73,6 +92,7 @@ export const createSubaccount = async (data: ChapaSubaccountData) => {
     return response.data;
   } catch (error: any) {
     console.error('Chapa Subaccount Creation Error Details:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || error.message || 'Failed to create Chapa subaccount');
+    throw new Error(formatChapaError(error, 'Failed to create Chapa subaccount'));
   }
 };
+
