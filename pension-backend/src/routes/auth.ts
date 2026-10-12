@@ -291,11 +291,22 @@ router.get('/check-user', async (req: any, res: any) => {
 // OTP Login/Register for Customers
 router.post('/otp-login', async (req: any, res: any) => {
   try {
-    const { phone, code, fullName } = req.body;
+    const { phone, email, identifier, fullName } = req.body;
+    const code = req.body.code || req.body.otp;
+
+    const isEmail = Boolean(email || (identifier && identifier.includes('@')) || (phone && phone.includes('@')));
+    const targetEmail = isEmail ? (email || identifier || phone).trim().toLowerCase() : null;
+    const targetPhone = !isEmail ? (phone || identifier) : null;
 
     const errors: Record<string, string> = {};
-    const phoneErr = validatePhone(phone, true, false, 'Phone number');
-    if (phoneErr) errors.phone = phoneErr;
+
+    if (isEmail) {
+      const emailErr = validateEmail(targetEmail, true, 'Email address');
+      if (emailErr) errors.email = emailErr;
+    } else {
+      const phoneErr = validatePhone(targetPhone, true, false, 'Phone number');
+      if (phoneErr) errors.phone = phoneErr;
+    }
 
     const codeErr = validateOtpCode(code);
     if (codeErr) errors.code = codeErr;
@@ -313,63 +324,112 @@ router.post('/otp-login', async (req: any, res: any) => {
       });
     }
 
-    // 1. Verify OTP
-    const isVerified = await OTPService.verifyOTP(phone, code);
-    if (!isVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired OTP code'
-      });
-    }
+    let user: any = null;
 
-    // 2. Normalize phone
-    const normalizedPhone = OTPService.normalizePhone(phone);
-
-    // 3. Find or Create user
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phone: normalizedPhone },
-          { phone: phone }
-        ]
-      }
-    });
-
-    if (!user) {
-      // Create new customer
-      user = await prisma.user.create({
-        data: {
-          phone: normalizedPhone,
-          full_name: fullName || 'Guest Customer',
-          role: Role.Customer,
-          status: UserStatus.Approved, // Auto-approve phone-verified customers
-          approved: 1,
-          email_verified: 0
-        }
-      });
-    } else {
-      // If user exists but was pending, approve them since they verified phone
-      if (user.role === Role.Customer && user.approved === 0) {
-        user = await prisma.user.update({
-          where: { user_id: user.user_id },
-          data: { approved: 1, status: UserStatus.Approved }
+    if (isEmail && targetEmail) {
+      // 1. Verify Email OTP
+      const isVerified = await OTPService.verifyEmailOTP(targetEmail, code);
+      if (!isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired OTP code'
         });
       }
-    }
 
-    // Auto-link any previous unlinked walk-in bookings matching this phone number
-    await prisma.booking.updateMany({
-      where: {
-        customer_id: null,
-        OR: [
-          { walk_in_guest_phone: normalizedPhone },
-          { walk_in_guest_phone: phone }
-        ]
-      },
-      data: {
-        customer_id: user.user_id
+      // 2. Find or Create User with Email
+      user = await prisma.user.findUnique({
+        where: { email: targetEmail }
+      });
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email: targetEmail,
+            full_name: fullName || 'Guest Customer',
+            role: Role.Customer,
+            status: UserStatus.Approved,
+            approved: 1,
+            email_verified: 1
+          }
+        });
+      } else {
+        if (user.role === Role.Customer && (user.approved === 0 || user.email_verified === 0)) {
+          user = await prisma.user.update({
+            where: { user_id: user.user_id },
+            data: { approved: 1, status: UserStatus.Approved, email_verified: 1 }
+          });
+        }
       }
-    });
+
+      // Auto-link any previous unlinked bookings matching this email
+      await prisma.booking.updateMany({
+        where: {
+          customer_id: null,
+          walk_in_guest_email: targetEmail
+        },
+        data: {
+          customer_id: user.user_id
+        }
+      });
+    } else if (targetPhone) {
+      // 1. Verify Phone OTP
+      const isVerified = await OTPService.verifyOTP(targetPhone, code);
+      if (!isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired OTP code'
+        });
+      }
+
+      // 2. Normalize phone
+      const normalizedPhone = OTPService.normalizePhone(targetPhone);
+
+      // 3. Find or Create user
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: normalizedPhone },
+            { phone: targetPhone }
+          ]
+        }
+      });
+
+      if (!user) {
+        // Create new customer
+        user = await prisma.user.create({
+          data: {
+            phone: normalizedPhone,
+            full_name: fullName || 'Guest Customer',
+            role: Role.Customer,
+            status: UserStatus.Approved, // Auto-approve phone-verified customers
+            approved: 1,
+            email_verified: 0
+          }
+        });
+      } else {
+        // If user exists but was pending, approve them since they verified phone
+        if (user.role === Role.Customer && user.approved === 0) {
+          user = await prisma.user.update({
+            where: { user_id: user.user_id },
+            data: { approved: 1, status: UserStatus.Approved }
+          });
+        }
+      }
+
+      // Auto-link any previous unlinked walk-in bookings matching this phone number
+      await prisma.booking.updateMany({
+        where: {
+          customer_id: null,
+          OR: [
+            { walk_in_guest_phone: normalizedPhone },
+            { walk_in_guest_phone: targetPhone }
+          ]
+        },
+        data: {
+          customer_id: user.user_id
+        }
+      });
+    }
 
     // 4. Generate JWT
     const token = jwt.sign(

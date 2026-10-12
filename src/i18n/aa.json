@@ -328,6 +328,7 @@
     "currentStatus": "Current Status",
     "available": "Available",
     "occupied": "Occupied",
+    "blocked": "Blocked",
     "maintenance": "Maintenance",
     "inventoryCapacity": "Inventory & Capacity",
     "roomNumbers": "Room Numbers",

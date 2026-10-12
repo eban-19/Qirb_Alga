@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { PolicyCategory, AdjustmentType, PricingPolicy } from '@prisma/client';
+import { AdjustmentType, PricingPolicy } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export interface PricingBreakdownItem {

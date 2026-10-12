@@ -214,7 +214,10 @@ const Login = () => {
           const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: identifier, code: otpCode })
+            body: JSON.stringify({
+              [identifier.includes('@') ? 'email' : 'phone']: identifier,
+              code: otpCode
+            })
           });
           const verifyData = await verifyRes.json();
           

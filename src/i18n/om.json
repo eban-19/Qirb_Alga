@@ -342,6 +342,7 @@
     "currentStatus": "Current Status",
     "available": "Available",
     "occupied": "Occupied",
+    "blocked": "Cufame",
     "maintenance": "Suphaa",
     "inventoryCapacity": "Inventory & Capacity",
     "roomNumbers": "Room Numbers",

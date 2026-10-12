@@ -17,16 +17,17 @@ const initTransporter = (): nodemailer.Transporter | null => {
 
   if (email && password) {
     try {
+      // Gmail App Passwords are shown with spaces but must be used without
+      const cleanPassword = password.replace(/\s+/g, '');
+
       transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
+        service: 'gmail',
         auth: {
           user: email,
-          pass: password
+          pass: cleanPassword
         }
       });
-      console.log('✅ Email transporter initialized for Qirb Alga');
+      console.log('✅ Email transporter initialized for Qirb Alga (Gmail)');
       return transporter;
     } catch (err: any) {
       console.error('❌ Failed to create email transporter:', err?.message);
@@ -279,3 +280,178 @@ export const sendPasswordResetEmail = async ({
     return { success: true, simulated: true };
   }
 };
+
+interface SendBookingVerificationEmailParams {
+  to: string;
+  name?: string;
+  code: string;
+}
+
+const getBookingVerificationHtml = (name: string, code: string): string => {
+  const currentYear = new Date().getFullYear();
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Booking Verification Code</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      border: 1px solid #e2e8f0;
+    }
+    .header {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+      padding: 36px 32px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .brand-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0 0 6px 0;
+      color: #ffffff;
+    }
+    .brand-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+      margin: 0;
+      font-weight: 500;
+    }
+    .content {
+      padding: 36px 32px;
+    }
+    .greeting {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+    .text {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0 0 20px 0;
+    }
+    .code-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 2px dashed #22c55e;
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+      margin: 28px 0;
+    }
+    .code-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .code-value {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      color: #15803d;
+      font-family: monospace;
+      margin: 0;
+    }
+    .expiry-note {
+      font-size: 13px;
+      color: #16a34a;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    .footer {
+      background-color: #f1f5f9;
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1 class="brand-title">Qirb Alga - ቅርብ አልጋ</h1>
+      <p class="brand-subtitle">Pension & Room Booking Platform</p>
+    </div>
+    <div class="content">
+      <div class="greeting">Hello ${name || 'Valued Guest'},</div>
+      <p class="text">
+        You are booking a room on Qirb Alga. Please use the verification code below to verify your email and complete your booking:
+      </p>
+      <div class="code-box">
+        <div class="code-label">Your Verification Code</div>
+        <div class="code-value">${code}</div>
+        <div class="expiry-note">⏱️ Code valid for 10 minutes</div>
+      </div>
+      <p class="text" style="font-size: 13px; color: #64748b;">
+        If you did not request this booking code, you can safely disregard this email.
+      </p>
+    </div>
+    <div class="footer">
+      <p style="margin: 0 0 6px 0;">This email was sent by Qirb Alga Platform to verify your booking.</p>
+      <p style="margin: 0;">© ${currentYear} Qirb Alga. All rights reserved. Ethiopia.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+/**
+ * Send booking verification email with OTP code
+ */
+export const sendBookingVerificationEmail = async ({
+  to,
+  name = 'Guest',
+  code
+}: SendBookingVerificationEmailParams): Promise<{ success: boolean; messageId?: string; simulated?: boolean }> => {
+  const mailTransporter = initTransporter();
+
+  console.log(`\n======================================================`);
+  console.log(`📩 BOOKING EMAIL OTP VERIFICATION FOR: ${to}`);
+  console.log(`🔢 6-Digit Code: [ ${code} ]`);
+  console.log(`======================================================\n`);
+
+  if (!mailTransporter) {
+    console.warn(`[EMAIL SIMULATOR] Transporter unavailable. Verification code logged to console above.`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const sender = process.env.SMTP_EMAIL || 'no-reply@qirbalga.com';
+    const info = await mailTransporter.sendMail({
+      from: `"Qirb Alga" <${sender}>`,
+      to,
+      subject: `[Qirb Alga] Your Booking Verification Code: ${code}`,
+      html: getBookingVerificationHtml(name, code)
+    });
+
+    console.log(`✅ Booking verification email sent successfully to ${to}. Message ID: ${info.messageId}`);
+    return { success: true, messageId: info.messageId, simulated: false };
+  } catch (error: any) {
+    console.error(`❌ Failed to send booking verification email via SMTP:`, error?.message || error);
+    return { success: true, simulated: true };
+  }
+};
+

@@ -325,6 +325,7 @@
     "currentStatus": "Current Status",
     "available": "Available",
     "occupied": "Occupied",
+    "blocked": "Xaniban",
     "maintenance": "Dayactirka",
     "inventoryCapacity": "Inventory & Capacity",
     "roomNumbers": "Room Numbers",

@@ -450,6 +450,15 @@ class AvailabilityService {
         }
       });
 
+      // If the block is active today, sync room availability_status to Blocked
+      const now = new Date();
+      if (new Date(data.startDate) <= now && new Date(data.endDate) >= now) {
+        await prisma.room.update({
+          where: { room_id: data.roomId },
+          data: { availability_status: RoomStatus.Blocked }
+        });
+      }
+
       return {
         success: true,
         message: 'Dates blocked successfully',
@@ -464,9 +473,35 @@ class AvailabilityService {
   // Unblock room dates
   async unblockRoomDates(blockId: number) {
     try {
+      const existingBlock = await prisma.roomBlock.findUnique({
+        where: { block_id: blockId }
+      });
+
       await prisma.roomBlock.delete({
         where: { block_id: blockId }
       });
+
+      if (existingBlock) {
+        // Check if there are any remaining active blocks for this room
+        const now = new Date();
+        const activeBlocksCount = await prisma.roomBlock.count({
+          where: {
+            room_id: existingBlock.room_id,
+            start_date: { lte: now },
+            end_date: { gte: now }
+          }
+        });
+
+        if (activeBlocksCount === 0) {
+          const room = await prisma.room.findUnique({ where: { room_id: existingBlock.room_id } });
+          if (room && room.availability_status === RoomStatus.Blocked) {
+            await prisma.room.update({
+              where: { room_id: existingBlock.room_id },
+              data: { availability_status: RoomStatus.Available }
+            });
+          }
+        }
+      }
 
       return {
         success: true,

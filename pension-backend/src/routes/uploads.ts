@@ -47,8 +47,9 @@ const uploadToCloudinary = async (file: any): Promise<string> => {
     
     console.log(' File saved locally:', localPath);
     
-    // Return local file URL
-    return `/uploads/${file.filename}`;
+    // Return full absolute URL so frontend can load it cross-origin
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3006';
+    return `${backendUrl}/uploads/${file.filename}`;
   } catch (error: any) {
     console.error(' Error uploading file:', error);
     throw error;

@@ -130,7 +130,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-slate-600 hover:bg-slate-100" aria-label={t.navbar?.languageLabel || "Language"}>
+                <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900 transition-colors" aria-label={t.navbar?.languageLabel || "Language"}>
 
                   {options.find(opt => opt.value === currentLang) && (
                     <img
@@ -146,7 +146,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   <DropdownMenuItem
                     key={option.value}
                     onClick={() => setLanguage(option.value)}
-                    className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${currentLang === option.value ? "bg-primary/5 text-primary font-bold" : "text-slate-600"}`}
+                    className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl transition-colors ${
+                      currentLang === option.value
+                        ? "bg-primary/10 text-primary font-bold hover:bg-primary/15 hover:text-primary focus:bg-primary/15 focus:text-primary"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900"
+                    }`}
                   >
                     <img
                       src={option.flag}

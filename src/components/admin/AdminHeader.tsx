@@ -43,7 +43,11 @@ export const AdminHeader = () => {
                 <DropdownMenuItem
                   key={option.value}
                   onClick={() => setLanguage(option.value as Language)}
-                  className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${language === option.value ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600"}`}
+                  className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl transition-colors ${
+                    language === option.value
+                      ? "bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 hover:text-blue-700 focus:bg-blue-100 focus:text-blue-700"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900"
+                  }`}
                 >
                   <img
                     src={option.flag}

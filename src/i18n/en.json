@@ -419,6 +419,7 @@
     "available": "Available",
     "availableFuture": "Available (Booked Later)",
     "occupied": "Occupied",
+    "blocked": "Blocked",
     "roomDeleteOccupiedError": "Cannot delete occupied rooms. Please check out the guest first.",
     "roomNumber": "Room Number",
     "type": "Type",

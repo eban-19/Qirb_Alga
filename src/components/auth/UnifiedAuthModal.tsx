@@ -36,8 +36,19 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
   const [isLoading, setIsLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleNext = async () => {
     setError(null);
@@ -66,17 +77,26 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
       const checkRes = await fetch(`http://localhost:3006/api/auth/check-user?identifier=${encodeURIComponent(identifier)}`);
       const checkData = await checkRes.json();
       
+      setIsNewUser(!checkData.exists);
+
       if (method === 'email') {
-        if (checkData.exists) {
-          setStep('password');
-          setIsNewUser(false);
+        // Send OTP to email
+        const response = await fetch('http://localhost:3006/api/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier.trim().toLowerCase() })
+        });
+        const data = await response.json();
+        if (data.success) {
+          setOtpSent(true);
+          setResendTimer(60);
+          setStep('otp');
+          toast.success('Verification code sent to your email!');
         } else {
-          setStep('password'); // Use password step but modify it for registration
-          setIsNewUser(true);
+          setError(data.message || 'Failed to send verification email');
         }
       } else {
-        setIsNewUser(!checkData.exists);
-        // Send OTP
+        // Send OTP to phone
         const response = await fetch('http://localhost:3006/api/otp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -85,6 +105,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
         const data = await response.json();
         if (data.success) {
           setOtpSent(true);
+          setResendTimer(60);
           setStep('otp');
           toast.success('OTP sent to your phone');
         } else {
@@ -98,122 +119,70 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
     }
   };
 
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:3006/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          method === 'email'
+            ? { email: identifier.trim().toLowerCase() }
+            : { phone: identifier.trim() }
+        )
+      });
+      const data = await response.json();
+      if (data.success) {
+        setResendTimer(60);
+        toast.success(method === 'email' ? 'New verification code sent to your email!' : 'New OTP code sent to your phone!');
+      } else {
+        setError(data.message || 'Failed to resend code');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (method === 'email' && isNewUser) {
-      const nameValidation = validateName(fullName, 'Full name', true);
-      if (!nameValidation.isValid) {
-        setError(nameValidation.error);
-        return;
-      }
-
-      const phoneValidation = validatePhone(phoneNumber, true);
-      if (!phoneValidation.isValid) {
-        setError(phoneValidation.error);
-        return;
-      }
-
-      const passValidation = validatePassword(password, true);
-      if (!passValidation.isValid) {
-        setError(passValidation.error);
-        return;
-      }
-    }
-
     setIsLoading(true);
     try {
-      if (method === 'email') {
-        if (isNewUser) {
-          // Register new customer via email
-          const regRes = await fetch('http://localhost:3006/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: identifier.trim().toLowerCase(),
-              password,
-              fullName: fullName.trim(),
-              phone: phoneNumber.trim(),
-              role: 'Customer'
-            })
-          });
-          const regData = await regRes.json();
-          if (regData.success) {
-            // After register, perform login
-            const res = await login(identifier.trim().toLowerCase(), password);
-            if (res.success) {
-              toast.success('Account created successfully!');
-              onSuccess();
-              onClose();
-            } else {
-              setError(res.message || 'Login failed after registration');
-            }
-          } else {
-            setError(regData.message || 'Registration failed');
-          }
-        } else {
-          const res = await login(identifier.trim().toLowerCase(), password);
-          if (res.success) {
-            toast.success('Login successful!');
-            const role = res.data?.user?.role?.toLowerCase() || '';
-            if (role === 'owner') {
-              window.location.href = '/dashboard';
-            } else if (role === 'admin') {
-              window.location.href = '/dashboard/admin';
-            } else {
-              onSuccess();
-              onClose();
-            }
-          } else {
-            setError(res.message || 'Invalid email or password');
-          }
+      if (step === 'otp') {
+        const otpValidation = validateOtpCode(otpCode, 6);
+        if (!otpValidation.isValid) {
+          setError(otpValidation.error);
+          setIsLoading(false);
+          return;
         }
-      } else {
-        if (step === 'otp') {
-          const otpValidation = validateOtpCode(otpCode, 6);
-          if (!otpValidation.isValid) {
-            setError(otpValidation.error);
-            setIsLoading(false);
-            return;
-          }
 
-          // Verify OTP first without logging in
-          const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: identifier.trim(), code: otpCode.trim() })
-          });
-          const verifyData = await verifyRes.json();
-          
-          if (!verifyData.success) {
-            throw new Error(verifyData.message || 'Invalid or expired OTP code');
-          }
+        // Verify OTP first without logging in
+        const verifyPayload = method === 'email'
+          ? { email: identifier.trim().toLowerCase(), code: otpCode.trim() }
+          : { phone: identifier.trim(), code: otpCode.trim() };
 
-          if (isNewUser) {
-            setStep('register_details');
-            setIsLoading(false);
-            return;
-          } else {
-            const res = await otpLogin(identifier.trim(), otpCode.trim());
-            if (res.success) {
-              toast.success('Login successful!');
-              const role = res.data?.user?.role?.toLowerCase() || '';
-              if (role === 'owner') window.location.href = '/dashboard';
-              else if (role === 'admin') window.location.href = '/dashboard/admin';
-              else { onSuccess(); onClose(); }
-            } else {
-              setError(res.message || 'Verification failed. Please check the code.');
-            }
-          }
-        } else if (step === 'register_details') {
-          const nameValidation = validateName(fullName, 'Full name', true);
-          if (!nameValidation.isValid) {
-            setError(nameValidation.error);
-            setIsLoading(false);
-            return;
-          }
-          const res = await otpLogin(identifier.trim(), otpCode.trim(), fullName.trim());
+        const verifyRes = await fetch('http://localhost:3006/api/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(verifyPayload)
+        });
+        const verifyData = await verifyRes.json();
+        
+        if (!verifyData.success) {
+          throw new Error(verifyData.message || 'Invalid or expired OTP code');
+        }
+
+        if (isNewUser) {
+          setStep('register_details');
+          setIsLoading(false);
+          return;
+        } else {
+          const res = await otpLogin(identifier.trim(), otpCode.trim());
           if (res.success) {
             toast.success('Login successful!');
             const role = res.data?.user?.role?.toLowerCase() || '';
@@ -221,8 +190,36 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
             else if (role === 'admin') window.location.href = '/dashboard/admin';
             else { onSuccess(); onClose(); }
           } else {
-            setError(res.message || 'Registration failed.');
+            setError(res.message || 'Verification failed. Please check the code.');
           }
+        }
+      } else if (step === 'register_details') {
+        const nameValidation = validateName(fullName, 'Full name', true);
+        if (!nameValidation.isValid) {
+          setError(nameValidation.error);
+          setIsLoading(false);
+          return;
+        }
+        const res = await otpLogin(identifier.trim(), otpCode.trim(), fullName.trim());
+        if (res.success) {
+          toast.success('Account created and verified successfully!');
+          const role = res.data?.user?.role?.toLowerCase() || '';
+          if (role === 'owner') window.location.href = '/dashboard';
+          else if (role === 'admin') window.location.href = '/dashboard/admin';
+          else { onSuccess(); onClose(); }
+        } else {
+          setError(res.message || 'Registration failed.');
+        }
+      } else if (step === 'password') {
+        const res = await login(identifier.trim().toLowerCase(), password);
+        if (res.success) {
+          toast.success('Login successful!');
+          const role = res.data?.user?.role?.toLowerCase() || '';
+          if (role === 'owner') window.location.href = '/dashboard';
+          else if (role === 'admin') window.location.href = '/dashboard/admin';
+          else { onSuccess(); onClose(); }
+        } else {
+          setError(res.message || 'Invalid email or password');
         }
       }
     } catch (err: any) {
@@ -247,9 +244,7 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
                 ? `Enter the 6-digit code sent to ${identifier}`
                 : step === 'register_details'
                   ? `Almost there! Please provide your full name to complete registration`
-                  : isNewUser 
-                    ? "Create your account to complete your booking."
-                    : "Enter your password to continue."}
+                  : "Enter your password to continue."}
           </DialogDescription>
         </DialogHeader>
 
@@ -317,13 +312,29 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Continue <ArrowRight className="w-5 h-5" /></>}
               </Button>
+              {method === 'email' && (
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setStep('password'); setIsNewUser(false); setError(null); }}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                  >
+                    Or sign in with password
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {step === 'otp' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="otp">6-Digit Code</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="otp">6-Digit Code</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Sent via {method === 'email' ? 'email' : 'SMS'}
+                  </span>
+                </div>
                 <Input
                   id="otp"
                   placeholder="· · · · · ·"
@@ -339,13 +350,23 @@ const UnifiedAuthModal: React.FC<UnifiedAuthModalProps> = ({ isOpen, onClose, on
               <Button type="submit" className="w-full h-14 rounded-xl text-lg font-bold" disabled={isLoading}>
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Continue"}
               </Button>
-              <button 
-                type="button" 
-                className="w-full text-sm text-primary font-medium hover:underline"
-                onClick={() => { setStep('input'); setError(null); }}
-              >
-                Change Phone Number
-              </button>
+              <div className="flex items-center justify-between text-xs pt-1">
+                <button
+                  type="button"
+                  disabled={resendTimer > 0 || isLoading}
+                  onClick={handleResendOtp}
+                  className="text-primary font-semibold hover:underline disabled:text-muted-foreground disabled:no-underline"
+                >
+                  {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend code"}
+                </button>
+                <button 
+                  type="button" 
+                  className="text-muted-foreground font-medium hover:text-foreground"
+                  onClick={() => { setStep('input'); setError(null); }}
+                >
+                  {method === 'email' ? "Change email" : "Change phone"}
+                </button>
+              </div>
             </div>
           )}
 

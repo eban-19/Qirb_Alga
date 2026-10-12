@@ -292,10 +292,13 @@ export const validateConfirmPassword = (
 export const validatePrice = (
   price: string | number,
   fieldLabel = 'Price',
-  required = true,
-  min = 1,
-  max = 10000000
+  requiredOrMin: boolean | number = true,
+  minVal = 1,
+  maxVal = 10000000
 ): ValidationResult => {
+  const required = typeof requiredOrMin === 'boolean' ? requiredOrMin : true;
+  const min = typeof requiredOrMin === 'number' ? requiredOrMin : minVal;
+  const max = maxVal;
   const str = String(price ?? '').trim();
   if (!str) {
     return required ? invalid(`${fieldLabel} is required`) : valid();

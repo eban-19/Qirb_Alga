@@ -50,6 +50,13 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
     const [rooms, total] = await prisma.$transaction([
       prisma.room.findMany({
         where: { pension_id: pensionId },
+        include: {
+          blocks: {
+            where: {
+              end_date: { gt: new Date() }
+            }
+          }
+        },
         orderBy: { created_at: 'desc' },
         take,
         skip
@@ -60,12 +67,30 @@ router.get('/pension/:pensionId', async (req: express.Request, res: express.Resp
     res.json({
       success: true,
       data: {
-        items: rooms.map((r: any) => ({ 
-          ...r, 
-          id: r.room_id, 
-          type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
-          is_available: r.availability_status === RoomStatus.Available
-        })),
+        items: rooms.map((r: any) => {
+          const isCurrentlyBlocked = r.blocks && r.blocks.some((b: any) => {
+            const start = new Date(b.start_date);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(b.end_date);
+            end.setHours(23, 59, 59, 999);
+            const now = new Date();
+            return now >= start && now <= end;
+          });
+
+          let effectiveStatus = r.availability_status;
+          if (r.availability_status === RoomStatus.Available && isCurrentlyBlocked) {
+            effectiveStatus = RoomStatus.Blocked;
+          }
+
+          return { 
+            ...r, 
+            id: r.room_id, 
+            status: effectiveStatus,
+            availability_status: effectiveStatus,
+            type: getMultilingualText(r.room_type_ml as any, language as string) || r.room_type,
+            is_available: effectiveStatus === RoomStatus.Available
+          };
+        }),
         pagination: {
           page: parseInt(page as string),
           limit: take,
@@ -151,12 +176,31 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
             name: true,
             address: true
           }
+        },
+        blocks: {
+          where: {
+            end_date: { gt: new Date() }
+          }
         }
       }
     });
 
     if (!roomData) {
       return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+
+    const isCurrentlyBlocked = (roomData as any).blocks && (roomData as any).blocks.some((b: any) => {
+      const start = new Date(b.start_date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(b.end_date);
+      end.setHours(23, 59, 59, 999);
+      const now = new Date();
+      return now >= start && now <= end;
+    });
+
+    let effectiveStatus = roomData.availability_status;
+    if (roomData.availability_status === RoomStatus.Available && isCurrentlyBlocked) {
+      effectiveStatus = RoomStatus.Blocked;
     }
 
     res.json({
@@ -167,8 +211,10 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
           id: roomData.room_id, 
           pension_name: roomData.pension.name,
           pension_address: roomData.pension.address,
+          status: effectiveStatus,
+          availability_status: effectiveStatus,
           type: getMultilingualText(roomData.room_type_ml as any, language as string) || roomData.room_type,
-          is_available: roomData.availability_status === RoomStatus.Available
+          is_available: effectiveStatus === RoomStatus.Available
         }
       }
     });

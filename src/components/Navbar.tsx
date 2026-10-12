@@ -71,7 +71,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-muted-foreground hover:bg-slate-50" aria-label={t.navbar.languageLabel}>
+              <Button variant="ghost" className="h-9 px-2 gap-1.5 rounded-full text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900 transition-colors" aria-label={t.navbar.languageLabel}>
 
                 {options.find(opt => opt.value === language) && (
                   <img
@@ -87,7 +87,11 @@ const Navbar = () => {
                 <DropdownMenuItem
                   key={option.value}
                   onClick={() => setLanguage(option.value as Language)}
-                  className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl focus:bg-slate-50 transition-colors ${language === option.value ? "bg-primary/5 text-primary font-bold" : "text-slate-600"}`}
+                  className={`cursor-pointer font-semibold gap-3 p-3 rounded-xl transition-colors ${
+                    language === option.value
+                      ? "bg-primary/10 text-primary font-bold hover:bg-primary/15 hover:text-primary focus:bg-primary/15 focus:text-primary"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900"
+                  }`}
                 >
                   <img
                     src={option.flag}

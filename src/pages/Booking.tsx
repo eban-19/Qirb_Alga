@@ -195,7 +195,7 @@ const Booking = () => {
       case 2:
         return !!selectedPackage && (!dynamicPriceData?.errors || dynamicPriceData.errors.length === 0);
       case 3:
-        return formData.fullName && formData.phone;
+        return formData.fullName && (formData.phone || user?.email);
       case 4:
         return formData.paymentMethod && idDocument;
       default:
@@ -430,10 +430,17 @@ const Booking = () => {
       return;
     }
 
-    const phoneVal = validatePhone(formData.phone, true);
-    if (!phoneVal.isValid) {
-      toast.error(phoneVal.error);
+    if (!formData.phone && !user?.email) {
+      toast.error("Please provide your phone number or email address.");
       return;
+    }
+
+    if (formData.phone) {
+      const phoneVal = validatePhone(formData.phone, true);
+      if (!phoneVal.isValid) {
+        toast.error(phoneVal.error);
+        return;
+      }
     }
 
     if (!idDocument) {
@@ -451,7 +458,8 @@ const Booking = () => {
       payload.append('checkIn', formData.checkIn);
       payload.append('checkOut', formData.checkOut);
       payload.append('fullName', formData.fullName);
-      payload.append('phone', formData.phone);
+      payload.append('phone', formData.phone || '');
+      payload.append('email', user?.email || '');
       payload.append('totalPrice', total.toString());
       payload.append('rooms', formData.rooms.toString());
       payload.append('guests', ((selectedPackage?.capacity || 2) * formData.rooms).toString());
@@ -912,9 +920,11 @@ const Booking = () => {
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">{t.booking.phoneNumber || "Phone Number"}</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">
+                          {formData.phone ? (t.booking.phoneNumber || "Phone Number") : "Email Address"}
+                        </div>
                         <div className="text-lg font-semibold flex items-center gap-2">
-                          {formData.phone}
+                          {formData.phone || user?.email}
                           <CheckCircle2 className="w-4 h-4 text-green-500" />
                         </div>
                       </div>

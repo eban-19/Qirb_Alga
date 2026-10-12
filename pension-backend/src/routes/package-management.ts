@@ -29,10 +29,11 @@ interface UploadedFile {
  * Helper function to upload to Cloudinary and delete local file
  */
 const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:3006';
   try {
     // Check if Cloudinary is configured
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      return `/uploads/${file.filename}`;
+      return `${backendUrl}/uploads/${file.filename}`;
     }
 
     // Dynamic import for cloudinary (only when needed)
@@ -50,7 +51,7 @@ const uploadToCloudinary = async (file: UploadedFile): Promise<string> => {
     return result.secure_url;
   } catch (error: any) {
     console.error('❌ Cloudinary upload failed, using local fallback:', error);
-    return `/uploads/${file.filename}`;
+    return `${backendUrl}/uploads/${file.filename}`;
   }
 };
 

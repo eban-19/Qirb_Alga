@@ -80,7 +80,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [internalSearch, setInternalSearch] = useState('');
   const currentSearch = searchQuery !== undefined ? searchQuery : internalSearch;
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Available' | 'Occupied' | 'Maintenance'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Available' | 'Occupied' | 'Maintenance' | 'Blocked'>('all');
 
   const handleSearchChange = (val: string) => {
     if (onSearchChange) {
@@ -97,9 +97,10 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
     return safeRooms.filter((r) => {
       if (statusFilter !== 'all') {
         const rStatus = (r.status || '').toLowerCase();
-        if (statusFilter === 'Available' && !rStatus.includes('available')) return false;
+        if (statusFilter === 'Available' && (!rStatus.includes('available') || rStatus.includes('blocked'))) return false;
         if (statusFilter === 'Occupied' && !rStatus.includes('occupied')) return false;
         if (statusFilter === 'Maintenance' && !rStatus.includes('maintenance')) return false;
+        if (statusFilter === 'Blocked' && !rStatus.includes('blocked')) return false;
       }
       if (currentSearch.trim()) {
         const q = currentSearch.toLowerCase().trim();
@@ -225,6 +226,7 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 <SelectItem value="Available">Available</SelectItem>
                 <SelectItem value="Occupied">Occupied</SelectItem>
                 <SelectItem value="Maintenance">Maintenance</SelectItem>
+                <SelectItem value="Blocked">{t.dashboard?.blocked || "Blocked"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -298,7 +300,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                 <Card key={room.id} className={`group border-none shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white ${selectedRows.includes(room.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className={`h-3 w-full ${room.status === "Available" ? "bg-emerald-500" :
                     room.status === "Available (Future Bookings)" ? "bg-teal-500" :
-                    room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
+                    room.status === "Occupied" ? "bg-blue-500" :
+                    room.status === "Blocked" ? "bg-rose-500" : "bg-slate-400"
                     }`} />
                   <CardContent className="p-8 relative">
                     <div className="absolute top-4 right-4">
@@ -311,7 +314,8 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       <div className="flex items-center gap-3">
                         <div className={`h-14 w-14 flex items-center justify-center rounded-xl font-bold text-xl shadow-lg ${room.status === "Available" ? "bg-emerald-100 text-emerald-700" :
                           room.status === "Available (Future Bookings)" ? "bg-teal-100 text-teal-700" :
-                          room.status === "Occupied" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
+                          room.status === "Occupied" ? "bg-blue-100 text-blue-700" :
+                          room.status === "Blocked" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"
                           }`}>
                           {room.room_number || room.id}
                         </div>
@@ -324,11 +328,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                       </div>
                       <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
                         room.status === "Available (Future Bookings)" ? "bg-teal-500" :
-                        room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
+                        room.status === "Occupied" ? "bg-blue-500" :
+                        room.status === "Blocked" ? "bg-rose-500" : "bg-slate-400"
                         } text-white text-xs px-3 py-1 shadow-sm`}>
                         {room.status === "Available" ? (t.dashboard?.available || 'Available') :
                           room.status === "Available (Future Bookings)" ? (t.dashboard?.availableFuture || 'Available (Booked Later)') :
                           room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
+                          room.status === "Blocked" ? (t.dashboard?.blocked || 'Blocked') :
                             (room.status || 'N/A')}
                       </Badge>
                     </div>
@@ -460,11 +466,13 @@ export const RoomsSection: React.FC<RoomsSectionProps> = ({
                         <TableCell>
                           <Badge className={`${room.status === "Available" ? "bg-emerald-500" :
                             room.status === "Available (Future Bookings)" ? "bg-teal-500" :
-                            room.status === "Occupied" ? "bg-blue-500" : "bg-slate-400"
+                            room.status === "Occupied" ? "bg-blue-500" :
+                            room.status === "Blocked" ? "bg-rose-500" : "bg-slate-400"
                             } text-white text-xs shadow-sm`}>
                             {room.status === "Available" ? (t.dashboard?.available || 'Available') :
                               room.status === "Available (Future Bookings)" ? (t.dashboard?.availableFuture || 'Available (Booked Later)') :
                               room.status === "Occupied" ? (t.dashboard?.occupied || 'Occupied') :
+                              room.status === "Blocked" ? (t.dashboard?.blocked || 'Blocked') :
                                 (room.status || 'N/A')}
                           </Badge>
                         </TableCell>

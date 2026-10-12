@@ -171,7 +171,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         className
       )}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-700/50">
+        <div className="p-6 border-b border-slate-700/50 shrink-0">
           <div className={cn(
             "flex items-center justify-between transition-all duration-300",
             collapsed && !isMobile && "justify-center"
@@ -212,12 +212,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto overflow-x-hidden min-h-0 sidebar-scrollbar">
           {sidebarLinks.map((link) => renderSidebarItem(link))}
         </nav>
 
         {/* Footer - Logout Button */}
-        <div className="p-4 border-t border-slate-700/50">
+        <div className="p-4 border-t border-slate-700/50 shrink-0">
           <button
             onClick={logout}
             className={cn(

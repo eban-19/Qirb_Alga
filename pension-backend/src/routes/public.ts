@@ -91,7 +91,13 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
         },
         packages: {
           include: {
-            rooms: true
+            rooms: {
+              include: {
+                blocks: {
+                  where: { end_date: { gt: new Date() } }
+                }
+              }
+            }
           }
         },
         promotions: {
@@ -111,7 +117,10 @@ router.get('/pensions', async (req: express.Request, res: express.Response, next
 
       const packages = p.packages.map((pkg: any) => ({
         ...pkg,
-        availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
+        availableRoomsCount: pkg.rooms.filter((r: any) =>
+          r.availability_status === RoomStatus.Available &&
+          !(r.blocks && r.blocks.length > 0)
+        ).length
       }));
 
       // Compute average rating and review count from included reviews
@@ -228,7 +237,13 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
       include: {
         packages: {
           include: {
-            rooms: true
+            rooms: {
+              include: {
+                blocks: {
+                  where: { end_date: { gt: new Date() } }
+                }
+              }
+            }
           }
         },
         promotions: {
@@ -264,7 +279,10 @@ router.get('/pensions/:id', async (req: express.Request, res: express.Response, 
 
     const packages = p.packages.map((pkg: any) => ({
       ...pkg,
-      availableRoomsCount: pkg.rooms.filter((r: any) => r.availability_status === RoomStatus.Available).length
+      availableRoomsCount: pkg.rooms.filter((r: any) =>
+        r.availability_status === RoomStatus.Available &&
+        !(r.blocks && r.blocks.length > 0)
+      ).length
     }));
 
     const liveAvailableRooms = packages.reduce((sum: number, pkg: any) => sum + pkg.availableRoomsCount, 0);
@@ -421,12 +439,22 @@ router.get('/availability', async (req: express.Request, res: express.Response) 
           pension_id: pId,
           package_id: pkg.package_id,
           availability_status: { not: RoomStatus.Maintenance },
+          // Exclude rooms with overlapping confirmed/pending bookings
           bookings: {
             none: {
               status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
               AND: [
                 { check_in_date: { lt: checkOutDate } },
                 { check_out_date: { gt: checkInDate } }
+              ]
+            }
+          },
+          // Exclude rooms that are manually blocked for these dates
+          blocks: {
+            none: {
+              AND: [
+                { start_date: { lt: checkOutDate } },
+                { end_date: { gt: checkInDate } }
               ]
             }
           }
@@ -476,7 +504,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
 
     const idDocumentUrl = req.file ? '/uploads/' + req.file.filename : null;
 
-    if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || !phone || !idDocumentUrl) {
+    if (!pensionId || !packageName || !checkIn || !checkOut || !fullName || (!phone && !email) || !idDocumentUrl) {
       return res.status(400).json({ success: false, message: 'Missing required booking information' });
     }
 
@@ -500,7 +528,7 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
       user = await prisma.user.findFirst({
         where: {
           OR: [
-            { phone: phone },
+            phone ? { phone: phone } : undefined,
             email ? { email: email } : undefined
           ].filter(Boolean) as any
         }
@@ -508,13 +536,14 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
     }
 
     if (!user) {
-      // Generate a fallback email if none provided
-      const userEmail = email || `${phone.replace(/\s+/g, '').replace(/\+/g, '')}@guest.qirbalga.com`;
+      // Generate fallback if one of email or phone is missing
+      const userEmail = email || (phone ? `${phone.replace(/\s+/g, '').replace(/\+/g, '')}@guest.qirbalga.com` : `guest_${Date.now()}@guest.qirbalga.com`);
+      const userPhone = phone || null;
 
       user = await prisma.user.create({
         data: {
           full_name: fullName,
-          phone,
+          phone: userPhone,
           email: userEmail,
           role: Role.Customer,
           status: ApprovalStatus.Approved,
@@ -540,13 +569,23 @@ router.post('/bookings', upload.single('idDocument'), async (req: any, res: expr
       where: {
         pension_id: pensionId,
         package_id: pkg.package_id,
-        availability_status: { not: RoomStatus.Maintenance }, // Only exclude rooms under maintenance
+        availability_status: { not: RoomStatus.Maintenance },
+        // Exclude rooms with overlapping confirmed/pending bookings
         bookings: {
           none: {
             status: { in: [BookingStatus.Confirmed, BookingStatus.Pending] },
             AND: [
               { check_in_date: { lt: checkOut } },
               { check_out_date: { gt: checkIn } }
+            ]
+          }
+        },
+        // Exclude rooms that are manually blocked for these dates
+        blocks: {
+          none: {
+            AND: [
+              { start_date: { lt: checkOut } },
+              { end_date: { gt: checkIn } }
             ]
           }
         }

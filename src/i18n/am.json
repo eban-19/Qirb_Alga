@@ -489,6 +489,7 @@
     "selectStatus": "ሁኔታ ይምረጡ",
     "available": "የሚገኝ",
     "occupied": "የተያዘ",
+    "blocked": "የታገደ",
     "maintenance": "ጥገና",
     "packageId": "የጥቅል መለያ",
     "updateRoom": "ክፍል አዘምን",

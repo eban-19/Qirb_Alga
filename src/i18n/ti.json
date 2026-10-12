@@ -325,6 +325,7 @@
     "currentStatus": "Current Status",
     "available": "Available",
     "occupied": "Occupied",
+    "blocked": "ዝተዓጸወ",
     "maintenance": "ጽገና",
     "inventoryCapacity": "Inventory & Capacity",
     "roomNumbers": "Room Numbers",

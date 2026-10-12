@@ -8,6 +8,7 @@ import { Switch } from '../ui/switch';
 import { Package } from '../../types/dashboard';
 import { useLanguage } from '../../hooks/use-language';
 import { filterDecimalInput, validateRequiredText, validatePrice } from '../../utils/validation';
+import { getFullImageUrl } from '../../lib/rooms';
 
 interface AddPackageModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
       setError(nameVal.error);
       return;
     }
-    const priceVal = validatePrice(newPackage.price, 'Price per night', 1);
+    const priceVal = validatePrice(newPackage.price, 'Price per night', true, 1);
     if (!priceVal.isValid) {
       setError(priceVal.error);
       return;
@@ -258,7 +259,7 @@ export const AddPackageModal: React.FC<AddPackageModalProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   {(newPackage.images || []).map((img: string, idx: number) => (
                     <div key={idx} className="relative group aspect-video rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                      <img src={img} alt={`Package ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <img src={getFullImageUrl(img)} alt={`Package ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button
                           variant="destructive"

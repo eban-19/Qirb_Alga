@@ -1,7 +1,7 @@
 import * as express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import prisma from '../lib/prisma';
-import { PolicyCategory, AdjustmentType, Prisma } from '@prisma/client';
+import { AdjustmentType, Prisma } from '@prisma/client';
 import pricingService from '../services/pricingService';
 
 const router = express.Router();
